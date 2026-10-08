@@ -131,8 +131,8 @@ const REGELN = {
     frage: "Was steht direkt vor und direkt nach dem Komma?"
   },
   zuinf: {
-    name: "um … zu + Infinitiv",
-    de: "Bei **um … zu** steht „zu + Infinitiv“ ganz am **Ende**: …, um die Vienesas nach Valparaíso **zu bringen**.",
+    name: "um/ohne … zu + Infinitiv",
+    de: "Bei **um … zu**, **ohne … zu** und **anstatt … zu** steht „zu + Infinitiv“ ganz am **Ende**: …, um die Vienesas nach Valparaíso **zu bringen**. Bei trennbaren Verben steht „zu“ in der Mitte: mit**zu**nehmen.",
     es: "«para llevar las vienesas» → «um die Vienesas **zu bringen**». El infinitivo con «zu» va al final.",
     frage: "Wo steht „zu + Infinitiv“?"
   },
@@ -141,6 +141,60 @@ const REGELN = {
     de: "Ein Relativsatz (der, die, das …) ist ein Nebensatz: Das Verb steht am **Ende**. Die Señora, die neben Sofía **sitzt**, verkauft Tomaten.",
     es: "«la señora que **está sentada** al lado de Sofía» → «die Señora, die neben Sofía **sitzt**». En la oración relativa el verbo va al final.",
     frage: "Wo endet der Relativsatz? Wo steht dort das Verb?"
+  },
+  passivmodal: {
+    name: "Passiv mit Modalverb",
+    de: "Das Modalverb steht auf **Platz 2**, am **Ende** stehen „Partizip + werden“: Die Vienesas **müssen** gekühlt **werden**. Im Nebensatz steht das Modalverb ganz hinten: …, dass sie gekühlt werden **müssen**.",
+    es: "«Las vienesas tienen que ser refrigeradas» → «Die Vienesas **müssen** gekühlt **werden**».",
+    frage: "Welche Verbteile gibt es? Wo steht jeder?"
+  },
+  ersatzinf: {
+    name: "Doppelter Infinitiv",
+    de: "Perfekt oder Konjunktiv II mit Modalverb: „hat/hätte … machen **müssen**“ – am Ende stehen zwei Infinitive. Im Nebensatz steht „hat/hätte“ **vor** den beiden Infinitiven: …, dass ich das Buch nicht **hätte** nehmen dürfen.",
+    es: "«que no debería haber tomado el libro» → «dass ich das Buch nicht **hätte nehmen dürfen**».",
+    frage: "Wo steht „hat/hätte“, wenn es zwei Infinitive gibt?"
+  },
+  jedesto: {
+    name: "je … desto",
+    de: "**Je** + Komparativ …, Verb am **Ende** – **desto** + Komparativ + **Verb** + Subjekt: Je frischer die Vienesas **sind**, desto besser **schmeckt** der Completo.",
+    es: "«Cuanto más frescas, mejor sabe» → «Je frischer sie **sind**, desto besser **schmeckt** er».",
+    frage: "Wo steht das Verb nach „je“, wo nach „desto“?"
+  },
+  relativpraep: {
+    name: "Relativsatz mit Präposition, dessen, deren",
+    de: "Präposition + Relativpronomen stehen am **Anfang**, das Verb am **Ende**: der Stand, **an dem** sie einkauft. Nach **dessen/deren** folgt direkt das Nomen: Rosa, **deren** Paltas berühmt **sind**.",
+    es: "«el puesto en el que compra» → «der Stand, **an dem** sie **einkauft**».",
+    frage: "Womit beginnt der Relativsatz? Wo endet er?"
+  },
+  konj2: {
+    name: "Irreale Bedingung (Konjunktiv II)",
+    de: "Im Wenn-Satz steht das Verb am **Ende** (gemacht **hätte**). Nach dem Komma folgt direkt das Verb des Hauptsatzes: Wenn sie eine Kopie gemacht hätte, **wäre** das Rezept nicht verloren. Ohne „wenn“ steht „hätte“ auf **Platz 1**: **Hätte** sie eine Kopie gemacht, …",
+    es: "«Si hubiera hecho una copia, la receta no estaría perdida» → «Wenn sie eine Kopie gemacht **hätte**, **wäre** …».",
+    frage: "Was steht direkt vor und direkt nach dem Komma?"
+  },
+  sondern: {
+    name: "sondern oder aber?",
+    de: "**sondern** steht nach einer **Verneinung** (nicht, kein) und korrigiert: Die Paltas sind nicht im Garten, **sondern** in der Hütte. **aber** drückt einen Gegensatz ohne Korrektur aus. Beide stehen auf **Platz 0**.",
+    es: "«no … sino» = nicht … **sondern** · «pero» = **aber**.",
+    frage: "Steht vorher „nicht“ oder „kein“?"
+  },
+  partizip: {
+    name: "Partizipialattribut",
+    de: "Alles, was das Nomen genauer beschreibt, steht **zwischen Artikel und Nomen**. Das Partizip (mit Endung) steht direkt vor dem Nomen: **das** von ihrer Großmutter handschriftlich **verfasste Rezeptbuch**. Der ganze Block ist **ein** Satzglied.",
+    es: "«el libro escrito a mano por su abuela» → «das von ihrer Großmutter handschriftlich **verfasste Buch**».",
+    frage: "Wo beginnt und wo endet der Block vor dem Nomen?"
+  },
+  konj1: {
+    name: "Indirekte Rede (Konjunktiv I)",
+    de: "Ohne „dass“ hat die indirekte Rede die Wortstellung eines **Hauptsatzes**: Verb auf **Platz 2** (Er sagt, er **habe** Carmen beliefert). Mit „dass“ steht das Verb am **Ende** (…, dass er Carmen beliefert **habe**).",
+    es: "Sin «dass» el verbo va en la posición 2; con «dass», al final.",
+    frage: "Gibt es ein „dass“? Wo muss das Verb also stehen?"
+  },
+  nominal: {
+    name: "Langes Satzglied auf Platz 1",
+    de: "Ein langer Ausdruck wie „Aufgrund der stark gestiegenen Nachfrage“ ist **ein einziges Satzglied** auf Platz 1. Danach kommt **sofort das Verb**: Aufgrund der Nachfrage **sind** die Vienesas ausverkauft.",
+    es: "Por largo que sea el primer elemento, después viene el verbo.",
+    frage: "Wie lang ist Platz 1? Was kommt danach?"
   }
 };
 
@@ -159,12 +213,12 @@ const SPIEL = {
       /* ---------- A2 · Station 1: Hören ---------- */
       {
         art: "hoeren", name: "Die Fuente de Soda", ort: "Valparaíso", szene: "valpo", zutat: "pan",
-        ruf: "¡Hola, chiquillos! Mein Rezept ist weg! 😱",
+        ruf: "Hallo, Kinder! Mein Rezept ist weg! 😱",
         thema: "Hörverstehen",
         geschichte: "Fiestas Patrias in Valparaíso! Sofía, Matías und Benja besuchen Tía Carmen in ihrer Fuente de Soda. Aber Tía Carmen ist traurig. Sie muss euch etwas erzählen.\n\nLies zuerst die Fragen. Dann hör gut zu. Du kannst den Text **zweimal** hören.",
         hoertext: {
           datei: "completo-a2.mp3",
-          skript: "¡Hola, chiquillos! Schön, dass ihr da seid. Ich bin Tía Carmen.\n\nIch habe ein großes Problem. Am Samstag ist der Completo-Wettbewerb in Viña del Mar. Ich mache jedes Jahr mit. Mein Super-Completo ist sehr berühmt.\n\nAber heute Morgen war mein Rezeptbuch weg! Jemand hat es gestohlen. Ohne Rezept kann ich nicht kochen. Ich habe nur noch das Brot. Das backe ich jeden Morgen selbst.\n\nBitte helft mir! Ihr müsst die Zutaten finden. Fahrt zuerst nach Santiago, zum Mercado Central. Dort arbeitet mein Freund Don Pancho. Er verkauft die besten Vienesas in Chile.\n\nDann fahrt ihr mit dem Bus nach Pucón. Dort wohnt meine Schwester Rosa. Sie hat Paltas in ihrem Garten.\n\nUnd passt auf! Vielleicht ist der Dieb noch in Valparaíso. Viel Glück, chiquillos!"
+          skript: "Hallo, Kinder! Schön, dass ihr da seid. Ich bin Carmen.\n\nIch habe ein großes Problem. Am Samstag ist der Completo-Wettbewerb in Viña del Mar. Ich mache jedes Jahr mit. Mein Super-Completo ist sehr berühmt.\n\nAber heute Morgen war mein Rezeptbuch weg! Jemand hat es gestohlen. Ohne Rezept kann ich nicht kochen. Ich habe nur noch das Brot. Das backe ich jeden Morgen selbst.\n\nBitte helft mir! Ihr müsst die Zutaten finden. Fahrt zuerst nach Santiago, in die große Markthalle. Dort arbeitet mein Freund Pancho. Er verkauft die besten Würstchen in Chile.\n\nDann fahrt ihr mit dem Bus nach Pucón. Dort wohnt meine Schwester Rosa. Sie hat Avocados in ihrem Garten.\n\nUnd passt auf! Vielleicht ist der Dieb noch in Valparaíso. Viel Glück, Kinder!"
         },
         fragen: [
           {
@@ -183,7 +237,7 @@ const SPIEL = {
             frage: "Wo wohnt Tía Carmens Schwester?",
             optionen: ["in Santiago", "in Pucón", "in Viña del Mar"], loesung: "in Pucón",
             erklaerung_de: "„Dann fahrt ihr mit dem Bus **nach Pucón**. Dort wohnt meine Schwester Rosa.“",
-            erklaerung_es: "La hermana (Schwester) Rosa vive en Pucón."
+            erklaerung_es: "La hermana (Schwester) Rosa vive en Pucón. «Avocados» = paltas, «Würstchen» = vienesas."
           }
         ],
         geschafft: "„Danke, dass ihr mir helft!“, sagt Tía Carmen. Sie gibt euch ein frisches Brot. Ihr habt das **🥖 Pan**!"
@@ -360,18 +414,18 @@ const SPIEL = {
       /* ---------- B1 · Station 1: Hören ---------- */
       {
         art: "hoeren", name: "Die Fuente de Soda", ort: "Valparaíso", szene: "valpo", zutat: "pan",
-        ruf: "Chiquillos, ich brauche eure Hilfe!",
+        ruf: "Kinder, ich brauche eure Hilfe!",
         thema: "Hörverstehen",
         geschichte: "Es sind Fiestas Patrias, und überall in Valparaíso hängen chilenische Fahnen. Sofía, Matías und Benja wollen bei Tía Carmen Completos essen. Doch die Fuente de Soda ist geschlossen, und Tía Carmen sieht verzweifelt aus.\n\nLies zuerst die Fragen. Dann hör zu. Du kannst den Text **zweimal** hören.",
         hoertext: {
           datei: "completo-b1.mp3",
-          skript: "¡Hola, chiquillos! Gut, dass ihr endlich da seid. Setzt euch, ich muss euch etwas erzählen.\n\nIhr wisst ja, dass am Samstag in Viña del Mar der große Completo-Wettbewerb stattfindet. Seit fünfzehn Jahren mache ich mit, und dreimal habe ich schon gewonnen.\n\nAber heute Morgen, als ich die Fuente de Soda aufgemacht habe, war das Fenster offen – und mein Rezeptbuch war verschwunden! Das Buch hat meine Großmutter geschrieben. Es gibt keine Kopie.\n\nBrot habe ich zum Glück noch, das backe ich jeden Morgen selbst. Aber für den Rest brauche ich eure Hilfe. Mein alter Freund Don Pancho hat einen Stand im Mercado Central in Santiago. Er weiß genau, welche Vienesas ich immer nehme. Danach müsst ihr nach Pucón fahren, wo meine Schwester Rosa wohnt. Sie hat die besten Paltas im ganzen Süden.\n\nAch ja, und noch etwas: Ich glaube, der Dieb hat einen Zettel verloren. Wenn ihr ihn findet, wisst ihr vielleicht, wer es war. Also los – wir haben nur bis Samstag Zeit!"
+          skript: "Hallo, Kinder! Gut, dass ihr endlich da seid. Setzt euch, ich muss euch etwas erzählen.\n\nIhr wisst ja, dass am Samstag in Viña del Mar der große Completo-Wettbewerb stattfindet. Seit fünfzehn Jahren mache ich mit, und dreimal habe ich schon gewonnen.\n\nAber heute Morgen, als ich meinen Imbiss aufgemacht habe, war das Fenster offen – und mein Rezeptbuch war verschwunden! Das Buch hat meine Großmutter geschrieben. Es gibt keine Kopie.\n\nBrot habe ich zum Glück noch, das backe ich jeden Morgen selbst. Aber für den Rest brauche ich eure Hilfe. Mein alter Freund Pancho hat einen Stand in der großen Markthalle von Santiago. Er weiß genau, welche Würstchen ich immer nehme. Danach müsst ihr nach Pucón fahren, wo meine Schwester Rosa wohnt. Sie hat die besten Avocados im ganzen Süden.\n\nAch ja, und noch etwas: Ich glaube, der Dieb hat einen Zettel verloren. Wenn ihr ihn findet, wisst ihr vielleicht, wer es war. Also los – wir haben nur bis Samstag Zeit!"
         },
         fragen: [
           {
             frage: "Was ist heute Morgen passiert?",
-            optionen: ["Tía Carmen hat vergessen, Brot zu backen.", "Jemand hat das Rezeptbuch aus der Fuente de Soda genommen.", "Das Fenster der Fuente de Soda ist kaputtgegangen."],
-            loesung: "Jemand hat das Rezeptbuch aus der Fuente de Soda genommen.",
+            optionen: ["Tía Carmen hat vergessen, Brot zu backen.", "Jemand hat das Rezeptbuch aus ihrem Imbiss genommen.", "Das Fenster ihres Imbisses ist kaputtgegangen."],
+            loesung: "Jemand hat das Rezeptbuch aus ihrem Imbiss genommen.",
             erklaerung_de: "„… war das Fenster offen – und mein **Rezeptbuch war verschwunden**!“ Das Fenster war offen, aber nicht kaputt.",
             erklaerung_es: "«verschwunden» = desaparecido. La ventana estaba abierta, no rota."
           },
@@ -383,10 +437,10 @@ const SPIEL = {
           },
           {
             frage: "Warum sollen die Kinder zu Don Pancho fahren?",
-            optionen: ["Er weiß, welche Vienesas Tía Carmen benutzt.", "Er hat das Rezeptbuch gefunden.", "Er backt das Brot für die Fuente de Soda."],
-            loesung: "Er weiß, welche Vienesas Tía Carmen benutzt.",
-            erklaerung_de: "„Er weiß genau, **welche Vienesas ich immer nehme**.“",
-            erklaerung_es: "Don Pancho sabe qué vienesas usa siempre Tía Carmen."
+            optionen: ["Er weiß, welche Würstchen Tía Carmen benutzt.", "Er hat das Rezeptbuch gefunden.", "Er backt das Brot für ihren Imbiss."],
+            loesung: "Er weiß, welche Würstchen Tía Carmen benutzt.",
+            erklaerung_de: "„Er weiß genau, **welche Würstchen ich immer nehme**.“",
+            erklaerung_es: "«Würstchen» = vienesas. Don Pancho sabe qué vienesas usa siempre Tía Carmen."
           },
           {
             frage: "Wie oft hat Tía Carmen den Wettbewerb schon gewonnen?",
@@ -564,9 +618,425 @@ const SPIEL = {
     ]
   },
 
-  /* B2 und C1 folgen. Solange hier null steht, zeigt die Startseite „kommt bald“. */
-  B2: null,
-  C1: null
+  /* =================================================================
+     B2 · Klasse 11
+     ================================================================= */
+  B2: {
+    titel: "Ein Rezept mit Geschichte",
+    klasse: "Klasse 11",
+    schwerpunkt: "Passiv mit Modalverb, doppelter Infinitiv, Konjunktiv II, je … desto, Relativsätze mit Präposition, sondern",
+    schluss: "Am Samstag wird in Viña del Mar ein Super-Completo serviert, über den die Jury noch lange sprechen wird. Tía Carmen gewinnt zum vierten Mal – und bedankt sich auf der Bühne bei drei Jugendlichen, ohne die es diesen Completo nicht gegeben hätte. 🏆\n\nDon Lucho, der in der ersten Reihe sitzt, klatscht am lautesten. Seit diesem Tag teilen sich die beiden einen Stand, und Canelo wird von allen Gästen verwöhnt. 🐕\n\nMerk dir: **Das Verb ist das Brot – oben und unten. Der Rest ist Belag!**",
+    stationen: [
+
+      /* ---------- B2 · Station 1: Hören ---------- */
+      {
+        art: "hoeren", name: "Die Fuente de Soda", ort: "Valparaíso", szene: "valpo", zutat: "pan",
+        ruf: "Das kann doch nicht wahr sein!",
+        thema: "Hörverstehen",
+        geschichte: "Valparaíso feiert die Fiestas Patrias. Sofía, Matías und Benja wollen sich bei Tía Carmen mit Completos stärken, doch die Fuente de Soda ist geschlossen. Tía Carmen sitzt mit verweinten Augen hinter der Theke.\n\nLies zuerst die Fragen. Du kannst den Text **zweimal** hören.",
+        hoertext: {
+          datei: "completo-b2.mp3",
+          skript: "Kinder, gut, dass ihr gekommen seid. Ich muss euch etwas erzählen, das ich selbst noch kaum glauben kann.\n\nWie ihr wisst, findet am Samstag in Viña del Mar der große Completo-Wettbewerb statt, an dem ich seit fünfzehn Jahren teilnehme. Hätte mir gestern jemand gesagt, dass ich dieses Jahr vielleicht absagen muss, hätte ich nur gelacht.\n\nAber als ich heute Morgen meinen Laden aufschließen wollte, stand das Küchenfenster offen. Auf den ersten Blick fehlte nichts – weder das Geld in der Kasse noch die Getränke. Erst eine Stunde später ist mir aufgefallen, dass mein Rezeptbuch verschwunden war. Es wurde von meiner Großmutter geschrieben, und es gibt keine einzige Kopie davon.\n\nDie Polizei meint, so ein Fall könne leider nicht vor Samstag aufgeklärt werden. Deshalb brauche ich euch. Das Brot backe ich ohnehin selbst, aber die übrigen Zutaten müssen genau so ausgewählt werden, wie es im Rezept steht. Fahrt zu Pancho in die große Markthalle von Santiago – er ist der Einzige, der weiß, welche Würstchen ich verwende. Danach geht es in den Süden, nach Pucón, zu meiner Schwester Rosa, deren Avocados die besten im ganzen Land sind.\n\nUnd noch etwas: Ein Nachbar hat gesehen, wie der Dieb in der Nacht in der Nähe des Aufzugs am Hafen etwas verloren hat. Wenn ihr das findet, wisst ihr vielleicht, wer dahintersteckt."
+        },
+        fragen: [
+          {
+            frage: "Was hat Tía Carmen bemerkt, als sie den Laden öffnen wollte?",
+            optionen: ["Die Kasse war leer.", "Das Küchenfenster war offen.", "Das Rezeptbuch lag auf dem Boden."], loesung: "Das Küchenfenster war offen.",
+            erklaerung_de: "„… stand **das Küchenfenster offen**. Auf den ersten Blick fehlte nichts – weder das Geld in der Kasse noch die Getränke.“"
+          },
+          {
+            frage: "Wann hat sie gemerkt, dass das Rezeptbuch fehlt?",
+            optionen: ["sofort beim Aufschließen", "erst eine Stunde später", "erst am Abend"], loesung: "erst eine Stunde später",
+            erklaerung_de: "„**Erst eine Stunde später** ist mir aufgefallen, dass mein Rezeptbuch verschwunden war.“"
+          },
+          {
+            frage: "Was sagt die Polizei?",
+            optionen: ["Der Fall kann wahrscheinlich nicht vor Samstag gelöst werden.", "Der Dieb ist schon bekannt.", "Tía Carmen soll nicht am Wettbewerb teilnehmen."], loesung: "Der Fall kann wahrscheinlich nicht vor Samstag gelöst werden.",
+            erklaerung_de: "„Die Polizei meint, so ein Fall **könne leider nicht vor Samstag aufgeklärt werden**.“"
+          },
+          {
+            frage: "Warum sollen die Kinder zu Rosa fahren?",
+            optionen: ["Sie hat die besten Avocados des Landes.", "Sie besitzt eine Kopie des Rezepts.", "Sie hat den Dieb gesehen."], loesung: "Sie hat die besten Avocados des Landes.",
+            erklaerung_de: "„… zu meiner Schwester Rosa, **deren Avocados die besten im ganzen Land sind**.“"
+          }
+        ],
+        geschafft: "„Ihr seid meine letzte Hoffnung“, sagt Tía Carmen und drückt euch ein noch warmes Brot in die Hand. Ihr habt das **🥖 Pan**!"
+      },
+
+      /* ---------- B2 · Station 2: Satzbaustelle ---------- */
+      {
+        art: "bauen", name: "Der Mercado Central", ort: "Santiago", szene: "markt", zutat: "vienesa",
+        anreise: "🚌 Mit dem Bus nach Santiago …",
+        ruf: "Für Carmen habe ich etwas zurückgelegt!",
+        thema: "Passiv mit Modalverb · Konjunktiv II · je … desto",
+        geschichte: "Im Mercado Central herrscht Hochbetrieb, denn vor den Fiestas Patrias wollen alle einkaufen. Don Pancho winkt euch hinter seinem Stand zu.\n\n„Carmen hat mich angerufen – was für eine Geschichte! Die Vienesas, die sie immer nimmt, habe ich zurückgelegt. Aber vorher müsst ihr mir helfen: Meine Notizen für die Lieferung sind völlig durcheinandergeraten.“",
+        aufgaben: [
+          {
+            auftrag: "Bau den Satz im Passiv.",
+            teile: ["Die Vienesas", "[müssen]", "bei vier Grad", "[gelagert]", "[werden]"],
+            auch: ["Bei vier Grad müssen die Vienesas gelagert werden"],
+            regel: "passivmodal"
+          },
+          {
+            auftrag: "Ergänze den Relativsatz.",
+            vorgabe: "Das ist der Stand,",
+            teile: ["an", "dem", "Tía Carmen", "seit zwanzig Jahren", "[einkauft]"],
+            regel: "relativpraep"
+          },
+          {
+            auftrag: "Beginne mit „Wenn“.",
+            teile: ["Wenn", "Tía Carmen", "eine Kopie", "[gemacht]", "[hätte],", "[wäre]", "das Rezept", "jetzt nicht", "[verloren]"],
+            regel: "konj2"
+          },
+          {
+            auftrag: "Beginne mit „Je“.",
+            teile: ["Je", "frischer", "die Vienesas", "[sind],", "desto", "besser", "[schmeckt]", "der Completo"],
+            regel: "jedesto"
+          },
+          {
+            auftrag: "Ergänze den Nebensatz.",
+            vorgabe: "Don Pancho erzählt,",
+            teile: ["dass", "er", "gestern", "bis Mitternacht", "[hat]", "[arbeiten]", "[müssen]"],
+            regel: "ersatzinf"
+          }
+        ],
+        geschafft: "„Ausgezeichnet!“, ruft Don Pancho und packt die Vienesas sorgfältig in eine Kühlbox. Ihr habt die **🌭 Vienesa**!"
+      },
+
+      /* ---------- B2 · Station 3: Verb-Wächter im Bus ---------- */
+      {
+        art: "bus", name: "Im Bus nach Pucón", ort: "Ruta 5 Sur", szene: "bus", zutat: "tomate",
+        anreise: "🚌 Zum Terminal Alameda …",
+        ruf: "Wo fehlt das Verb? ¡Rápido!",
+        thema: "Wo steht das Verb?",
+        haltestellen: ["Santiago", "Rancagua", "Talca", "Chillán", "Temuco", "Pucón"],
+        geschichte: "Im Nachtbus nach Pucón sitzt Señora Teresa neben euch, eine Bäuerin aus der Nähe von Temuco, die einen Korb voller Tomaten dabeihat. Sie ist früher Lehrerin gewesen und kann es nicht lassen:\n\n„In meinen Sätzen fehlt jeweils ein Verb. Wer es schnell an die richtige Stelle setzt, bekommt Tomaten!“\n\nKlick auf die richtige **Lücke**. Beim ersten Versuch läuft die Zeit.",
+        aufgaben: [
+          { satz: "Wegen eines Unfalls [musste] der Bus in Rancagua eine Stunde warten.", regel: "v2" },
+          { satz: "Señora Teresa erzählt, dass ihre Tomaten jeden Morgen von Hand gepflückt [werden].", regel: "ende" },
+          { satz: "Je länger die Fahrt [dauert], desto müder werden die Kinder.", regel: "jedesto" },
+          { satz: "Benja ärgert sich, weil er sein Ladekabel nicht [hat] finden können.", regel: "ersatzinf" },
+          { satz: "Die Señora, mit der Sofía die ganze Nacht [geredet] hat, steigt in Temuco aus.", regel: "relativpraep" }
+        ],
+        geschafft: "Bevor Señora Teresa in Temuco aussteigt, schenkt sie euch die schönsten Tomaten aus ihrem Korb. Am Morgen erreicht ihr Pucón. Ihr habt die **🍅 Tomate**!"
+      },
+
+      /* ---------- B2 · Station 4: Konnektor-Tore am Vulkan ---------- */
+      {
+        art: "tore", name: "Der Vulkan Villarrica", ort: "Pucón", szene: "vulkan", zutat: "palta",
+        anreise: "🥾 Zu Fuß zum Vulkan …",
+        ruf: "Die Paltas liegen oben in der Hütte!",
+        thema: "Relativsätze, Passiv, Konjunktiv II, sondern",
+        geschichte: "Tía Rosa empfängt euch am Fuß des Vulkans. „Die Paltas habe ich in meiner Berghütte gelagert, weil sie dort kühl bleiben“, erklärt sie. „Der Weg ist allerdings durch fünf alte Tore gesichert.“\n\nNur der grammatisch richtige Satz öffnet ein Tor. Ein falscher Satz führt geradewegs zur Lava! 🌋",
+        aufgaben: [
+          {
+            vorgabe: "Tía Rosa zeigt auf eine Hütte,",
+            optionen: ["deren Dach ist mit Schnee bedeckt.", "deren Dach mit Schnee bedeckt ist.", "deren ist das Dach mit Schnee bedeckt."],
+            loesung: "deren Dach mit Schnee bedeckt ist.", regel: "relativpraep"
+          },
+          {
+            vorgabe: "Der Weg ist gefährlich.",
+            optionen: ["Trotzdem darf er von Touristen benutzt werden.", "Trotzdem er darf von Touristen benutzt werden.", "Trotzdem darf er von Touristen werden benutzt."],
+            loesung: "Trotzdem darf er von Touristen benutzt werden.", regel: "passivmodal"
+          },
+          {
+            vorgabe: "Wenn wir früher losgegangen wären,",
+            optionen: ["wir hätten die Hütte schon erreicht.", "hätten wir schon erreicht die Hütte.", "hätten wir die Hütte schon erreicht."],
+            loesung: "hätten wir die Hütte schon erreicht.", regel: "konj2"
+          },
+          {
+            vorgabe: "Die Paltas liegen nicht im Garten,",
+            optionen: ["sondern sie liegen in der Hütte.", "sondern liegen sie in der Hütte.", "aber sie liegen in der Hütte."],
+            loesung: "sondern sie liegen in der Hütte.", regel: "sondern"
+          },
+          {
+            vorgabe: "Tía Rosa ist früher allein hinaufgestiegen,",
+            optionen: ["ohne mitzunehmen eine Taschenlampe.", "ohne eine Taschenlampe zu mitnehmen.", "ohne eine Taschenlampe mitzunehmen."],
+            loesung: "ohne eine Taschenlampe mitzunehmen.", regel: "zuinf"
+          }
+        ],
+        geschafft: "In der Hütte stapeln sich die Kisten. „Für Carmens Super-Completo kommen nur die reifsten in Frage“, sagt Tía Rosa und sucht drei perfekte Paltas aus. Ihr habt die **🥑 Palta**!"
+      },
+
+      /* ---------- B2 · Station 5: Fehlerdetektiv ---------- */
+      {
+        art: "detektiv", name: "Der Zettel am Ascensor", ort: "Valparaíso", szene: "nacht", zutat: "mayo",
+        anreise: "🚌 Mit dem Nachtbus zurück nach Valparaíso …",
+        ruf: "Wuff! 🐕",
+        thema: "Fehler finden und verbessern",
+        geschichte: "Zurück in Valparaíso ist es längst dunkel. Neben dem Ascensor Reina Victoria schnüffelt ein Hund an einem Stück Papier – offenbar der Zettel, von dem der Nachbar erzählt hat.\n\nDer Verfasser schreibt zwar flüssig, hat aber Probleme mit dem Satzbau: **Vier Sätze** sind fehlerhaft. Finde und korrigiere sie.",
+        zettel: {
+          titel: "Ein Zettel am Ascensor",
+          anrede: "Liebe Carmen,",
+          saetze: [
+            "Seit Jahren stehe ich mit meinem Hot-Dog-Stand direkt neben deinem Lokal.",
+            { falsch: "Jeden Tag ich habe zugesehen, wie die Leute vor deiner Tür Schlange stehen.", teile: ["Jeden Tag", "[habe]", "ich", "[zugesehen],", "wie", "die Leute", "vor deiner Tür", "Schlange", "[stehen]"], regel: "v2" },
+            { falsch: "Wenn ich dein Rezept gehabt hätte, ich hätte schon längst gewonnen.", teile: ["Wenn", "ich", "dein Rezept", "[gehabt]", "[hätte],", "[hätte]", "ich", "schon längst", "[gewonnen]"], regel: "konj2" },
+            "Mein Hund Canelo, dem du immer heimlich Vienesas gibst, hat mir den Weg in die Küche gezeigt.",
+            { falsch: "Ich weiß, dass ich das Buch nicht nehmen dürfen hätte.", teile: ["Ich", "[weiß],", "dass", "ich", "das Buch", "nicht", "[hätte]", "[nehmen]", "[dürfen]"], regel: "ersatzinf" },
+            "Am Samstag trage ich, wie immer, meine Colo-Colo-Mütze.",
+            { falsch: "Wer das Buch sucht, er muss im Ascensor nachsehen.", teile: ["Wer", "das Buch", "[sucht],", "[muss]", "im Ascensor", "[nachsehen]"], regel: "vorne" }
+          ],
+          gruss: "Dein Nachbar\n???"
+        },
+        wer: {
+          frage: "Wer hat den Zettel geschrieben? Vergleiche den Zettel mit den Steckbriefen.",
+          verdaechtige: [
+            { name: "Don Pancho", bild: "👴🏻", fakten: ["Er betreibt seit dreißig Jahren einen Stand im Mercado Central.", "Statt eines Hundes hat er eine Katze namens Michi.", "Er besitzt eine Dauerkarte für das Stadion von Colo-Colo."] },
+            { name: "Señora Teresa", bild: "👵🏽", fakten: ["Sie lebt auf einem Hof bei Temuco.", "Ihr Hund bewacht die Tomatenfelder.", "Sie ist Mitglied im Fanclub der U."] },
+            { name: "Don Lucho", bild: "🧔🏽", fakten: ["Sein Stand befindet sich direkt neben einem bekannten Lokal in Valparaíso.", "Er wird überall von seinem Hund begleitet.", "Man sieht ihn nie ohne etwas in Schwarz-Weiß."] }
+          ],
+          loesung: "Don Lucho",
+          erklaerung_de: "Der Verfasser hat einen Stand **neben Carmens Lokal**, einen **Hund** (Canelo) und trägt eine **Colo-Colo-Mütze** (schwarz-weiß). Alle drei Hinweise passen nur zu **Don Lucho**."
+        },
+        geschafft: "Don Lucho öffnet die Tür seines Standes und senkt den Blick. „Ich hätte es nie tun dürfen“, gibt er zu. Er gibt euch das Rezeptbuch zurück – und als Entschuldigung ein Glas seiner selbst gemachten Mayo. Ihr habt die **🥫 Mayo**!"
+      },
+
+      /* ---------- B2 · Station 6: Finale ---------- */
+      {
+        art: "finale", name: "Das Rezept", ort: "Valparaíso", szene: "fuente",
+        anreise: "🏃 Schnell zurück zu Tía Carmen …",
+        ruf: "Die letzte Seite ist zerrissen!",
+        thema: "Das Rezept zusammensetzen",
+        geschichte: "Tía Carmen presst das Rezeptbuch an sich, als hätte sie es nie wieder gesehen. Doch beim Durchblättern stockt sie: Die entscheidende letzte Seite ist in Streifen gerissen.\n\nSetzt die Sätze wieder zusammen, damit der Super-Completo am Samstag gelingt!",
+        aufgaben: [
+          {
+            auftrag: "Beginne mit „Bevor“.",
+            teile: ["Bevor", "die Vienesa", "ins Brot", "[gelegt]", "[wird],", "[muss]", "sie", "fünf Minuten", "[gekocht]", "[werden]"],
+            regel: "passivmodal"
+          },
+          {
+            auftrag: "Ergänze den Relativsatz.",
+            vorgabe: "Entscheidend ist das Brot,",
+            teile: ["dessen", "Kruste", "nicht zu hart", "[sein]", "[darf]"],
+            regel: "relativpraep"
+          },
+          {
+            auftrag: "Beginne mit „Je“.",
+            teile: ["Je", "reifer", "die Palta", "[ist],", "desto", "cremiger", "[wird]", "sie"],
+            regel: "jedesto"
+          },
+          {
+            auftrag: "Bau den Satz mit „ohne … zu“.",
+            teile: ["Die Mayo", "[wird]", "von Hand", "[gerührt],", "ohne", "Öl", "[zu verschwenden]"],
+            regel: "zuinf"
+          }
+        ]
+      }
+    ]
+  },
+
+  /* =================================================================
+     C1 · Klasse 12
+     ================================================================= */
+  C1: {
+    titel: "Der Fall Super-Completo",
+    klasse: "Klasse 12",
+    schwerpunkt: "Partizipialattribute, Konjunktiv I, doppelter Infinitiv, Passiv, Nominalstil, gehobene Konnektoren",
+    schluss: "Am Samstag tritt Carmen Rojas in Viña del Mar an – mit dem vollständigen Rezept ihrer Großmutter. Die Jury zeigt sich nach eigenen Worten „sprachlos“, und der Super-Completo wird zum vierten Mal ausgezeichnet. 🏆\n\nIn ihrer Dankesrede erwähnt Carmen drei Jugendliche, ohne deren Einsatz der Fall nicht hätte aufgeklärt werden können. Don Lucho, der sich öffentlich entschuldigt hat, betreibt seither gemeinsam mit ihr einen Stand. Canelo gilt inzwischen als inoffizielles Maskottchen der Fuente de Soda. 🐕\n\nMerk dir: **Das Verb ist das Brot – oben und unten. Der Rest ist Belag!**",
+    stationen: [
+
+      /* ---------- C1 · Station 1: Hören ---------- */
+      {
+        art: "hoeren", name: "Eine Meldung im Radio", ort: "Valparaíso", szene: "valpo", zutat: "pan",
+        ruf: "Habt ihr das im Radio gehört?",
+        thema: "Hörverstehen: Radiomeldung",
+        geschichte: "Es ist der Morgen vor den Fiestas Patrias. Sofía, Matías und Benja sitzen in der Fuente de Soda von Carmen Rojas – Tía Carmen, wie alle sie nennen. Doch statt Completos gibt es heute nur Kaffee, und aus dem Radio kommt eine Meldung, die das ganze Viertel aufhorchen lässt.\n\nLies zuerst die Fragen. Du kannst die Meldung **zweimal** hören.",
+        hoertext: {
+          datei: "completo-c1.mp3",
+          skript: "Und nun zu einer Meldung aus Valparaíso, die in der Stadt für Aufsehen sorgt.\n\nAus der seit über vierzig Jahren bestehenden Imbissstube von Carmen Rojas ist in der Nacht zum Mittwoch ein handgeschriebenes Rezeptbuch entwendet worden. Das Buch, das von der Großmutter der Inhaberin verfasst worden war, enthält unter anderem das Rezept des sogenannten Super-Completo, mit dem Rojas den regionalen Completo-Wettbewerb bereits dreimal gewonnen hat.\n\nNach Angaben der Polizei seien die Täter vermutlich durch ein gekipptes Küchenfenster eingestiegen. Bargeld oder Wertgegenstände seien nicht entwendet worden, was nach Einschätzung der Ermittler darauf hindeute, dass es der Täter gezielt auf das Rezept abgesehen habe.\n\nRojas selbst zeigte sich im Gespräch mit unserem Sender erschüttert, aber kämpferisch. Sie werde am Samstag in Viña del Mar antreten, notfalls auch ohne Rezept. Unterstützt werde sie dabei von drei Jugendlichen aus der Nachbarschaft, die sich bereit erklärt hätten, die benötigten Zutaten bei langjährigen Lieferanten in Santiago und Pucón zu besorgen.\n\nEin Anwohner will in der Tatnacht beobachtet haben, wie eine Person in der Nähe des historischen Aufzugs am Hafen ein Stück Papier verlor. Die Polizei bittet Zeugen, sich zu melden."
+        },
+        fragen: [
+          {
+            frage: "Was wurde aus der Imbissstube entwendet?",
+            optionen: ["Bargeld und ein Rezeptbuch", "ausschließlich ein handgeschriebenes Rezeptbuch", "Wertgegenstände und Zutaten"], loesung: "ausschließlich ein handgeschriebenes Rezeptbuch",
+            erklaerung_de: "„… ein **handgeschriebenes Rezeptbuch entwendet** … **Bargeld oder Wertgegenstände seien nicht entwendet worden**.“"
+          },
+          {
+            frage: "Was schließen die Ermittler aus dem Tathergang?",
+            optionen: ["Der Täter wurde bei der Tat gestört.", "Der Täter hatte es gezielt auf das Rezept abgesehen.", "Es handelt sich vermutlich um einen Versicherungsbetrug."], loesung: "Der Täter hatte es gezielt auf das Rezept abgesehen.",
+            erklaerung_de: "„… was nach Einschätzung der Ermittler darauf hindeute, dass es der Täter **gezielt auf das Rezept abgesehen** habe.“"
+          },
+          {
+            frage: "Wie reagiert Carmen Rojas auf den Diebstahl?",
+            optionen: ["Sie sagt ihre Teilnahme am Wettbewerb ab.", "Sie bietet eine Belohnung für das Buch an.", "Sie will trotzdem am Wettbewerb teilnehmen."], loesung: "Sie will trotzdem am Wettbewerb teilnehmen.",
+            erklaerung_de: "„Sie **werde am Samstag in Viña del Mar antreten**, notfalls auch ohne Rezept.“ – erschüttert, aber kämpferisch."
+          },
+          {
+            frage: "Was will ein Anwohner beobachtet haben?",
+            optionen: ["wie jemand durch das Küchenfenster gestiegen ist", "wie jemand in der Nähe des Aufzugs ein Papier verloren hat", "wie drei Jugendliche die Imbissstube betreten haben"], loesung: "wie jemand in der Nähe des Aufzugs ein Papier verloren hat",
+            erklaerung_de: "„Ein Anwohner **will** … beobachtet haben, wie eine Person **in der Nähe des historischen Aufzugs** am Hafen **ein Stück Papier verlor**.“ – „will beobachtet haben“ = er behauptet es."
+          }
+        ],
+        geschafft: "Tía Carmen stellt das Radio leiser und sieht euch an. „Ihr habt es gehört – ich habe euch schon angekündigt.“ Sie reicht euch ein frisch gebackenes Brot. Ihr habt das **🥖 Pan**!"
+      },
+
+      /* ---------- C1 · Station 2: Satzbaustelle ---------- */
+      {
+        art: "bauen", name: "Der Mercado Central", ort: "Santiago", szene: "markt", zutat: "vienesa",
+        anreise: "🚌 Mit dem Bus nach Santiago …",
+        ruf: "Für Carmen ist immer etwas da.",
+        thema: "Partizipialattribute · Konjunktiv I · Nominalstil",
+        geschichte: "Im Mercado Central drängen sich Touristen zwischen Fischständen und Restaurants. Don Pancho, seit über dreißig Jahren Carmens Lieferant, hat die Radiomeldung ebenfalls gehört.\n\n„Eine Schande ist das“, schimpft er. „Ich habe für Carmen eine Kiste zurückgelegt, obwohl ich seit Tagen kaum noch Ware habe. Aber helft mir erst, meine Notizen für die Polizei zu ordnen – ich bin völlig durcheinander.“",
+        aufgaben: [
+          {
+            auftrag: "Bau den Satz.",
+            teile: ["Das", "von ihrer Großmutter", "handschriftlich verfasste", "Rezeptbuch", "[gilt]", "seit Mittwoch", "als verschollen"],
+            auch: ["Seit Mittwoch gilt das von ihrer Großmutter handschriftlich verfasste Rezeptbuch als verschollen", "Das handschriftlich verfasste Rezeptbuch von ihrer Großmutter gilt seit Mittwoch als verschollen"],
+            regel: "partizip"
+          },
+          {
+            auftrag: "Ergänze die indirekte Rede ohne „dass“.",
+            vorgabe: "Don Pancho versichert,",
+            teile: ["er", "[habe]", "Carmen", "seit Jahren", "dieselbe Sorte", "[geliefert]"],
+            auch: ["er habe seit Jahren Carmen dieselbe Sorte geliefert"],
+            regel: "konj1"
+          },
+          {
+            auftrag: "Beginne mit „Aufgrund“.",
+            teile: ["Aufgrund", "der stark gestiegenen Nachfrage", "[sind]", "die Vienesas", "bereits seit Tagen", "[ausverkauft]"],
+            regel: "nominal"
+          },
+          {
+            auftrag: "Bau den Satz.",
+            teile: ["Die", "noch heute", "nach Valparaíso", "zu bringenden", "Vienesas", "[liegen]", "bereits", "in der Kühlbox"],
+            auch: ["Die nach Valparaíso noch heute zu bringenden Vienesas liegen bereits in der Kühlbox"],
+            regel: "partizip", tipp: "„zu bringende“ ist ein Gerundiv: „die Vienesas, die gebracht werden müssen“."
+          },
+          {
+            auftrag: "Ergänze den Nebensatz.",
+            vorgabe: "Don Pancho meint,",
+            teile: ["dass", "Carmen", "das Buch", "besser", "[hätte]", "[verstecken]", "[sollen]"],
+            regel: "ersatzinf"
+          }
+        ],
+        geschafft: "Don Pancho überreicht euch die Kühlbox mit einer feierlichen Geste. „Richtet Carmen aus, sie könne auf mich zählen.“ Ihr habt die **🌭 Vienesa**!"
+      },
+
+      /* ---------- C1 · Station 3: Verb-Wächter im Bus ---------- */
+      {
+        art: "bus", name: "Im Bus nach Pucón", ort: "Ruta 5 Sur", szene: "bus", zutat: "tomate",
+        anreise: "🚌 Zum Terminal Alameda …",
+        ruf: "Wo fehlt das Verb? ¡Rápido!",
+        thema: "Wo steht das Verb?",
+        haltestellen: ["Santiago", "Rancagua", "Talca", "Chillán", "Temuco", "Pucón"],
+        geschichte: "Im Nachtbus Richtung Süden kommt ihr mit Señora Teresa ins Gespräch, einer Landwirtin aus der Araucanía, die auf dem Rückweg von einer Messe in Santiago ist. Sie erweist sich als leidenschaftliche Rätselfreundin.\n\n„In jedem meiner Sätze fehlt ein Verb“, sagt sie lächelnd. „Mal sehen, ob ihr schneller seid als meine Enkel.“\n\nKlick auf die richtige **Lücke**. Beim ersten Versuch läuft die Zeit.",
+        aufgaben: [
+          { satz: "Infolge der nächtlichen Sperrung der Ruta 5 [verzögerte] sich die Abfahrt um eine Stunde.", regel: "nominal" },
+          { satz: "Señora Teresa erzählt, ihr Hof [werde] seit drei Generationen von Frauen geführt.", regel: "konj1" },
+          { satz: "Obwohl die Tomaten noch hätten reifen [müssen], hat sie sie gestern gepflückt.", regel: "ersatzinf" },
+          { satz: "Kaum [hatte] der Bus Temuco verlassen, schliefen alle ein.", regel: "v2", tipp: "„Kaum“ steht auf Platz 1 – wie „deshalb“ oder „dann“." },
+          { satz: "Sofía fragt sich, wer das Rezept gestohlen haben [könnte].", regel: "nebenklammer" }
+        ],
+        geschafft: "Kurz vor Temuco weckt euch Señora Teresa und drückt euch eine Tüte mit sonnenreifen Tomaten in die Hand. „Für die Rätselmeister!“ Ihr habt die **🍅 Tomate**!"
+      },
+
+      /* ---------- C1 · Station 4: Konnektor-Tore am Vulkan ---------- */
+      {
+        art: "tore", name: "Der Vulkan Villarrica", ort: "Pucón", szene: "vulkan", zutat: "palta",
+        anreise: "🥾 Zu Fuß zum Vulkan …",
+        ruf: "Die Paltas lagern oben in der Hütte!",
+        thema: "Gehobene Konnektoren, Konjunktiv, doppelter Infinitiv",
+        geschichte: "Tía Rosa, Carmens jüngere Schwester, betreibt am Hang des Villarrica eine kleine Avocado-Plantage. Die reifen Früchte lagert sie in einer Hütte weiter oben, wo es kühler ist.\n\n„Der Pfad dorthin führt durch fünf Tore, die noch aus der Zeit meines Vaters stammen“, erklärt sie. „Wer einen fehlerhaften Satz wählt, landet – bildlich gesprochen – in der Lava.“ 🌋",
+        aufgaben: [
+          {
+            vorgabe: "Der Aufstieg ist nur erlaubt,",
+            optionen: ["sofern lässt die Vulkanaktivität es zu.", "sofern die Vulkanaktivität es zulässt.", "sofern die Vulkanaktivität zulässt es."],
+            loesung: "sofern die Vulkanaktivität es zulässt.", regel: "ende"
+          },
+          {
+            vorgabe: "Tía Rosa hatte uns gewarnt.",
+            optionen: ["Wir hätten den Aufstieg nicht so spät beginnen sollen.", "Wir hätten den Aufstieg nicht so spät sollen beginnen.", "Wir hätten sollen den Aufstieg nicht so spät beginnen."],
+            loesung: "Wir hätten den Aufstieg nicht so spät beginnen sollen.", regel: "ersatzinf"
+          },
+          {
+            vorgabe: "Die Hütte ist schwer zu finden,",
+            optionen: ["zumal ist der Weg nicht ausgeschildert.", "zumal der Weg ist nicht ausgeschildert.", "zumal der Weg nicht ausgeschildert ist."],
+            loesung: "zumal der Weg nicht ausgeschildert ist.", regel: "ende"
+          },
+          {
+            vorgabe: "Tía Rosa behauptet,",
+            optionen: ["sie habe die besten Paltas des Südens.", "sie die besten Paltas des Südens habe.", "habe sie die besten Paltas des Südens."],
+            loesung: "sie habe die besten Paltas des Südens.", regel: "konj1"
+          },
+          {
+            vorgabe: "Während Benja den Ausblick genießt,",
+            optionen: ["Sofía sucht bereits nach den Paltas.", "sucht Sofía bereits nach den Paltas.", "Sofía bereits nach den Paltas sucht."],
+            loesung: "sucht Sofía bereits nach den Paltas.", regel: "vorne"
+          }
+        ],
+        geschafft: "In der Hütte duftet es nach reifen Früchten. Tía Rosa wählt drei Paltas aus, „die selbst unsere Großmutter für würdig befunden hätte“. Ihr habt die **🥑 Palta**!"
+      },
+
+      /* ---------- C1 · Station 5: Fehlerdetektiv ---------- */
+      {
+        art: "detektiv", name: "Der Brief am Ascensor", ort: "Valparaíso", szene: "nacht", zutat: "mayo",
+        anreise: "🚌 Mit dem Nachtbus zurück nach Valparaíso …",
+        ruf: "Wuff! 🐕",
+        thema: "Fehler finden und verbessern",
+        geschichte: "Zurück in Valparaíso führt euch der Hinweis aus der Radiomeldung zum Ascensor Reina Victoria. Unter einer Bank liegt ein sorgfältig gefalteter Brief – adressiert an Carmen Rojas.\n\nDer Verfasser bemüht sich um einen gehobenen Stil, scheitert aber an der Wortstellung: **Vier Sätze** sind fehlerhaft. Korrigiere sie und finde heraus, wer den Brief geschrieben hat.",
+        zettel: {
+          titel: "Ein Brief am Ascensor",
+          anrede: "Sehr geehrte Frau Rojas,",
+          saetze: [
+            "Seit nunmehr zwölf Jahren betreibe ich meinen Hot-Dog-Stand unmittelbar neben Ihrer Fuente de Soda.",
+            { falsch: "Angesichts Ihres anhaltenden Erfolgs ich konnte der Versuchung nicht widerstehen.", teile: ["Angesichts Ihres anhaltenden Erfolgs", "[konnte]", "ich", "der Versuchung", "nicht", "[widerstehen]"], regel: "nominal" },
+            { falsch: "Mir ist bewusst, dass ich das Buch niemals nehmen hätte dürfen.", teile: ["Mir", "[ist]", "bewusst,", "dass", "ich", "das Buch", "niemals", "[hätte]", "[nehmen]", "[dürfen]"], regel: "ersatzinf" },
+            "Mein Hund Canelo, dem Sie stets heimlich Vienesas zustecken, wies mir den Weg in Ihre Küche.",
+            { falsch: "Das von mir sorgfältig Buch versteckte befindet sich im Ascensor.", teile: ["Das", "von mir", "sorgfältig", "versteckte", "Buch", "[befindet]", "sich", "im Ascensor"], auch: ["Das sorgfältig von mir versteckte Buch befindet sich im Ascensor"], regel: "partizip" },
+            { falsch: "Sollten Sie trotzdem gewinnen, ich werde Ihnen als Erster gratulieren.", teile: ["[Sollten]", "Sie", "trotzdem", "[gewinnen],", "[werde]", "ich", "Ihnen", "als Erster", "[gratulieren]"], regel: "vorne" },
+            "Am Samstag erkennen Sie mich an meiner schwarz-weißen Mütze."
+          ],
+          gruss: "Hochachtungsvoll\nIhr Nachbar"
+        },
+        wer: {
+          frage: "Wer hat den Brief verfasst? Vergleiche den Brief mit den Steckbriefen.",
+          verdaechtige: [
+            { name: "Don Pancho", bild: "👴🏻", fakten: ["Inhaber eines Standes im Mercado Central – seit über dreißig Jahren.", "Hält in seiner Wohnung eine Katze.", "Dauerkarteninhaber bei Colo-Colo."] },
+            { name: "Señora Teresa", bild: "👵🏽", fakten: ["Landwirtin aus der Region Araucanía.", "Ihr Hof wird von einem Schäferhund bewacht.", "Leidenschaftliche Anhängerin der Universidad de Chile."] },
+            { name: "Don Lucho", bild: "🧔🏽", fakten: ["Betreibt seit zwölf Jahren einen Imbissstand in Valparaíso.", "Wird stets von einem Straßenhund begleitet, den er adoptiert hat.", "Trägt bei jedem Spiel die Farben von Colo-Colo."] }
+          ],
+          loesung: "Don Lucho",
+          erklaerung_de: "Der Verfasser betreibt **seit zwölf Jahren** einen Stand **neben der Fuente de Soda**, hat einen **Hund** und trägt eine **schwarz-weiße Mütze** (Colo-Colo). Nur bei **Don Lucho** treffen alle Hinweise zu."
+        },
+        geschafft: "Don Lucho wartet bereits vor seinem Stand, als hätte er mit euch gerechnet. „Ich hätte der Versuchung widerstehen müssen“, räumt er ein und übergibt euch das Rezeptbuch – zusammen mit einem Glas Mayo nach eigenem Rezept, „als bescheidene Wiedergutmachung“. Ihr habt die **🥫 Mayo**!"
+      },
+
+      /* ---------- C1 · Station 6: Finale ---------- */
+      {
+        art: "finale", name: "Das Rezept", ort: "Valparaíso", szene: "fuente",
+        anreise: "🏃 Schnell zurück zu Tía Carmen …",
+        ruf: "Die entscheidende Seite ist zerrissen!",
+        thema: "Das Rezept zusammensetzen",
+        geschichte: "Carmen Rojas blättert mit zitternden Händen durch das Rezeptbuch ihrer Großmutter. Alles ist da – bis auf die letzte Seite, die offenbar beim Verstecken zerrissen wurde.\n\nRekonstruiert die Sätze, damit das Geheimnis des Super-Completo nicht für immer verloren ist.",
+        aufgaben: [
+          {
+            auftrag: "Beginne mit „Erst nachdem“.",
+            teile: ["Erst nachdem", "die Vienesa", "fünf Minuten", "[gegart]", "[worden]", "[ist],", "[darf]", "sie", "ins Brot", "[gelegt]", "[werden]"],
+            regel: "passivmodal"
+          },
+          {
+            auftrag: "Bau den Satz.",
+            teile: ["Die", "mit Salz und Zitrone", "fein", "zerdrückte", "Palta", "[verleiht]", "dem Completo", "seinen Geschmack"],
+            auch: ["Die fein mit Salz und Zitrone zerdrückte Palta verleiht dem Completo seinen Geschmack"],
+            regel: "partizip"
+          },
+          {
+            auftrag: "Ergänze die indirekte Rede ohne „dass“.",
+            vorgabe: "Die Großmutter schrieb,",
+            teile: ["die Mayo", "[dürfe]", "keinesfalls", "im Voraus", "[zubereitet]", "[werden]"],
+            auch: ["die Mayo dürfe im Voraus keinesfalls zubereitet werden"],
+            regel: "konj1"
+          },
+          {
+            auftrag: "Beginne mit „Hätte“.",
+            teile: ["[Hätte]", "Don Lucho", "das Rezept", "nicht", "[zurückgegeben],", "[hätte]", "Carmen", "den Wettbewerb", "nie", "[gewinnen]", "[können]"],
+            regel: "konj2"
+          }
+        ]
+      }
+    ]
+  }
 };
 </script>
 
