@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deutsch-Spiele</title>
+<script>
+/* =====================================================================
+   STARTSEITE · DEUTSCH-SPIELE
+   =====================================================================
+
+   ANLEITUNG: EIN NEUES SPIEL HINZUFÜGEN
+   ---------------------------------------------------------------------
+   1. Die Spieldatei (z. B. "verben-rallye.html") in denselben Ordner
+      wie diese Startseite hochladen.
+   2. Unten in der Liste SPIELE einen vorhandenen Block kopieren –
+      von der öffnenden {  bis zur schließenden },  – und die Texte
+      ändern. Die Reihenfolge in der Liste = Reihenfolge auf der Seite.
+   3. Speichern, hochladen, fertig: Die neue Karte erscheint automatisch.
+      Wenn etwas fehlt, zeigt die Seite oben einen gelben Hinweis.
+
+   FELDER EINES SPIELS
+     datei       : Dateiname der Spieldatei, z. B. "kasus-code.html"
+     titel       : Name des Spiels
+     bild        : 1–3 Emojis für das Titelbild, z. B. "🔐🔭✨"
+     farbe       : Farbe des Titelbilds, z. B. "#1f618d"
+     kurz        : ein Satz – worum geht es?
+     beschreibung: 2–3 Sätze für die Schülerinnen und Schüler (du-Form)
+     sospielst   : Liste mit 2–4 kurzen Schritten
+     niveaus     : pro Niveau eine kurze Themenangabe
+                   { A2: "…", B1: "…" } – nicht vorhandene Niveaus weglassen
+     typ         : z. B. "Escape Room", "Quiz", "Rallye"
+     dauer       : z. B. "30–45 Min. pro Niveau"
+     spanisch    : (optional) ein Satz auf Spanisch
+     neu         : (optional) true → Kennzeichen „NEU“
+     speicher    : (optional) Name des Spielstands im Browser – dann zeigt
+                   die Karte „Weiterspielen“, wenn ein Spiel gespeichert ist.
+                   Nur für Spiele, die den Spielstand so speichern
+                   (Kasus-Code und Artikel-Detektive tun das).
+     lehrerseite : (optional) true → Link zur Prüfcode-Kontrolle (#lehrer)
+                   erscheint unten im Bereich „Für Lehrkräfte“
+   ===================================================================== */
+
+const SEITE = {
+  titel: "Deutsch-Spiele",
+  untertitel: "Escape Rooms und Rätsel für deine Grammatik – im Browser, ohne Anmeldung.",
+  spanisch: "Juegos para practicar gramática alemana. Elige un juego y tu nivel (A2–C1)."
+};
+
+const SPIELE = [
+  {
+    datei: "kasus-code.html",
+    titel: "Kasus-Code",
+    bild: "🔐🔭✨",
+    farbe: "#1f3a68",
+    kurz: "Ein Escape Room mit Geschichte: Löse Grammatik-Rätsel und knacke die Türcodes.",
+    beschreibung: "Du bist mit Sofía, Matías und Benja eingeschlossen – im Observatorium in der Atacama, in einem alten Haus in Valparaíso, im Archiv in Concepción oder auf einer Forschungsstation. Jede richtige Antwort gibt dir eine Zahl für das Türschloss.",
+    sospielst: [
+      "Wähle dein Niveau (A2–C1).",
+      "Löse in jedem Raum die Aufgaben – du hast immer zwei Versuche.",
+      "Gib den Code ins Türschloss ein und geh in den nächsten Raum.",
+      "Am Ende bekommst du einen Prüfcode für Google Classroom."
+    ],
+    niveaus: {
+      A2: "Verben mit Akkusativ/Dativ, Wo? oder Wohin?",
+      B1: "Possessivartikel, Pronomen-Wortstellung, stellen/stehen …",
+      B2: "Adjektive nach Präpositionen, Verben mit Präposition, Relativsätze",
+      C1: "Funktionsverbgefüge, Redewendungen, Fehlersuche"
+    },
+    typ: "Escape Room",
+    dauer: "30–45 Min. pro Niveau",
+    spanisch: "Un escape room: resuelve ejercicios de casos y abre las puertas.",
+    speicher: "kasuscode.spiel.v1",
+    lehrerseite: true
+  },
+  {
+    datei: "artikel-detektive.html",
+    titel: "Artikel-Detektive",
+    bild: "🕵️✉️🔑",
+    farbe: "#6e2c00",
+    kurz: "Ein Point-and-Click-Abenteuer: Untersuche gezeichnete Räume und finde die Schlüssel.",
+    beschreibung: "Klick auf Briefe, Postkarten und Zettel – darauf stehen Rätsel zu Artikeln und Possessivartikeln. Jeder gelöste Gegenstand gibt dir ein Schlüsselteil. Aber Vorsicht: Nicht alles hilft dir. Manche Zettel sind Fallen – und manche verstecken einen Witz!",
+    sospielst: [
+      "Wähle dein Niveau (A2–C1).",
+      "Klick auf die Gegenstände im Raum und löse die Aufgaben.",
+      "Sammle drei Schlüsselteile und zieh den Schlüssel zur Tür.",
+      "Finde alle versteckten Witze 🃏 – wer schafft alle?"
+    ],
+    niveaus: {
+      A2: "Artikel in allen Fällen, Personalpronomen, Wo?/Wohin?",
+      B1: "Possessivartikel, Pronomen-Wortstellung, Positionsverben",
+      B2: "Adjektivendungen in allen Fällen, Relativsätze mit dessen/deren",
+      C1: "Nominalstil, Funktionsverbgefüge, Redewendungen"
+    },
+    typ: "Point-and-Click",
+    dauer: "30–45 Min. pro Niveau",
+    spanisch: "Haz clic en los objetos, resuelve los ejercicios de artículos y encuentra la llave.",
+    neu: true,
+    speicher: "artikeldetektive.spiel.v1",
+    lehrerseite: true
+  }
+
+  /* ---- Neues Spiel hier einfügen: Komma nach der } oben nicht vergessen! ----
+  ,{
+    datei: "neues-spiel.html",
+    titel: "Neues Spiel",
+    bild: "🎲",
+    farbe: "#117864",
+    kurz: "…",
+    beschreibung: "…",
+    sospielst: ["…", "…"],
+    niveaus: { A2: "…", B1: "…" },
+    typ: "Quiz",
+    dauer: "20 Min.",
+    neu: true
+  }
+  ------------------------------------------------------------------------ */
+];
+</script>
+<style>
+:root{
+  --bg:#0b1626; --panel:#14243b; --panel2:#1c3150; --line:#3b5a85;
+  --text:#f4f6fa; --muted:#c3cede; --accent:#ffd166; --accent-text:#1a1a1a; --focus:#ffe066;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);background-image:radial-gradient(ellipse at 20% 0%,#1b2f52 0%,transparent 55%),radial-gradient(ellipse at 90% 100%,#2a1d3d 0%,transparent 50%);background-attachment:fixed;
+  color:var(--text);font-family:Roboto,Arial,"Segoe UI",system-ui,sans-serif;font-size:19px;line-height:1.5;min-height:100vh}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:4px solid var(--focus);outline-offset:3px}
+main{max-width:1180px;margin:0 auto;padding:1.5em 16px 3em}
+header.hero{text-align:center;padding:1em 0 .5em}
+.hero h1{font-size:2.4em;margin:.1em 0 .2em;line-height:1.1}
+.hero p{margin:.2em auto;max-width:760px}
+.hero .es{color:var(--muted);font-size:.9em}
+.filter{display:flex;gap:.5em;justify-content:center;flex-wrap:wrap;margin:1.2em 0 1.4em}
+.filter button{font:inherit;color:var(--text);background:var(--panel2);border:2px solid var(--line);border-radius:999px;padding:.3em 1.1em;min-height:46px;cursor:pointer}
+.filter button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-weight:800}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,500px),1fr));gap:1.2em}
+.game{background:var(--panel);border:2px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.banner{position:relative;height:150px;display:flex;align-items:center;justify-content:center;font-size:64px;letter-spacing:.15em}
+.banner::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.18),transparent 60%)}
+.tagneu{position:absolute;top:12px;right:12px;background:var(--accent);color:var(--accent-text);font-weight:800;font-size:15px;letter-spacing:.05em;line-height:1.6;border-radius:8px;padding:.1em .6em}
+.typ{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.45);border-radius:8px;padding:.1em .6em;font-size:15px;letter-spacing:normal;line-height:1.6}
+.body{padding:1em 1.3em 1.3em;display:flex;flex-direction:column;gap:.5em;flex:1}
+.body h2{margin:0;font-size:1.5em}
+.kurz{font-weight:700;margin:0}
+.desc{margin:0;color:#e3e8f0}
+.es{color:var(--muted);font-size:.88em;margin:0}
+h3{font-size:.95em;margin:.5em 0 .1em;color:var(--accent)}
+ol.steps{margin:0;padding-left:1.3em}
+ol.steps li{margin:.1em 0}
+.levels{list-style:none;margin:0;padding:0;display:grid;gap:.3em}
+.levels li{display:flex;gap:.6em;align-items:baseline}
+.lv{display:inline-block;min-width:2.6em;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;font-weight:800;font-size:.85em;padding:0 .3em}
+.levels li.hit .lv{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
+.meta{color:var(--muted);font-size:.85em;margin:.3em 0 0}
+.actions{display:flex;gap:.6em;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:.8em}
+.play{display:inline-flex;align-items:center;gap:.4em;background:var(--accent);color:var(--accent-text);font-weight:800;text-decoration:none;border-radius:14px;padding:.55em 1.3em;min-height:48px}
+.play:hover{background:#ffe08f}
+.saved{font-size:.85em;background:#103a26;border:2px solid #5ee08f;border-radius:999px;padding:.1em .8em}
+.empty{text-align:center;color:var(--muted);padding:2em}
+.info{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1em;margin-top:2em}
+.info .card{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:1em 1.2em}
+.info h2{font-size:1.1em;margin:0 0 .4em}
+.info p,.info ul{margin:.2em 0;font-size:.92em}
+.info ul{padding-left:1.2em}
+details.teacher{margin-top:2em;background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:.6em 1.2em}
+details.teacher summary{cursor:pointer;font-weight:700;min-height:40px;display:flex;align-items:center}
+details.teacher li{margin:.3em 0}
+.warnbox{background:#4a3a00;border:2px solid var(--accent);border-radius:12px;padding:.6em 1em;margin:1em 0;font-size:.9em}
+footer{text-align:center;color:var(--muted);font-size:.85em;margin-top:2.5em}
+@media (max-width:600px){ body{font-size:18px} .hero h1{font-size:1.8em} .banner{height:110px;font-size:48px} }
+@media (prefers-reduced-motion:no-preference){ .game{transition:transform .15s} .game:hover{transform:translateY(-3px)} }
+</style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <h1 id="seitentitel"></h1>
+    <p id="untertitel"></p>
+    <p class="es" lang="es" id="spanisch"></p>
+  </header>
+  <div id="warn"></div>
+  <nav class="filter" aria-label="Nach Niveau filtern" id="filter"></nav>
+  <section class="grid" id="spiele" aria-live="polite"></section>
+
+  <section class="info" aria-label="Hinweise">
+    <div class="card">
+      <h2>💾 Dein Spielstand</h2>
+      <p>Das Spiel merkt sich deinen Fortschritt <strong>auf diesem Gerät</strong>. Du kannst den Tab schließen und später weiterspielen – am besten immer mit demselben Chromebook und ohne Inkognito-Fenster.</p>
+    </div>
+    <div class="card">
+      <h2>⌨️ Umlaute auf dem Chromebook</h2>
+      <p>Kein ä, ö, ü oder ß auf der Tastatur? Kein Problem:</p>
+      <ul><li>Benutze die Umlaut-Leiste im Spiel, <strong>oder</strong></li><li>schreib <strong>ae, oe, ue, ss</strong> – das wird auch akzeptiert.</li></ul>
+    </div>
+    <div class="card">
+      <h2>🏁 Ergebnis abgeben</h2>
+      <p>Am Ende siehst du deine Punkte und einen <strong>Prüfcode</strong>. Mach einen Screenshot oder klick auf „Ergebnis kopieren“ und gib es in <strong>Google Classroom</strong> ab.</p>
+    </div>
+  </section>
+
+  <details class="teacher">
+    <summary>👩‍🏫 Für Lehrkräfte</summary>
+    <ul id="lehrerlinks"></ul>
+    <p class="meta">Neue Spiele ergänzen Sie in dieser Datei in der Liste <code>SPIELE</code> (Anleitung als Kommentar am Anfang der Datei).</p>
+  </details>
+
+  <footer>🔒 Keine Anmeldung, keine Datensammlung. Alle Spiele laufen nur in deinem Browser.</footer>
+</main>
+
+<script>
+(function(){
+'use strict';
+const LEVELS = ['A2','B1','B2','C1'];
+const $ = s => document.querySelector(s);
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function lsGet(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { window.localStorage.setItem(k,v); } catch(e){} }
+
+/* Seitentexte */
+document.title = SEITE.titel;
+$('#seitentitel').textContent = '🎮 ' + SEITE.titel;
+$('#untertitel').textContent = SEITE.untertitel || '';
+$('#spanisch').textContent = SEITE.spanisch || '';
+
+/* Datenprüfung */
+const warn = [];
+SPIELE.forEach((g,i) => {
+  const w = 'Spiel '+(i+1)+(g && g.titel ? ' („'+g.titel+'“)' : '')+': ';
+  if(!g || typeof g!=='object'){ warn.push(w+'ungültiger Eintrag.'); return; }
+  if(!g.datei) warn.push(w+'datei fehlt.');
+  if(!g.titel) warn.push(w+'titel fehlt.');
+  if(g.niveaus && Object.keys(g.niveaus).some(l => !LEVELS.includes(l))) warn.push(w+'niveaus nur A2, B1, B2 oder C1.');
+});
+if(warn.length) $('#warn').innerHTML = '<div class="warnbox" role="alert"><strong>Hinweis für die Lehrkraft:</strong><ul>'+warn.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+const games = SPIELE.filter(g => g && g.datei && g.titel);
+
+/* gespeicherter Spielstand (nur Anzeige) */
+function savedInfo(g){
+  if(!g.speicher) return '';
+  try{
+    const s = JSON.parse(lsGet(g.speicher) || 'null');
+    if(!s || !s.level) return '';
+    if(s.phase==='end') return '<span class="saved">✓ '+esc(s.level)+' abgeschlossen</span>';
+    return '<span class="saved">💾 '+esc(s.level)+(typeof s.room==='number' ? ' · Raum '+(s.room+1) : '')+' gespeichert</span>';
+  }catch(e){ return ''; }
+}
+
+/* Filter */
+let filter = lsGet('startseite.filter') || 'alle';
+if(filter!=='alle' && !LEVELS.includes(filter)) filter='alle';
+function drawFilter(){
+  $('#filter').innerHTML = ['alle'].concat(LEVELS).map(l =>
+    '<button type="button" data-l="'+l+'" aria-pressed="'+(filter===l)+'">'+(l==='alle'?'Alle Niveaus':l)+'</button>').join('');
+  document.querySelectorAll('#filter button').forEach(b => b.addEventListener('click', () => {
+    filter = b.dataset.l; lsSet('startseite.filter', filter); drawFilter(); drawGames();
+  }));
+}
+
+/* Karten */
+function drawGames(){
+  const list = games.filter(g => filter==='alle' || (g.niveaus && g.niveaus[filter]));
+  if(!list.length){ $('#spiele').innerHTML = '<p class="empty">Für '+esc(filter)+' gibt es noch kein Spiel.</p>'; return; }
+  $('#spiele').innerHTML = list.map(g => {
+    const lv = g.niveaus ? LEVELS.filter(l => g.niveaus[l]) : [];
+    const saved = savedInfo(g);
+    return '<article class="game" aria-labelledby="t-'+esc(g.datei)+'">'+
+      '<div class="banner" style="background:'+esc(g.farbe||'#1f3a68')+'" aria-hidden="true">'+(g.typ?'<span class="typ">'+esc(g.typ)+'</span>':'')+(g.neu?'<span class="tagneu">NEU</span>':'')+esc(g.bild||'🎮')+'</div>'+
+      '<div class="body">'+
+        '<h2 id="t-'+esc(g.datei)+'">'+esc(g.titel)+'</h2>'+
+        (g.kurz?'<p class="kurz">'+esc(g.kurz)+'</p>':'')+
+        (g.beschreibung?'<p class="desc">'+esc(g.beschreibung)+'</p>':'')+
+        (g.spanisch?'<p class="es" lang="es">🇨🇱 '+esc(g.spanisch)+'</p>':'')+
+        (g.sospielst && g.sospielst.length ? '<h3>So spielst du</h3><ol class="steps">'+g.sospielst.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol>' : '')+
+        (lv.length ? '<h3>Niveaus und Themen</h3><ul class="levels">'+lv.map(l=>'<li class="'+(filter===l?'hit':'')+'"><span class="lv">'+l+'</span><span>'+esc(g.niveaus[l])+'</span></li>').join('')+'</ul>' : '')+
+        (g.dauer?'<p class="meta">⏱ '+esc(g.dauer)+'</p>':'')+
+        '<div class="actions"><a class="play" href="'+esc(g.datei)+'">'+(saved && !/abgeschlossen/.test(saved)?'▶ Weiterspielen':'▶ Spielen')+'</a>'+saved+'</div>'+
+      '</div></article>';
+  }).join('');
+}
+
+/* Lehrkraft-Links */
+const tl = games.filter(g => g.lehrerseite).map(g => '<li>🔎 <a href="'+esc(g.datei)+'#lehrer">Prüfcodes kontrollieren: '+esc(g.titel)+'</a></li>');
+if(games.some(g => g.datei==='artikel-detektive.html')) tl.push('<li>🛠️ <a href="artikel-detektive.html#editor">Bearbeitungsmodus Artikel-Detektive (Gegenstände platzieren)</a></li>');
+$('#lehrerlinks').innerHTML = tl.join('') || '<li>Noch keine Lehrkraft-Seiten.</li>';
+
+drawFilter(); drawGames();
+})();
+</script>
+</body>
+</html>

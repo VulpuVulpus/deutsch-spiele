@@ -1,0 +1,2538 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasus-Code – Grammatik-Escape-Room</title>
+<script>
+/* =====================================================================
+   KASUS-CODE · Grammatik-Escape-Room
+   =====================================================================
+
+   ANLEITUNG FÜR LEHRKRÄFTE – AUFGABEN ÄNDERN ODER ERGÄNZEN
+   ---------------------------------------------------------------------
+   Alle Aufgaben stehen in diesem ersten Abschnitt (EINSTELLUNGEN und
+   QUESTIONS). Weiter unten in der Datei steht die Spiel-Logik. Dort
+   müssen Sie nichts ändern.
+
+   1. Datei mit einem Texteditor öffnen (z. B. „Text“ auf dem Chromebook,
+      TextEdit/BBEdit auf dem Mac oder direkt im GitHub-Editor).
+   2. Den Raum suchen (z. B. „A2“ → raeume → „Die Eingangshalle“).
+   3. Eine vorhandene Aufgabe kopieren – von der öffnenden {  bis zur
+      schließenden },  – und den Text ändern.
+   4. Speichern und die Datei im Browser öffnen. Wenn etwas nicht
+      stimmt, zeigt die Startseite einen gelben Hinweis mit der Stelle.
+
+   WICHTIGE REGELN
+   · Texte stehen immer in "Anführungszeichen". Im Text selbst bitte
+     deutsche Anführungszeichen „…“ verwenden, nie das Zeichen ".
+   · Nach jeder Aufgabe und jedem Feld steht ein Komma.
+   · ___ (drei Unterstriche) markiert die Lücke im Satz.
+   · **Wort** wird fett gedruckt.
+   · \n\n in Geschichten = neuer Absatz.
+   · Das Niveau und der Raum ergeben sich automatisch daraus, in welchem
+     Block die Aufgabe steht. Sie müssen sie nicht eintragen.
+   · Wenn Sie die Zahl der Aufgaben in einem Raum ändern, beginnen
+     Schüler mit einem gespeicherten Spiel auf diesem Niveau neu.
+
+   FELDER, DIE JEDE AUFGABE HAT
+     typ            : "auswahl" | "luecke" | "satz" | "ordnen" |
+                      "sortieren" | "ziehen" | "fehler"  (siehe unten)
+     thema          : Grammatikthema, wird nach dem 1. Fehlversuch als
+                      Denkhilfe gezeigt, z. B. "helfen + Dativ (wem?)"
+     satz           : Aufgabensatz (bei "fehler": text)
+     loesung        : richtige Antwort. Mehrere richtige Antworten als
+                      Liste: ["ins", "in das"]
+     tipp           : Tipp (kostet Punkte, verrät nicht die Lösung)
+     erklaerung_de  : Erklärung nach der Antwort (Deutsch)
+     erklaerung_es  : (optional) „Ayuda en español“ – nur A2 und B1
+
+   DIE AUFGABENTYPEN
+   · auswahl  – Multiple Choice
+       { typ: "auswahl", satz: "Ich helfe ___ Mann.",
+         optionen: ["dem", "den", "der"], loesung: "dem", ... }
+       Die Optionen werden automatisch gemischt.
+   · luecke   – Lücke mit Texteingabe
+       { typ: "luecke", satz: "Ich helfe ___ (mein) Bruder.",
+         loesung: "meinem", ... }
+   · satz     – ganzen Satz schreiben (Umformung, Satzbildung)
+       { typ: "satz", satz: "Ersetze durch Pronomen: ...",
+         loesung: ["Ich gebe es ihm.", "..."], ... }
+   · ordnen   – Wörter in die richtige Reihenfolge klicken
+       { typ: "ordnen", satz: "Sofía gibt ___.",
+         woerter: ["es", "ihm"],      // in der RICHTIGEN Reihenfolge
+         extra: ["ihn"], ... }         // optional: falsche Zusatzwörter
+   · sortieren – Karten in Gruppen ziehen
+       { typ: "sortieren", satz: "Sortiere ...",
+         gruppen: ["Wo? → Dativ", "Wohin? → Akkusativ"],
+         karten: [ { text: "Ich sitze auf dem Stuhl.", gruppe: 1 }, ... ] }
+       gruppe: 1 = erste Gruppe, 2 = zweite Gruppe usw.
+   · ziehen   – Gegenstand im Raumbild an die richtige Stelle ziehen
+       { typ: "ziehen", szene: "kuppel", gegenstand: "🔑",
+         satz: "Leg den Schlüssel auf den Tisch.", loesung: "tisch_auf" }
+   · fehler   – falsches Wort anklicken und korrigieren
+       { typ: "fehler",
+         text: "Ich erinnere mich [auf|an] den Tag.", ... }
+       [falsches Wort|richtiges Wort] – genau eine Markierung pro Text.
+
+   RAUMBILDER (für "ziehen" und optional für alle anderen Typen)
+     szene: "schlafraum", optional zeige: { gegenstand: "📱", ort: "bett_auf" }
+     schlafraum : bett_auf, bett_unter, bett_ueber, wand, schrank_auf,
+                  zwischen_bett_schrank, zwischen_schrank_tisch,
+                  tisch_auf, tisch_unter, stuhl_auf, teppich_auf
+     kuppel     : tisch_auf, tisch_unter, teleskop_links,
+                  teleskop_rechts, regal_auf, teppich_auf
+     dachboden  : haken, truhe_auf, neben_truhe, sessel_auf,
+                  neben_sessel, boden
+
+   PRÜFCODES
+     Das „geheimwort“ in den EINSTELLUNGEN steckt in jedem Prüfcode.
+     Wenn Sie es ändern, sind alte Codes nicht mehr gültig. Prüfen
+     können Sie Codes auf der Lehrkraft-Seite: Adresse des Spiels
+     + #lehrer (z. B. …/index.html#lehrer).
+   ===================================================================== */
+
+const EINSTELLUNGEN = {
+  geheimwort: "Kepler-Atacama-2026",   // für die Prüfcodes
+  punkteErsterVersuch: 10,
+  punkteZweiterVersuch: 5,
+  tippKosten: 3,                        // Punktabzug pro Tipp
+  tippsProRaum: 3,
+  challengeMinuten: { A2: 25, B1: 30, B2: 30, C1: 35 },
+  spanischeHilfe: { A2: true, B1: true, B2: false, C1: false }
+};
+
+const QUESTIONS = {
+
+  /* =================================================================
+     A2 · DIE NACHT IM OBSERVATORIUM
+     ================================================================= */
+  A2: {
+    titel: "Die Nacht im Observatorium",
+    ort: "Atacama-Wüste",
+    intro: "Freitagabend in der Atacama-Wüste. Die Klasse 9B macht eine Sternenführung im alten Observatorium „Cerro Estrella“ bei San Pedro de Atacama. Nach der Führung sucht Sofía ihr Handy. Matías und Benja helfen ihr. Plötzlich geht das Licht aus. Die Tür fällt zu – und draußen fährt der Bus ab!\n\nDann hört ihr eine Stimme: „Guten Abend. Ich bin ESTRELLA, der Computer des Observatoriums. Ein deutsches Team hat mich gebaut. Ich öffne die Türen nur für Leute, die gut Deutsch sprechen.“\n\nHilf Sofía, Matías und Benja! In jedem Raum gibt es Aufgaben. Jede richtige Antwort gibt dir eine Zahl für das Türschloss.",
+    schluss: "Ihr habt es geschafft! Vor dem Observatorium steht der Bus. Frau Rojas, die Astronomin, lacht: „Da seid ihr ja! Und ihr habt alle Rätsel auf Deutsch gelöst? Super!“\n\nESTRELLA sagt leise: „Auf Wiedersehen. Kommt bald wieder.“ Und Kepler, der Kater? Er sitzt schon im Bus – auf dem Platz von Benja.",
+    raeume: [
+
+      /* ---------- A2 · Raum 1 ---------- */
+      {
+        name: "Die Eingangshalle",
+        thema: "Verben mit Akkusativ",
+        geschichte: "Die Eingangshalle ist dunkel. Nur ein Bildschirm an der Wand leuchtet. Darauf steht: „Verben mit Akkusativ. Wen oder was?“\n\nNeben der Tür hängt ein Schloss mit sechs Zahlen.",
+        geschafft: "Klick! Die Tür geht auf. Hinter der Tür liegt eine Taschenlampe. Benja nimmt sie mit.",
+        belohnung: "🔦 Taschenlampe",
+        hinweis_es: "En español decimos «preguntar A alguien» o «llamar A alguien». ¡Pero esa «a» no significa dativo! En alemán, fragen, anrufen, besuchen, brauchen y kennen llevan ACUSATIVO: den / einen / ihn (masculino), die / sie (femenino), das (neutro).",
+        aufgaben: [
+          {
+            typ: "auswahl",
+            thema: "fragen + Akkusativ (wen?)",
+            satz: "Sofía fragt ___ Computer: „Wo ist der Ausgang?“",
+            optionen: ["den", "dem", "der"],
+            loesung: "den",
+            tipp: "Wen fragt Sofía? „Computer“ ist maskulin: der Computer.",
+            erklaerung_de: "**fragen + Akkusativ**: Wen fragt Sofía? → **den** Computer. (der → den)",
+            erklaerung_es: "En español: «Sofía le pregunta al computador» – suena a objeto indirecto (le). Pero en alemán «fragen» siempre lleva ACUSATIVO: «den Computer», no «dem Computer»."
+          },
+          {
+            typ: "auswahl",
+            thema: "anrufen + Akkusativ (wen?)",
+            satz: "Matías ruft ___ Busfahrer an.",
+            optionen: ["den", "dem", "der"],
+            loesung: "den",
+            tipp: "Wen ruft Matías an? „anrufen“ braucht den Akkusativ.",
+            erklaerung_de: "**anrufen + Akkusativ**: Wen ruft Matías an? → **den** Busfahrer.",
+            erklaerung_es: "«Llamar A alguien»: la «a» personal del español no es dativo. «anrufen» lleva ACUSATIVO: «Ich rufe den Busfahrer an»."
+          },
+          {
+            typ: "auswahl",
+            thema: "brauchen + Akkusativ (was?)",
+            satz: "Benja sagt: „Wir brauchen ___ Schlüssel!“",
+            optionen: ["einen", "einem", "ein"],
+            loesung: "einen",
+            tipp: "Was brauchen wir? „Schlüssel“ ist maskulin: der Schlüssel.",
+            erklaerung_de: "**brauchen + Akkusativ**: Was brauchen wir? → **einen** Schlüssel. (maskulin: ein → einen)",
+            erklaerung_es: "«Necesitamos una llave»: objeto directo = acusativo. ¡Ojo! «der Schlüssel» es masculino en alemán (en español «la llave» es femenino). Por eso: einen Schlüssel."
+          },
+          {
+            typ: "auswahl",
+            thema: "kennen + Akkusativ (wen?)",
+            satz: "„Kennst du Frau Rojas, die Astronomin?“ – „Ja, ich kenne ___ gut.“",
+            optionen: ["sie", "ihr", "ihre"],
+            loesung: "sie",
+            tipp: "Wen kenne ich? „kennen“ + Akkusativ. Frau Rojas = sie.",
+            erklaerung_de: "**kennen + Akkusativ**: Wen kenne ich? → **sie** (Frau Rojas). „ihr“ ist Dativ.",
+            erklaerung_es: "«La conozco»: «la» es objeto directo = acusativo → sie. «ihr» sería «le» (dativo)."
+          },
+          {
+            typ: "auswahl",
+            thema: "besuchen + Akkusativ (was?)",
+            satz: "Unsere Klasse besucht heute ___ Observatorium.",
+            optionen: ["das", "dem", "den"],
+            loesung: "das",
+            tipp: "„Observatorium“ ist neutral: das Observatorium. Wie heißt „das“ im Akkusativ?",
+            erklaerung_de: "**besuchen + Akkusativ**: Was besucht die Klasse? → **das** Observatorium. Neutrum: „das“ bleibt im Akkusativ „das“.",
+            erklaerung_es: "«Visitar el observatorio»: acusativo. En neutro, das → das. ¡No digas «dem Observatorium»!"
+          },
+          {
+            typ: "auswahl",
+            thema: "fragen + Akkusativ (wen?)",
+            satz: "Sofía hat eine Frage für Benja. Sie fragt ___: „Hast du eine Idee?“",
+            optionen: ["ihn", "ihm", "er"],
+            loesung: "ihn",
+            tipp: "Wen fragt Sofía? Benja = er. Wie heißt „er“ im Akkusativ?",
+            erklaerung_de: "**fragen + Akkusativ**: Wen fragt Sofía? → **ihn** (Benja). „ihm“ ist Dativ.",
+            erklaerung_es: "«Sofía le pregunta» – en español «le» (objeto indirecto). En alemán «fragen» lleva acusativo: «Sie fragt ihn»."
+          }
+        ]
+      },
+
+      /* ---------- A2 · Raum 2 ---------- */
+      {
+        name: "Der Kontrollraum",
+        thema: "Verben mit Dativ",
+        geschichte: "Mit der Taschenlampe findet ihr den Kontrollraum. Hier stehen alte Computer. Ein kleiner Putzroboter fährt hin und her.\n\nAuf dem Bildschirm steht: „Verben mit Dativ. Wem?“",
+        geschafft: "Der Roboter piept und öffnet eine Klappe. Darin liegt eine Schlüsselkarte!",
+        belohnung: "💳 Schlüsselkarte",
+        hinweis_es: "¡Cuidado! «ayudar A alguien» y «seguir A alguien» llevan objeto directo en español (lo/la ayudo). Pero en alemán helfen, folgen, danken, antworten, gehören y gefallen llevan DATIVO: dem / der / ihm / ihr / mir.",
+        aufgaben: [
+          {
+            typ: "auswahl",
+            thema: "helfen + Dativ (wem?)",
+            satz: "Sofía findet das Kabel nicht. Matías hilft ___.",
+            optionen: ["ihr", "sie", "ihn"],
+            loesung: "ihr",
+            tipp: "Wem hilft Matías? „helfen“ + Dativ. Sofía = sie. Wie heißt „sie“ im Dativ?",
+            erklaerung_de: "**helfen + Dativ**: Wem hilft Matías? → **ihr** (Sofía).",
+            erklaerung_es: "En español: «Matías LA ayuda» (objeto directo). En alemán, «helfen» lleva DATIVO: «Matías hilft ihr» – nunca «hilft sie»."
+          },
+          {
+            typ: "auswahl",
+            thema: "folgen + Dativ (wem?)",
+            satz: "Die drei folgen ___ Roboter durch den Raum.",
+            optionen: ["dem", "den", "der"],
+            loesung: "dem",
+            tipp: "Wem folgen sie? „folgen“ + Dativ. der Roboter → ?",
+            erklaerung_de: "**folgen + Dativ**: Wem folgen sie? → **dem** Roboter. (der → dem)",
+            erklaerung_es: "«Siguen AL robot»: en español es objeto directo. En alemán «folgen» lleva DATIVO: dem Roboter."
+          },
+          {
+            typ: "auswahl",
+            thema: "gefallen + Dativ (wem?)",
+            satz: "Benja sieht die alten Computer: „Wow! ___ gefällt der Kontrollraum!“",
+            optionen: ["Mir", "Ich", "Mich"],
+            loesung: "Mir",
+            tipp: "Wie „me gusta“: Die Person steht im Dativ. ich → ?",
+            erklaerung_de: "**gefallen + Dativ**: Der Kontrollraum gefällt **mir**. Das Subjekt ist „der Kontrollraum“. Die Person steht im Dativ.",
+            erklaerung_es: "Como «me gusta»: lo que gusta (der Kontrollraum) es el sujeto; la persona va en dativo: mir = me. ¡No digas «Ich gefalle …»! Eso significa «yo le gusto a alguien»."
+          },
+          {
+            typ: "auswahl",
+            thema: "gehören + Dativ (wem?)",
+            satz: "„Wem gehört die Jacke?“ – „Sie gehört ___ Astronomin.“",
+            optionen: ["der", "die", "dem"],
+            loesung: "der",
+            tipp: "Wem gehört die Jacke? die Astronomin → Dativ feminin.",
+            erklaerung_de: "**gehören + Dativ**: Wem gehört die Jacke? → **der** Astronomin. (feminin: die → der)",
+            erklaerung_es: "«La chaqueta es DE la astrónoma». En alemán no se usa «von»: gehören + DATIVO. Femenino: die → der."
+          },
+          {
+            typ: "auswahl",
+            thema: "antworten + Dativ (wem?)",
+            satz: "ESTRELLA fragt: „Wie heißt du?“ Sofía antwortet ___ Computer.",
+            optionen: ["dem", "den", "der"],
+            loesung: "dem",
+            tipp: "Wem antwortet Sofía? „antworten“ + Dativ. der Computer → ?",
+            erklaerung_de: "**antworten + Dativ**: Wem antwortet Sofía? → **dem** Computer. Achtung: fragen + Akkusativ, aber antworten + Dativ!",
+            erklaerung_es: "«Sofía le contesta al computador»: aquí el español y el alemán coinciden (le = dativo). Pero recuerda: «fragen» lleva acusativo."
+          },
+          {
+            typ: "sortieren",
+            thema: "Akkusativ- oder Dativverb?",
+            satz: "Akkusativ oder Dativ? Sortiere die Verben.",
+            gruppen: ["+ Akkusativ (wen?)", "+ Dativ (wem?)"],
+            karten: [
+              { text: "fragen", gruppe: 1 },
+              { text: "anrufen", gruppe: 1 },
+              { text: "brauchen", gruppe: 1 },
+              { text: "helfen", gruppe: 2 },
+              { text: "folgen", gruppe: 2 },
+              { text: "gefallen", gruppe: 2 }
+            ],
+            tipp: "Denk an die Sätze von vorhin: Sofía fragt den Computer. Matías hilft ihr.",
+            erklaerung_de: "**Akkusativ**: fragen, anrufen, brauchen. **Dativ**: helfen, folgen, gefallen.",
+            erklaerung_es: "Los verbos con «a» personal en español (preguntar a, llamar a, ayudar a, seguir a) NO siempre llevan dativo en alemán. Apréndelos de memoria: fragen/anrufen = acusativo, helfen/folgen = dativo."
+          }
+        ]
+      },
+
+      /* ---------- A2 · Raum 3 ---------- */
+      {
+        name: "Der Schlafraum der Forscher",
+        thema: "Wo? → Dativ",
+        geschichte: "Mit der Schlüsselkarte öffnet ihr den Schlafraum der Forscher. Hier haben die Astronomen früher geschlafen.\n\nPlötzlich miaut etwas. Es ist Kepler, der Kater des Observatoriums! ESTRELLA sagt: „Wo ist alles? Wo? → Dativ.“",
+        geschafft: "Im Licht der Taschenlampe seht ihr eine Zahl auf dem Boden. Die Tür zur Kuppel geht auf. Kepler läuft mit.",
+        belohnung: "🐈 Kepler, der Kater",
+        hinweis_es: "En español «en» sirve para todo: «en la mesa», «en la cama», «en la pared». En alemán hay muchas preposiciones: in, an, auf, unter, über, neben, zwischen … Si preguntas «Wo?» (¿dónde está?) → DATIVO: dem (m./n.), der (f.).",
+        aufgaben: [
+          {
+            typ: "auswahl",
+            thema: "Wo? → Dativ (auf)",
+            szene: "schlafraum",
+            zeige: { gegenstand: "📱", ort: "bett_auf" },
+            satz: "Sofías Handy liegt ___ Bett.",
+            optionen: ["auf dem", "auf das", "auf den"],
+            loesung: "auf dem",
+            tipp: "Das Handy liegt schon dort, es bewegt sich nicht. Frag: Wo? das Bett → Dativ.",
+            erklaerung_de: "Wo liegt das Handy? → **Dativ**: auf **dem** Bett. (das Bett → dem Bett)",
+            erklaerung_es: "«El celular está EN la cama»: pregunta Wo? (¿dónde?) → dativo: auf dem Bett."
+          },
+          {
+            typ: "auswahl",
+            thema: "Wo? → Dativ (unter)",
+            szene: "schlafraum",
+            zeige: { gegenstand: "🐈", ort: "tisch_unter" },
+            satz: "Kepler, der Kater, sitzt ___ Tisch.",
+            optionen: ["unter dem", "unter den", "unter das"],
+            loesung: "unter dem",
+            tipp: "Kepler sitzt: keine Bewegung → Wo? → Dativ. der Tisch → ?",
+            erklaerung_de: "Wo sitzt Kepler? → **Dativ**: unter **dem** Tisch. („unter den Tisch“ ist Wohin? → Akkusativ.)",
+            erklaerung_es: "Está sentado: no hay movimiento → Wo? → dativo: unter dem Tisch. «unter den Tisch» sería «hacia debajo de la mesa» (con movimiento)."
+          },
+          {
+            typ: "auswahl",
+            thema: "Wo? → Dativ (an)",
+            szene: "schlafraum",
+            zeige: { gegenstand: "🗺️", ort: "wand" },
+            satz: "Eine Sternkarte hängt ___ Wand.",
+            optionen: ["an der", "an die", "an dem"],
+            loesung: "an der",
+            tipp: "Wo hängt die Karte? die Wand ist feminin → Dativ feminin.",
+            erklaerung_de: "Wo hängt die Karte? → **Dativ**: an **der** Wand. (die Wand → der Wand)",
+            erklaerung_es: "En español decimos «en la pared». En alemán: an + dativo (¿dónde?). Femenino: die → der."
+          },
+          {
+            typ: "auswahl",
+            thema: "Wo? → Dativ (über)",
+            szene: "schlafraum",
+            satz: "Schau auf das Bild: Die Lampe hängt ___ Bett.",
+            optionen: ["über dem", "über das", "über der"],
+            loesung: "über dem",
+            tipp: "Die Lampe hängt (Position) → Wo? → Dativ. das Bett → ?",
+            erklaerung_de: "Wo hängt die Lampe? → **Dativ**: über **dem** Bett. Achtung: **über** = oben, ohne Kontakt. **auf** = oben, mit Kontakt.",
+            erklaerung_es: "«La lámpara cuelga sobre la cama»: über = encima, SIN tocar. auf = encima, tocando. Wo? → dativo: über dem Bett."
+          },
+          {
+            typ: "auswahl",
+            thema: "liegen oder legen?",
+            szene: "schlafraum",
+            satz: "Der Teppich ___ auf dem Boden.",
+            optionen: ["liegt", "legt", "steht"],
+            loesung: "liegt",
+            tipp: "Position (Wo?) → liegen. Aktion (Wohin?) → legen.",
+            erklaerung_de: "Wo ist der Teppich? → Position → **liegen**: Der Teppich liegt auf dem Boden. **legen** braucht ein Objekt: Ich lege den Teppich auf den Boden.",
+            erklaerung_es: "liegen = estar (tendido). legen = poner (acción). En español usamos «estar» y «poner»; en alemán hay que elegir: liegen/legen, stehen/stellen."
+          },
+          {
+            typ: "ziehen",
+            thema: "zwischen + Dativ (wo?)",
+            szene: "schlafraum",
+            gegenstand: "🔦",
+            satz: "ESTRELLA sagt: „Der Code liegt zwischen dem Bett und dem Schrank.“ Zieh die Taschenlampe an diese Stelle.",
+            loesung: "zwischen_bett_schrank",
+            tipp: "zwischen = entre. Such zuerst das Bett und den Schrank.",
+            erklaerung_de: "zwischen **dem** Bett und **dem** Schrank → Wo? → Dativ.",
+            erklaerung_es: "«entre la cama y el armario»: zwischen + dativo (¿dónde?)."
+          }
+        ]
+      },
+
+      /* ---------- A2 · Raum 4 ---------- */
+      {
+        name: "Die Kuppel",
+        thema: "Wohin? → Akkusativ",
+        geschichte: "Ihr seid in der Kuppel. In der Mitte steht ein riesiges Teleskop. Durch das offene Dach seht ihr tausende Sterne.\n\nESTRELLA sagt: „Letzter Raum! Bringt alles an den richtigen Ort. Wohin? → Akkusativ.“",
+        geschafft: "Das große Tor der Kuppel öffnet sich. Draußen leuchten zwei Lichter: Der Bus ist zurück!",
+        belohnung: "🔭 Der Weg nach draußen",
+        hinweis_es: "«Poner» en alemán: stellen (de pie), legen (tendido), setzen (sentado), hängen (colgado). Pregunta «Wohin?» (¿adónde? – hay movimiento) → ACUSATIVO: den (m.), die (f.), das (n.).",
+        aufgaben: [
+          {
+            typ: "ziehen",
+            thema: "Wohin? → Akkusativ (auf)",
+            szene: "kuppel",
+            gegenstand: "🔑",
+            satz: "Leg den Schlüssel auf den Tisch.",
+            loesung: "tisch_auf",
+            tipp: "auf = oben auf etwas, mit Kontakt. Such den Tisch.",
+            erklaerung_de: "Wohin legst du den Schlüssel? → **Akkusativ**: auf **den** Tisch. Danach liegt er auf **dem** Tisch (Wo? → Dativ).",
+            erklaerung_es: "Hay movimiento (poner) → Wohin? → acusativo: auf den Tisch. Después: «Der Schlüssel liegt auf dem Tisch» (dativo)."
+          },
+          {
+            typ: "ziehen",
+            thema: "Wohin? → Akkusativ (neben)",
+            szene: "kuppel",
+            gegenstand: "🏮",
+            satz: "Stell die Laterne neben das Teleskop.",
+            loesung: ["teleskop_links", "teleskop_rechts"],
+            tipp: "neben = al lado de. Such das Teleskop.",
+            erklaerung_de: "Wohin? → **Akkusativ**: neben **das** Teleskop. (Neutrum: „das“ bleibt „das“.)",
+            erklaerung_es: "stellen = poner (de pie). Wohin? → acusativo: neben das Teleskop."
+          },
+          {
+            typ: "auswahl",
+            thema: "legen + Wohin? → Akkusativ",
+            szene: "kuppel",
+            satz: "Matías legt das Buch ___ Tisch.",
+            optionen: ["auf den", "auf dem", "auf der"],
+            loesung: "auf den",
+            tipp: "legen = Bewegung → Wohin? → Akkusativ. der Tisch → ?",
+            erklaerung_de: "**legen** → Wohin? → **Akkusativ**: auf **den** Tisch.",
+            erklaerung_es: "«Matías pone el libro en la mesa»: hay movimiento → acusativo: auf den Tisch. ¡No «auf dem»!"
+          },
+          {
+            typ: "auswahl",
+            thema: "stellen + Wohin? → Akkusativ",
+            szene: "kuppel",
+            satz: "Sofía stellt die Flasche ___ Regal.",
+            optionen: ["auf das", "auf dem", "auf den"],
+            loesung: "auf das",
+            tipp: "stellen = Bewegung → Wohin? → Akkusativ. das Regal → ?",
+            erklaerung_de: "**stellen** → Wohin? → **Akkusativ**: auf **das** Regal (kurz: aufs Regal).",
+            erklaerung_es: "«Sofía pone la botella en el estante»: movimiento → acusativo. Neutro: das → das."
+          },
+          {
+            typ: "auswahl",
+            thema: "legen oder liegen?",
+            satz: "Benja ___ seinen Rucksack auf den Boden.",
+            optionen: ["legt", "liegt", "ist"],
+            loesung: "legt",
+            tipp: "„auf den Boden“ ist Akkusativ → Wohin? → Du brauchst ein Verb der Bewegung.",
+            erklaerung_de: "Wohin? → auf **den** Boden (Akkusativ) → Bewegung: Benja **legt** den Rucksack … „liegt“ passt zu Wo? + Dativ: Der Rucksack liegt auf dem Boden.",
+            erklaerung_es: "poner = legen (acción, con objeto). estar = liegen (posición). «Benja pone su mochila en el suelo» → Benja legt seinen Rucksack auf den Boden."
+          },
+          {
+            typ: "sortieren",
+            thema: "Wo? oder Wohin?",
+            satz: "Wo? oder Wohin? Sortiere die Sätze.",
+            gruppen: ["Wo? → Dativ", "Wohin? → Akkusativ"],
+            karten: [
+              { text: "Kepler sitzt auf dem Tisch.", gruppe: 1 },
+              { text: "Kepler springt auf den Tisch.", gruppe: 2 },
+              { text: "Das Teleskop steht in der Kuppel.", gruppe: 1 },
+              { text: "Wir gehen in die Kuppel.", gruppe: 2 },
+              { text: "Die Karte liegt auf dem Boden.", gruppe: 1 },
+              { text: "Benja legt die Karte auf den Boden.", gruppe: 2 }
+            ],
+            tipp: "Bewegung zu einem Ziel (springen, gehen, legen) → Wohin? Position (sitzen, stehen, liegen) → Wo?",
+            erklaerung_de: "**Wo?** (Position) → Dativ: auf dem Tisch, in der Kuppel, auf dem Boden. **Wohin?** (Bewegung zu einem Ziel) → Akkusativ: auf den Tisch, in die Kuppel, auf den Boden.",
+            erklaerung_es: "En español todo es «en». En alemán decide la pregunta: ¿dónde? (Wo?) → dativo; ¿adónde? (Wohin?) → acusativo."
+          }
+        ]
+      }
+    ]
+  },
+
+  /* =================================================================
+     B1 · DAS HAUS AM CERRO ALEGRE
+     ================================================================= */
+  B1: {
+    titel: "Das Haus am Cerro Alegre",
+    ort: "Valparaíso",
+    intro: "Valparaíso, Cerro Alegre. Für ein Schulprojekt über deutsche Einwanderer besuchen Sofía, Matías, Benja und Valentina ein altes blaues Haus. Hier hat vor hundert Jahren Ilse Brandt gewohnt – die Urgroßmutter von Sofía. Ilse hat ein Tagebuch geschrieben, aber niemand weiß, wo es ist.\n\nKaum sind die vier im Haus, schlägt der Wind vom Meer die Tür zu. Das alte Schloss klemmt. An der Tür hängt ein vergilbter Zettel in Ilses Handschrift: „Wer mein Tagebuch finden will, muss meine Rätsel lösen.“\n\nFindet das Tagebuch – und den Weg nach draußen!",
+    schluss: "Der kleine Wagen des Ascensors hält unten am Hafen. Sofía hält Ilses Tagebuch fest in den Händen. Auf der ersten Seite steht: „Für meine Familie in Chile – damit ihr wisst, woher ihr kommt.“\n\nMatías lacht: „Unser Schulprojekt wird das beste der ganzen Klasse!“",
+    raeume: [
+
+      /* ---------- B1 · Raum 1 ---------- */
+      {
+        name: "Das Treppenhaus",
+        thema: "Dativ oder Akkusativ? (Possessivartikel)",
+        geschichte: "Das Treppenhaus ist eng und dunkel. Auf jeder Stufe steht ein Satz – aber immer fehlt ein Wort. Ilse hat an die Wand geschrieben: „Wem? oder Wen? Nur wer die richtige Endung kennt, kommt nach oben.“",
+        geschafft: "Oben an der Treppe findet Valentina einen alten Schlüssel mit einem Anhänger: „Küche“.",
+        belohnung: "🗝️ Küchenschlüssel",
+        hinweis_es: "Recuerda: fragen y anrufen llevan ACUSATIVO (aunque en español digas «preguntar a», «llamar a»). helfen, folgen, gehören y gefallen llevan DATIVO. Los posesivos (mein, dein, sein, ihr, unser …) tienen las terminaciones de «ein»: acusativo masculino -en (meinen); dativo masculino/neutro -em (meinem); dativo femenino -er (meiner); dativo plural -en (meinen … + -n).",
+        aufgaben: [
+          {
+            typ: "luecke",
+            thema: "anrufen + Akkusativ (wen?)",
+            satz: "Sofía ruft ___ (ihr) Vater an und erzählt ihm von dem Haus.",
+            loesung: "ihren",
+            tipp: "Wen ruft Sofía an? → Akkusativ. „Vater“ ist maskulin.",
+            erklaerung_de: "**anrufen + Akkusativ**: Wen ruft Sofía an? → **ihren** Vater (maskulin, Akkusativ: -en).",
+            erklaerung_es: "«Llama A su papá»: la «a» personal no es dativo. Acusativo masculino → ihren Vater."
+          },
+          {
+            typ: "luecke",
+            thema: "folgen + Dativ (wem?)",
+            satz: "Matías folgt ___ (sein) Freund Benja die Treppe hinauf.",
+            loesung: "seinem",
+            tipp: "Wem folgt Matías? folgen + Dativ. „Freund“ ist maskulin.",
+            erklaerung_de: "**folgen + Dativ**: Wem folgt Matías? → **seinem** Freund (maskulin, Dativ: -em).",
+            erklaerung_es: "«Matías sigue A su amigo»: en español es objeto directo; en alemán, DATIVO → seinem Freund."
+          },
+          {
+            typ: "luecke",
+            thema: "gehören + Dativ (wem?)",
+            satz: "„Das Haus gehört seit 1921 ___ (unser) Familie“, sagt Sofía.",
+            loesung: "unserer",
+            tipp: "Wem gehört das Haus? „Familie“ ist feminin → Dativ feminin.",
+            erklaerung_de: "**gehören + Dativ**: Wem gehört das Haus? → **unserer** Familie (feminin, Dativ: -er).",
+            erklaerung_es: "«La casa es de nuestra familia» → gehören + dativo. Femenino dativo: unserer."
+          },
+          {
+            typ: "luecke",
+            thema: "fragen + Akkusativ (wen?)",
+            satz: "Valentina fragt ___ (ihr) Freundin Sofía: „Kennst du das Haus gut?“",
+            loesung: "ihre",
+            tipp: "Wen fragt Valentina? fragen + Akkusativ. „Freundin“ ist feminin.",
+            erklaerung_de: "**fragen + Akkusativ**: Wen fragt Valentina? → **ihre** Freundin (feminin, Akkusativ: -e).",
+            erklaerung_es: "«Le pregunta a su amiga»: en español «le», pero en alemán ACUSATIVO → ihre Freundin (no «ihrer»)."
+          },
+          {
+            typ: "luecke",
+            thema: "gefallen + Dativ (wem?)",
+            satz: "„Diese alte Treppe gefällt ___ (ich) gar nicht!“, sagt Benja.",
+            loesung: "mir",
+            tipp: "Wie „no me gusta“. ich → Dativ?",
+            erklaerung_de: "**gefallen + Dativ**: Die Treppe gefällt **mir** nicht. Die Sache ist das Subjekt, die Person steht im Dativ.",
+            erklaerung_es: "«Esta escalera no me gusta» → «Diese Treppe gefällt mir nicht». La escalera es el sujeto; «me» = mir (dativo)."
+          }
+        ]
+      },
+
+      /* ---------- B1 · Raum 2 ---------- */
+      {
+        name: "Die Küche",
+        thema: "Verben mit Dativ und Akkusativ",
+        geschichte: "Mit dem Schlüssel öffnet ihr die Küche. Es riecht nach altem Holz. Auf dem Tisch liegen Briefe von Ilse. An den Rand hat sie geschrieben: „Wer bekommt was? Die Person steht im Dativ, die Sache im Akkusativ.“",
+        geschafft: "In einer alten Kuchendose findet Benja einen Zettel: „Bibliothek – zweites Regal von links“.",
+        belohnung: "📜 Zettel mit Hinweis",
+        hinweis_es: "Con dar, regalar, mostrar, prestar, recomendar y enviar: la persona (¿a quién?) va en DATIVO; la cosa (¿qué?) va en ACUSATIVO. «Le doy el libro a mi hermano» → «Ich gebe meinem Bruder das Buch».",
+        aufgaben: [
+          {
+            typ: "luecke",
+            thema: "schenken + Dativ (wem?) + Akkusativ (was?)",
+            satz: "In einem Brief steht: „Ich schenke ___ (mein) Enkelin dieses Haus.“",
+            loesung: "meiner",
+            tipp: "Wem schenkt Ilse das Haus? Die Person steht im Dativ. „Enkelin“ ist feminin.",
+            erklaerung_de: "**schenken**: Wem? → **meiner** Enkelin (feminin, Dativ: -er). Was? → dieses Haus (Akkusativ).",
+            erklaerung_es: "«Le regalo esta casa a mi nieta»: la persona va en dativo → meiner Enkelin."
+          },
+          {
+            typ: "luecke",
+            thema: "zeigen + Dativ (wem?) + Akkusativ (was?)",
+            satz: "Sofía zeigt ___ (ihr) Freunden ein altes Foto von Ilse.",
+            loesung: "ihren",
+            tipp: "Wem zeigt Sofía das Foto? „Freunden“ ist Plural und Dativ.",
+            erklaerung_de: "**zeigen**: Wem? → **ihren** Freunden (Plural, Dativ: -en). Im Dativ Plural bekommt auch das Nomen ein -n: Freunde**n**.",
+            erklaerung_es: "«Les muestra una foto a sus amigos» → dativo plural: ihren Freunden (¡con -n también en el sustantivo!)."
+          },
+          {
+            typ: "luecke",
+            thema: "leihen + Dativ (wem?) + Akkusativ (was?)",
+            satz: "Es ist kalt. Benja leiht Valentina ___ (sein) Jacke.",
+            loesung: "seine",
+            tipp: "Wem? → Valentina. Was? → die Jacke. Hier fehlt die Sache.",
+            erklaerung_de: "**leihen**: Wem? → Valentina (Dativ). Was? → **seine** Jacke (feminin, Akkusativ: -e).",
+            erklaerung_es: "«Le presta su chaqueta a Valentina»: la cosa (la chaqueta) va en acusativo → seine Jacke."
+          },
+          {
+            typ: "luecke",
+            thema: "empfehlen + Dativ (wem?)",
+            satz: "Matías findet ein altes Rezept: „Ich empfehle ___ (ihr, Plural) Ilses Apfelkuchen!“",
+            loesung: "euch",
+            tipp: "Wem empfiehlt Matías den Kuchen? Seinen Freunden. ihr → Dativ?",
+            erklaerung_de: "**empfehlen**: Wem? → **euch** (Dativ von „ihr“). Was? → Ilses Apfelkuchen (Akkusativ).",
+            erklaerung_es: "«Les recomiendo el kuchen» (a ustedes) → euch. ¡Ojo! «ihr» (ustedes/vosotros) en dativo es «euch»."
+          },
+          {
+            typ: "luecke",
+            thema: "schicken + Dativ (wem?) + Akkusativ (was?)",
+            satz: "1935 hat Ilse ___ (ihr) Sohn einen Brief nach Hamburg geschickt.",
+            loesung: "ihrem",
+            tipp: "Wem hat Ilse den Brief geschickt? „Sohn“ ist maskulin → Dativ.",
+            erklaerung_de: "**schicken**: Wem? → **ihrem** Sohn (maskulin, Dativ: -em). Was? → einen Brief (Akkusativ).",
+            erklaerung_es: "«Le envió una carta a su hijo» → dativo: ihrem Sohn."
+          }
+        ]
+      },
+
+      /* ---------- B1 · Raum 3 ---------- */
+      {
+        name: "Die Bibliothek",
+        thema: "Wortstellung: Dativ und Akkusativ",
+        geschichte: "Die Bibliothek ist voller Bücher. Im zweiten Regal von links fehlt ein Buch. Daneben klebt eine Notiz von Ilse: „Zwei Nomen: erst Dativ, dann Akkusativ. Ein Pronomen steht vor dem Nomen. Zwei Pronomen: erst Akkusativ, dann Dativ – es ihm, sie ihr.“",
+        geschafft: "Hinter den Büchern entdeckt Sofía eine kleine Tür. Eine schmale Treppe führt nach oben – zum Dachboden.",
+        belohnung: "📚 Geheimtür",
+        hinweis_es: "En español: «Se lo doy» (primero el dativo «se», después el acusativo «lo», delante del verbo). En alemán los pronombres van DESPUÉS del verbo y el orden es al revés: ACUSATIVO + DATIVO → «Ich gebe es ihm». Con dos sustantivos: dativo + acusativo → «Ich gebe dem Mann das Buch».",
+        aufgaben: [
+          {
+            typ: "ordnen",
+            thema: "Zwei Pronomen: Akkusativ vor Dativ",
+            satz: "Matías möchte das Foto sehen. Sofía gibt ___.",
+            woerter: ["es", "ihm"],
+            extra: ["ihn"],
+            tipp: "Zwei Pronomen: Akkusativ zuerst. Achtung: Ein Wort passt gar nicht.",
+            erklaerung_de: "Zwei Pronomen: **Akkusativ vor Dativ** → **es** (das Foto) **ihm** (Matías). „ihn“ passt nicht: „Foto“ ist neutral (es).",
+            erklaerung_es: "«Se lo da» → «Sie gibt es ihm». En alemán: acusativo (es) + dativo (ihm), al revés que en español."
+          },
+          {
+            typ: "satz",
+            thema: "Zwei Pronomen: Akkusativ vor Dativ",
+            satz: "Ersetze die fett gedruckten Wörter durch Pronomen: Benja erklärt **Valentina** **den Plan**.",
+            loesung: ["Benja erklärt ihn ihr."],
+            tipp: "den Plan → Akkusativpronomen, Valentina → Dativpronomen. Dann: Akkusativ zuerst.",
+            erklaerung_de: "den Plan → **ihn** (Akkusativ), Valentina → **ihr** (Dativ). Zwei Pronomen: Akkusativ vor Dativ → Benja erklärt **ihn ihr**.",
+            erklaerung_es: "«Benja se lo explica» → «Benja erklärt ihn ihr»."
+          },
+          {
+            typ: "luecke",
+            thema: "Zwei Pronomen: Akkusativ vor Dativ",
+            satz: "„Zeigst du mir die Karte?“ – „Ja, ich zeige ___ gleich.“",
+            loesung: "sie dir",
+            tipp: "Du brauchst zwei Pronomen: eins für „die Karte“ (Akkusativ) und eins für die Person (Dativ).",
+            erklaerung_de: "die Karte → **sie** (Akkusativ), mir → **dir** (Dativ): Ich zeige **sie dir** gleich.",
+            erklaerung_es: "«Sí, te la muestro enseguida» → «Ich zeige sie dir gleich». Orden alemán: acusativo (sie) + dativo (dir)."
+          },
+          {
+            typ: "ordnen",
+            thema: "Pronomen vor Nomen",
+            satz: "Wem hat Ilse den Ring geschenkt? – Ilse hat ___.",
+            woerter: ["ihn", "ihrem", "Sohn", "geschenkt"],
+            tipp: "den Ring → ihn. Ein Pronomen steht vor dem Nomen. Das Partizip steht am Ende.",
+            erklaerung_de: "Ein Pronomen steht **vor** dem Nomen: **ihn** (den Ring) **ihrem Sohn**. Das Partizip steht am Ende: Ilse hat ihn ihrem Sohn geschenkt.",
+            erklaerung_es: "«Ilse se lo regaló a su hijo» → «Ilse hat ihn ihrem Sohn geschenkt». El pronombre va antes del sustantivo; el participio, al final."
+          },
+          {
+            typ: "luecke",
+            thema: "Pronomen vor Nomen (Dativ)",
+            satz: "„Wem zeigst du das Tagebuch, wenn wir es finden?“ – „Ich zeige es ___ (meine Oma).“",
+            loesung: "meiner Oma",
+            tipp: "Wem? → Dativ. „Oma“ ist feminin.",
+            erklaerung_de: "Das Pronomen **es** steht vor dem Nomen. Wem? → **meiner Oma** (feminin, Dativ: -er).",
+            erklaerung_es: "«Se lo muestro a mi abuela» → «Ich zeige es meiner Oma»."
+          }
+        ]
+      },
+
+      /* ---------- B1 · Raum 4 ---------- */
+      {
+        name: "Der Dachboden",
+        thema: "Positions- und Richtungsverben",
+        geschichte: "Auf dem Dachboden ist es staubig. In der Ecke steht eine alte Truhe, daneben ein roter Sessel. An der Wand ist ein Haken, und auf dem Boden liegt ein alter Mantel.\n\nIlse schreibt: „Ordnung muss sein! Bringt alles an seinen Platz – und sagt genau, wo es ist.“",
+        geschafft: "In der Truhe liegt es: Ilses Tagebuch! Auf der letzten Seite steht: „Der Weg nach draußen führt durch den Maschinenraum des Ascensors.“",
+        belohnung: "📔 Ilses Tagebuch",
+        hinweis_es: "«Poner» y «estar» tienen varias traducciones: stellen/stehen (de pie), legen/liegen (tendido), setzen/sitzen (sentado), hängen/hängen (colgado), stecken (meter / estar metido). Verbo de movimiento → Wohin? + acusativo. Verbo de posición → Wo? + dativo.",
+        aufgaben: [
+          {
+            typ: "ziehen",
+            thema: "hängen + Wohin? → Akkusativ",
+            szene: "dachboden",
+            gegenstand: "🧥",
+            satz: "Häng den Mantel an den Haken.",
+            loesung: "haken",
+            tipp: "Such den Haken an der Wand.",
+            erklaerung_de: "Wohin hängst du den Mantel? → **an den** Haken (Akkusativ). Danach hängt er **am** Haken (an dem Haken → Dativ).",
+            erklaerung_es: "«Cuelga el abrigo en el gancho»: movimiento → Wohin? → acusativo: an den Haken."
+          },
+          {
+            typ: "luecke",
+            thema: "hängen: hing – gehangen / hängte – gehängt",
+            satz: "Früher hat der Mantel jeden Tag an diesem Haken ___. (hängen)",
+            loesung: "gehangen",
+            tipp: "Der Mantel macht nichts, er ist nur dort (Position). Dieses „hängen“ ist unregelmäßig.",
+            erklaerung_de: "Position (Wo?) → **hängen – hing – hat gehangen** (unregelmäßig). Richtung (Wohin?) → hängen – hängte – hat gehängt: Ich habe den Mantel an den Haken gehängt.",
+            erklaerung_es: "«El abrigo estaba colgado» = posición → gehangen. «Colgué el abrigo» = acción → gehängt."
+          },
+          {
+            typ: "luecke",
+            thema: "sich setzen (wohin?) / sitzen (wo?)",
+            satz: "Valentina ist müde. Sie ___ sich auf den alten Sessel. (setzen / sitzen)",
+            loesung: "setzt",
+            tipp: "„auf den Sessel“ ist Akkusativ → Wohin? → Bewegung.",
+            erklaerung_de: "**sich setzen** + Wohin? → auf **den** Sessel (Akkusativ): Valentina **setzt** sich. Danach **sitzt** sie auf **dem** Sessel (Dativ).",
+            erklaerung_es: "«Se sienta en el sillón» → sich setzen + acusativo. «Está sentada» → sitzen + dativo."
+          },
+          {
+            typ: "luecke",
+            thema: "stecken + Wohin? → Akkusativ",
+            satz: "Benja steckt den alten Schlüssel ___ Schloss der Truhe. (in + das)",
+            loesung: ["in das", "ins"],
+            tipp: "Benja bewegt den Schlüssel → Wohin? → Akkusativ.",
+            erklaerung_de: "**stecken** + Wohin? → Akkusativ: **in das** (= **ins**) Schloss.",
+            erklaerung_es: "«Mete la llave en la cerradura»: movimiento → acusativo: in das / ins Schloss."
+          },
+          {
+            typ: "luecke",
+            thema: "liegen + Wo? → Dativ",
+            satz: "Das Tagebuch hat die ganze Zeit ___ Truhe gelegen. (in + die)",
+            loesung: "in der",
+            tipp: "„gelegen“ kommt von „liegen“ → Position → Wo?",
+            erklaerung_de: "**liegen** (Position) → Wo? → Dativ: **in der** Truhe.",
+            erklaerung_es: "«Estaba en el baúl» → posición → dativo: in der Truhe."
+          }
+        ]
+      },
+
+      /* ---------- B1 · Raum 5 ---------- */
+      {
+        name: "Der Maschinenraum des Ascensors",
+        thema: "Alles zusammen",
+        geschichte: "Durch eine kleine Tür kommt ihr in den Maschinenraum des alten Ascensors: große Zahnräder, dicke Seile, ein rostiger Hebel. Hier ist der Ausgang – aber die Maschine hat ein Zahlenschloss.\n\nIlses letztes Rätsel: „Jetzt alles zusammen!“",
+        geschafft: "Der Hebel bewegt sich, die Maschine brummt, und der kleine Wagen des Ascensors fährt los – hinunter zum Hafen.",
+        belohnung: "🚡 Fahrt mit dem Ascensor",
+        hinweis_es: "Repaso: Wo? (posición) → dativo. Wohin? (movimiento) → acusativo. Verbos con dativo: helfen, folgen, gehören, gefallen, fehlen, vertrauen …",
+        aufgaben: [
+          {
+            typ: "luecke",
+            thema: "stellen (wohin?) / stehen (wo?)",
+            satz: "Es ist dunkel. Matías ___ die Kerze auf den Boden. (stellen / stehen)",
+            loesung: "stellt",
+            tipp: "„auf den Boden“ ist Akkusativ → Wohin? → Bewegung.",
+            erklaerung_de: "auf **den** Boden = Wohin? → Bewegung → **stellen**: Matías stellt die Kerze auf den Boden. Danach steht sie auf dem Boden.",
+            erklaerung_es: "«Pone la vela en el suelo» → stellen (poner de pie)."
+          },
+          {
+            typ: "luecke",
+            thema: "Wo? → Dativ",
+            satz: "Die letzte Zahl steht ___ Wand. (an + die)",
+            loesung: "an der",
+            tipp: "Die Zahl bewegt sich nicht → Wo? „Wand“ ist feminin.",
+            erklaerung_de: "Wo steht die Zahl? → Dativ: **an der** Wand.",
+            erklaerung_es: "«El número está en la pared» → posición → dativo: an der Wand."
+          },
+          {
+            typ: "luecke",
+            thema: "vertrauen + Dativ (wem?)",
+            satz: "„Vertraut ___ (ich)!“, sagt Valentina. „Ich kenne diese alten Maschinen.“",
+            loesung: "mir",
+            tipp: "Wem vertraut ihr? vertrauen + Dativ.",
+            erklaerung_de: "**vertrauen + Dativ**: Wem? → **mir**.",
+            erklaerung_es: "«¡Confíen en mí!»: en español con «en», en alemán sin preposición + dativo → Vertraut mir!"
+          },
+          {
+            typ: "luecke",
+            thema: "fehlen + Dativ (wem?)",
+            satz: "Benja ruft: „Mir fehlt noch eine Zahl!“ – „Nein, ___ (du) fehlt keine Zahl. Schau mal hier!“",
+            loesung: "dir",
+            tipp: "Wem fehlt etwas? fehlen + Dativ. du → ?",
+            erklaerung_de: "**fehlen + Dativ**: Wem fehlt etwas? → **dir**. Die Sache (keine Zahl) ist das Subjekt.",
+            erklaerung_es: "«No te falta ningún número»: como en español, la persona va en dativo (te) → dir."
+          },
+          {
+            typ: "luecke",
+            thema: "legen + Wohin? → Akkusativ",
+            satz: "Benja legt das Tagebuch vorsichtig ___ Rucksack. (in + sein)",
+            loesung: "in seinen",
+            tipp: "legen = Bewegung → Wohin? „Rucksack“ ist maskulin.",
+            erklaerung_de: "**legen** → Wohin? → Akkusativ: **in seinen** Rucksack (maskulin, Akkusativ: -en).",
+            erklaerung_es: "«Mete el diario en su mochila»: movimiento → acusativo: in seinen Rucksack."
+          }
+        ]
+      }
+    ]
+  },
+
+  /* =================================================================
+     B2 · DAS ARCHIV VON CONCEPCIÓN
+     ================================================================= */
+  B2: {
+    titel: "Das Archiv von Concepción",
+    ort: "Concepción, Región del Biobío",
+    intro: "Concepción, 19:30 Uhr. Für eure IB-Präsentation über das große Erdbeben von 1960 recherchiert ihr – Sofía, Matías, Benja und Valentina – im Archiv des „Biobío-Kuriers“, einer ehemaligen deutschsprachigen Zeitung. Der Archivar, Herr Albrecht, ist schon nach Hause gegangen. Er hat euch aber versprochen, eine besondere Fotoserie für euch bereitzulegen: Bilder von 1960, die nie veröffentlicht wurden.\n\nUm 20 Uhr verriegelt das elektronische System alle Türen. Ihr habt die Zeit vergessen – jetzt sitzt ihr fest. Auf dem Bildschirm am Eingang erscheint eine Nachricht von Herrn Albrecht: „Falls ihr noch da seid: Die Codes stecken in meinen Rätseln. Viel Erfolg!“",
+    schluss: "Unten an der Feuertreppe wartet Herr Albrecht mit vier Bechern heißer Schokolade. „Ich wusste, dass ihr es schafft“, sagt er und lächelt. „Die Fotos gehören jetzt euch. Zeigt sie in eurer Präsentation – die Menschen in Concepción sollen sie endlich sehen.“",
+    raeume: [
+
+      /* ---------- B2 · Raum 1 ---------- */
+      {
+        name: "Der Lesesaal",
+        thema: "Adjektive nach Wechselpräpositionen",
+        geschichte: "Im Lesesaal stapeln sich alte Zeitungen. Herr Albrecht hat überall Notizen versteckt – aber in jeder Notiz fehlen Präposition, Artikel und Adjektiv. Wo? oder Wohin? Und welche Endung bekommt das Adjektiv?",
+        geschafft: "Unter einer Zeitung vom 22. Mai 1960 findet ihr eine Schlüsselkarte mit der Aufschrift „Fotolabor“.",
+        belohnung: "💳 Karte für das Fotolabor",
+        aufgaben: [
+          {
+            typ: "luecke",
+            thema: "Wo? → Dativ + Adjektiv",
+            satz: "Die Zeitung von 1960 liegt ___. (auf + der alte Tisch)",
+            loesung: "auf dem alten Tisch",
+            tipp: "liegen → Wo? → Dativ. Welche Endung hat das Adjektiv nach „dem“?",
+            erklaerung_de: "liegen → Wo? → **Dativ**: auf **dem** alt**en** Tisch. Nach dem bestimmten Artikel im Dativ endet das Adjektiv immer auf **-en**."
+          },
+          {
+            typ: "luecke",
+            thema: "Wohin? → Akkusativ + Adjektiv",
+            satz: "Sofía legt ihre Mappe ___. (auf + der alte Tisch)",
+            loesung: "auf den alten Tisch",
+            tipp: "legen → Wohin? → Akkusativ, maskulin.",
+            erklaerung_de: "legen → Wohin? → **Akkusativ**: auf **den** alt**en** Tisch (maskulin Akkusativ: den + -en)."
+          },
+          {
+            typ: "luecke",
+            thema: "Wo? → Dativ + Adjektiv",
+            satz: "Ein Foto des alten Bahnhofs hängt ___. (an + die gegenüberliegende Wand)",
+            loesung: "an der gegenüberliegenden Wand",
+            tipp: "hängen ohne Objekt → Position → Wo?",
+            erklaerung_de: "hängt (Position) → Wo? → **Dativ**: an **der** gegenüberliegend**en** Wand."
+          },
+          {
+            typ: "luecke",
+            thema: "Wohin? → Akkusativ + Adjektiv",
+            satz: "Benja stellt die Lampe ___. (neben + das kaputte Lesegerät)",
+            loesung: "neben das kaputte Lesegerät",
+            tipp: "stellen → Wohin? → Akkusativ. Neutrum: Welche Endung hat das Adjektiv nach „das“?",
+            erklaerung_de: "stellen → Wohin? → **Akkusativ**: neben **das** kaputt**e** Lesegerät (nach „das“ im Akkusativ: -e)."
+          },
+          {
+            typ: "luecke",
+            thema: "Wo? → Dativ + Adjektiv (unbestimmter Artikel)",
+            satz: "Valentina findet den Zettel ___. (in + ein dicker Ordner)",
+            loesung: "in einem dicken Ordner",
+            tipp: "Wo ist der Zettel? → Dativ. Aus „ein“ wird …? Und das Adjektiv?",
+            erklaerung_de: "Wo? → **Dativ**: in **einem** dick**en** Ordner. Nach „einem“ endet das Adjektiv auf **-en**."
+          }
+        ]
+      },
+
+      /* ---------- B2 · Raum 2 ---------- */
+      {
+        name: "Das Fotolabor",
+        thema: "Verben mit festen Präpositionen",
+        geschichte: "Im Fotolabor brennt nur ein rotes Licht. An einer Leine hängen alte Fotos, und auf jedem Foto steht ein halber Satz von Herrn Albrecht.\n\nAchtung: Hier entscheidet nicht Wo? oder Wohin?. Hier entscheidet das Verb selbst, welche Präposition und welcher Kasus folgen.",
+        geschafft: "Ein Foto zeigt das Magazin – mit einem roten Pfeil auf das dritte Regal. Klick: Die Tür zum Magazin springt auf.",
+        belohnung: "🖼️ Foto mit Pfeil",
+        aufgaben: [
+          {
+            typ: "luecke",
+            thema: "sich erinnern an + Akkusativ",
+            satz: "Herr Albrecht erinnerte sich noch genau ___ Tag des Erdbebens.",
+            loesung: "an den",
+            tipp: "sich erinnern + Präposition + Akkusativ. „Tag“ ist maskulin.",
+            erklaerung_de: "**sich erinnern an + Akkusativ**: an **den** Tag. (Spanisch: «acordarse DE» – im Deutschen „an“!)"
+          },
+          {
+            typ: "luecke",
+            thema: "teilnehmen an + Dativ",
+            satz: "Mit 17 Jahren hat er ___ Fotowettbewerb der Zeitung teilgenommen.",
+            loesung: "an einem",
+            tipp: "teilnehmen + Präposition + Dativ. Unbestimmter Artikel, „Wettbewerb“ ist maskulin.",
+            erklaerung_de: "**teilnehmen an + Dativ**: an **einem** Fotowettbewerb. (Spanisch: «participar EN» – im Deutschen „an“!)"
+          },
+          {
+            typ: "luecke",
+            thema: "sich verlassen auf + Akkusativ",
+            satz: "Auf seinem Zettel steht: „Ihr könnt euch ___ verlassen.“ (auf + ich)",
+            loesung: "auf mich",
+            tipp: "sich verlassen auf + Akkusativ. ich → Akkusativ?",
+            erklaerung_de: "**sich verlassen auf + Akkusativ**: auf **mich**. (Spanisch: «contar CON alguien» – im Deutschen „sich verlassen auf“.)"
+          },
+          {
+            typ: "luecke",
+            thema: "Angst haben vor + Dativ",
+            satz: "Benja hat ein bisschen Angst ___ Dunkelheit.",
+            loesung: "vor der",
+            tipp: "Angst haben + Präposition + Dativ. „Dunkelheit“ ist feminin.",
+            erklaerung_de: "**Angst haben vor + Dativ**: vor **der** Dunkelheit. (Spanisch: «miedo A la oscuridad» – im Deutschen „vor“!)"
+          },
+          {
+            typ: "luecke",
+            thema: "warten auf + Akkusativ",
+            satz: "Wir warten schon seit einer Stunde ___ Anruf von Herrn Albrecht.",
+            loesung: "auf einen",
+            tipp: "warten + Präposition + Akkusativ. „Anruf“ ist maskulin.",
+            erklaerung_de: "**warten auf + Akkusativ**: auf **einen** Anruf. (Spanisch: «esperar una llamada» – ohne Präposition!)"
+          }
+        ]
+      },
+
+      /* ---------- B2 · Raum 3 ---------- */
+      {
+        name: "Das Magazin",
+        thema: "Relativsätze mit Präpositionen",
+        geschichte: "Im Magazin stehen fast vier Meter hohe Regale voller Kisten. Herr Albrecht hat Kärtchen an die Kisten geklebt. In jedem Satz fehlt der Anfang des Relativsatzes: Präposition + Relativpronomen.\n\nDie Präposition kommt vom Verb, der Kasus von der Präposition, Genus und Numerus vom Bezugswort.",
+        geschafft: "In der Kiste im dritten Regal liegen die Fotos von 1960 – und ein kleiner Schlüssel mit der Aufschrift „Büro“.",
+        belohnung: "🔑 Büroschlüssel",
+        aufgaben: [
+          {
+            typ: "luecke",
+            thema: "Relativsatz: von + Dativ",
+            satz: "Das ist der Ordner, ___ Herr Albrecht so oft gesprochen hat. (sprechen von)",
+            loesung: ["von dem", "von welchem"],
+            tipp: "sprechen von + Dativ. „der Ordner“ ist maskulin. Achtung: „vom“ geht im Relativsatz nicht.",
+            erklaerung_de: "sprechen **von** + Dativ; der Ordner → maskulin → **von dem**. (Im Relativsatz nie „vom“!)"
+          },
+          {
+            typ: "luecke",
+            thema: "Relativsatz: auf + Akkusativ",
+            satz: "Die Fotografin, ___ sich Herr Albrecht immer verlassen konnte, hieß Ana Krüger. (sich verlassen auf)",
+            loesung: ["auf die", "auf welche"],
+            tipp: "sich verlassen auf + Akkusativ; „die Fotografin“ ist feminin.",
+            erklaerung_de: "sich verlassen **auf** + Akkusativ; die Fotografin → feminin → **auf die**."
+          },
+          {
+            typ: "luecke",
+            thema: "Relativsatz: an + Akkusativ",
+            satz: "Das Erdbeben, ___ sich viele Menschen in Concepción noch erinnern, war im Mai 1960. (sich erinnern an)",
+            loesung: ["an das", "an welches"],
+            tipp: "sich erinnern an + Akkusativ; „das Erdbeben“ ist neutral.",
+            erklaerung_de: "sich erinnern **an** + Akkusativ; das Erdbeben → neutral → **an das**."
+          },
+          {
+            typ: "luecke",
+            thema: "Relativsatz: mit + Dativ",
+            satz: "Die Kamera, ___ Ana die Fotos gemacht hat, liegt in der Kiste. (mit)",
+            loesung: ["mit der", "mit welcher"],
+            tipp: "mit + Dativ; „die Kamera“ ist feminin.",
+            erklaerung_de: "**mit** + Dativ; die Kamera → feminin → **mit der**."
+          },
+          {
+            typ: "luecke",
+            thema: "Relativsatz: auf + Dativ (Plural)",
+            satz: "Die Regale, ___ die alten Zeitungen liegen, sind fast vier Meter hoch. (auf)",
+            loesung: ["auf denen", "auf welchen"],
+            tipp: "liegen → Wo? → Dativ. Plural! Das Relativpronomen im Dativ Plural ist nicht „den“.",
+            erklaerung_de: "liegen → Wo? → **auf** + Dativ; die Regale → Plural → **auf denen** (Relativpronomen im Dativ Plural: denen, nicht „den“)."
+          }
+        ]
+      },
+
+      /* ---------- B2 · Raum 4 ---------- */
+      {
+        name: "Das Büro von Herrn Albrecht",
+        thema: "Ganze Sätze bilden",
+        geschichte: "Im Büro von Herrn Albrecht steht eine alte Schreibmaschine. In ihr steckt ein Blatt: „Letzte Prüfung vor der Dachterrasse. Schreibt ganze Sätze!“",
+        geschafft: "Unter der Schreibmaschine klebt ein Zettel mit dem Code für die Tür zur Dachterrasse.",
+        belohnung: "⌨️ Code für die Dachterrasse",
+        aufgaben: [
+          {
+            typ: "satz",
+            thema: "sich verlassen auf + Akkusativ",
+            satz: "Bilde einen Satz im Präsens: **Matías / sich verlassen auf / sein Instinkt**",
+            loesung: ["Matías verlässt sich auf seinen Instinkt.", "Auf seinen Instinkt verlässt sich Matías."],
+            tipp: "verlassen ist unregelmäßig (er verlässt). auf + Akkusativ, „Instinkt“ ist maskulin.",
+            erklaerung_de: "**Matías verlässt sich auf seinen Instinkt.** – verlassen: er verl**ä**sst; auf + Akkusativ → sein**en** Instinkt."
+          },
+          {
+            typ: "satz",
+            thema: "teilnehmen an + Dativ (Perfekt)",
+            satz: "Bilde einen Satz im Perfekt: **wir / teilnehmen an / die Recherche**",
+            loesung: ["Wir haben an der Recherche teilgenommen.", "An der Recherche haben wir teilgenommen."],
+            tipp: "Perfekt mit „haben“; trennbares Verb: teil-ge-nommen. an + Dativ.",
+            erklaerung_de: "**Wir haben an der Recherche teilgenommen.** – an + Dativ → an **der** Recherche; Partizip: teil**ge**nommen."
+          },
+          {
+            typ: "satz",
+            thema: "Relativsatz mit Präposition",
+            satz: "Verbinde die Sätze mit Präposition + Relativpronomen: **Das ist der Schrank. Im Schrank lag der Schlüssel.**",
+            loesung: ["Das ist der Schrank, in dem der Schlüssel lag.", "Das ist der Schrank, in welchem der Schlüssel lag."],
+            tipp: "im = in dem. Im Relativsatz steht das Verb am Ende.",
+            erklaerung_de: "**Das ist der Schrank, in dem der Schlüssel lag.** – Präposition + Relativpronomen am Anfang, Verb am Ende, Komma davor."
+          },
+          {
+            typ: "luecke",
+            thema: "Wohin? → Akkusativ + Adjektiv",
+            satz: "Herr Albrecht hat den Zettel ___ geklebt. (unter + die schwere Schreibmaschine)",
+            loesung: "unter die schwere Schreibmaschine",
+            tipp: "kleben → Wohin? → Akkusativ. Feminin: Welche Endung hat das Adjektiv nach „die“?",
+            erklaerung_de: "kleben → Wohin? → **Akkusativ**: unter **die** schwer**e** Schreibmaschine (feminin Akkusativ: die + -e)."
+          },
+          {
+            typ: "luecke",
+            thema: "denken an + Akkusativ + Adjektiv",
+            satz: "Sofía denkt die ganze Zeit ___. Er hat 1960 in Concepción gewohnt. (an + ihr verstorbener Großvater)",
+            loesung: "an ihren verstorbenen Großvater",
+            tipp: "denken an + Akkusativ; „Großvater“ ist maskulin.",
+            erklaerung_de: "**denken an + Akkusativ**: an **ihren** verstorben**en** Großvater (maskulin Akkusativ: -en / -en)."
+          }
+        ]
+      },
+
+      /* ---------- B2 · Raum 5 ---------- */
+      {
+        name: "Die Dachterrasse",
+        thema: "Finale",
+        geschichte: "Die Dachterrasse! Unter euch leuchten die Lichter von Concepción, in der Ferne glänzt der Biobío. Nur noch ein Gitter trennt euch von der Feuertreppe.",
+        geschafft: "Das Gitter öffnet sich mit einem lauten Quietschen. Ihr steigt die Feuertreppe hinunter.",
+        belohnung: "🪜 Weg über die Feuertreppe",
+        aufgaben: [
+          {
+            typ: "luecke",
+            thema: "Wo? → Dativ + Adjektiv",
+            satz: "Der Mond steht ___. (über + der dunkle Fluss)",
+            loesung: "über dem dunklen Fluss",
+            tipp: "stehen → Position → Wo? Achtung beim Adjektiv „dunkel“.",
+            erklaerung_de: "stehen → Wo? → **Dativ**: über **dem** dunkl**en** Fluss. (dunkel → dunkl-en: das -e- fällt weg.)"
+          },
+          {
+            typ: "luecke",
+            thema: "sich freuen auf + Akkusativ",
+            satz: "Wir freuen uns schon ___. (auf + die nächste Recherche)",
+            loesung: "auf die nächste Recherche",
+            tipp: "sich freuen auf = auf etwas in der Zukunft. + Akkusativ.",
+            erklaerung_de: "**sich freuen auf + Akkusativ** (Zukunft): auf **die** nächst**e** Recherche. (sich freuen über + Akkusativ = über etwas, das schon passiert ist.)"
+          },
+          {
+            typ: "luecke",
+            thema: "Relativsatz: auf + Akkusativ",
+            satz: "Benja ist ein Freund, ___ ich mich immer verlassen kann. (sich verlassen auf)",
+            loesung: ["auf den", "auf welchen"],
+            tipp: "auf + Akkusativ; „Freund“ ist maskulin.",
+            erklaerung_de: "sich verlassen **auf** + Akkusativ; der Freund → maskulin → **auf den**."
+          }
+        ]
+      }
+    ]
+  },
+
+  /* =================================================================
+     C1 · PROJEKT ESTRELLA AUSTRAL
+     ================================================================= */
+  C1: {
+    titel: "Projekt Estrella Austral",
+    ort: "Cerro Austral, Región de Antofagasta",
+    intro: "Cerro Austral, 2600 Meter über dem Meeresspiegel. Im Rahmen eines Praktikums verbringt ihr – Sofía, Matías, Benja und Valentina – eine Woche in einer internationalen Forschungsstation in der Atacama. In der dritten Nacht zieht ein heftiger Sandsturm auf. Das Sicherheitssystem riegelt die Station ab, die Verbindung nach Antofagasta bricht zusammen.\n\nDie Leiterin der Station, Dr. Helena Vogt, sitzt in Santiago fest. Per Notfunk erklärt sie euch, dass sich die Türen erst wieder öffnen lassen, wenn der Abschlussbericht des Projekts „Estrella Austral“ fehlerfrei ist. Jemand hat ihn offenbar manipuliert – und das System akzeptiert ausschließlich einwandfreies Deutsch.",
+    schluss: "Die Tür gleitet auf. Der Sturm hat sich gelegt, über der Atacama funkeln Millionen Sterne. Aus dem Funkgerät hört ihr Dr. Vogt: „Hervorragende Arbeit. Ohne euch hätten wir den Bericht nicht rechtzeitig einreichen können. Ihr werdet in der Danksagung erwähnt – und eure Praktikumszeugnisse schreibe ich persönlich.“",
+    raeume: [
+
+      /* ---------- C1 · Raum 1 ---------- */
+      {
+        name: "Das Besucherzentrum",
+        thema: "Funktionsverbgefüge",
+        geschichte: "Im Besucherzentrum flackert ein Terminal. Abschnitt 1 des Berichts ist voller Lücken: Es fehlen Bestandteile von Funktionsverbgefügen – also festen Verbindungen aus Nomen und Verb, die im wissenschaftlichen Stil häufig sind.",
+        geschafft: "Das Terminal bestätigt Abschnitt 1. Mit einem Zischen öffnet sich die Schleuse zum Datenzentrum.",
+        belohnung: "📄 Abschnitt 1 des Berichts",
+        aufgaben: [
+          {
+            typ: "luecke",
+            thema: "in Frage (infrage) stellen",
+            satz: "Die Ergebnisse des Teams wurden von einem externen Gutachter in ___ gestellt.",
+            loesung: "Frage",
+            tipp: "Bedeutung: bezweifeln.",
+            erklaerung_de: "**in Frage stellen** (auch: infrage stellen) = bezweifeln."
+          },
+          {
+            typ: "luecke",
+            thema: "zur Verfügung stehen",
+            satz: "Das Rechenzentrum steht allen Forschenden rund um die Uhr zur ___.",
+            loesung: "Verfügung",
+            tipp: "Bedeutung: Es kann jederzeit benutzt werden.",
+            erklaerung_de: "**zur Verfügung stehen** = verfügbar sein, benutzt werden können."
+          },
+          {
+            typ: "luecke",
+            thema: "in Betrieb nehmen",
+            satz: "Das neue Spektrometer wird erst im nächsten Monat in ___ genommen.",
+            loesung: "Betrieb",
+            tipp: "Bedeutung: anfangen, ein Gerät zu benutzen.",
+            erklaerung_de: "**in Betrieb nehmen** = ein Gerät zum ersten Mal benutzen. Gegenteil: außer Betrieb setzen."
+          },
+          {
+            typ: "luecke",
+            thema: "eine Entscheidung treffen",
+            satz: "Gestern ___ die Leitung nach langer Diskussion endlich eine Entscheidung. (Präteritum)",
+            loesung: "traf",
+            tipp: "Welches Verb passt zu „Entscheidung“? Achtung: Präteritum, unregelmäßig.",
+            erklaerung_de: "**eine Entscheidung treffen** (traf, hat getroffen) = entscheiden."
+          },
+          {
+            typ: "luecke",
+            thema: "auf Kritik stoßen",
+            satz: "Der Vorschlag, alle Messungen zu wiederholen, ist im Team auf heftige Kritik ___.",
+            loesung: "gestoßen",
+            tipp: "Partizip II; das Perfekt wird hier mit „sein“ gebildet.",
+            erklaerung_de: "**auf Kritik stoßen** (stieß, ist gestoßen) = kritisiert werden."
+          }
+        ]
+      },
+
+      /* ---------- C1 · Raum 2 ---------- */
+      {
+        name: "Das Datenzentrum",
+        thema: "Redewendungen",
+        geschichte: "Im Datenzentrum summen die Server. Abschnitt 2 enthält Auszüge aus dem Team-Chat – voller Redewendungen, in denen Wörter fehlen.",
+        geschafft: "Abschnitt 2 ist bestätigt. Auf einem Monitor erscheint ein Grundriss: Der Weg führt durch den Wohnbereich.",
+        belohnung: "🗺️ Grundriss der Station",
+        aufgaben: [
+          {
+            typ: "luecke",
+            thema: "jemandem auf die Nerven gehen",
+            satz: "Dieser ständige Alarm geht mir wirklich auf die ___!",
+            loesung: "Nerven",
+            tipp: "Spanisch: «me pone de los nervios».",
+            erklaerung_de: "**jemandem auf die Nerven gehen** (+ Dativ der Person) = jemanden stark stören."
+          },
+          {
+            typ: "luecke",
+            thema: "etwas auf den Punkt bringen",
+            satz: "Kannst du das Problem in zwei Sätzen auf den ___ bringen?",
+            loesung: "Punkt",
+            tipp: "Bedeutung: das Wichtigste kurz und genau sagen.",
+            erklaerung_de: "**etwas auf den Punkt bringen** = das Wesentliche kurz und präzise formulieren."
+          },
+          {
+            typ: "auswahl",
+            thema: "jemanden auf dem Laufenden halten",
+            satz: "Halte mich bitte ___, wenn es neue Daten gibt.",
+            optionen: ["auf dem Laufenden", "auf den Laufenden", "im Laufenden"],
+            loesung: "auf dem Laufenden",
+            tipp: "Die Redewendung beschreibt einen Zustand, keine Richtung.",
+            erklaerung_de: "**jemanden auf dem Laufenden halten** (Dativ!) = jemanden regelmäßig informieren."
+          },
+          {
+            typ: "auswahl",
+            thema: "unter vier Augen",
+            satz: "Das sollten wir nicht im Chat, sondern ___ besprechen.",
+            optionen: ["unter vier Augen", "zwischen vier Augen", "vor vier Augen"],
+            loesung: "unter vier Augen",
+            tipp: "Spanisch: «a solas», «en privado».",
+            erklaerung_de: "**unter vier Augen** = nur zu zweit, vertraulich. „Zwischen vier Augen“ ist ein typischer Fehler."
+          },
+          {
+            typ: "luecke",
+            thema: "jemanden im Stich lassen",
+            satz: "Wir brauchen dich jetzt. Lass uns bitte nicht im ___!",
+            loesung: "Stich",
+            tipp: "Spanisch: «dejar a alguien en la estacada».",
+            erklaerung_de: "**jemanden im Stich lassen** = jemanden in einer schwierigen Situation allein lassen."
+          }
+        ]
+      },
+
+      /* ---------- C1 · Raum 3 ---------- */
+      {
+        name: "Der Wohnbereich",
+        thema: "Fehlersuche",
+        geschichte: "Im Wohnbereich liegt Abschnitt 3 des Berichts ausgedruckt auf dem Tisch. Hier hat jemand gezielt Fehler eingebaut – in jedem Satz genau einen.",
+        geschafft: "Der korrigierte Abschnitt 3 wird akzeptiert. Die Tür zum Kontrollraum entriegelt sich.",
+        belohnung: "🔍 Abschnitt 3 des Berichts",
+        aufgaben: [
+          {
+            typ: "fehler",
+            thema: "sich erinnern an + Akkusativ",
+            text: "Viele Teammitglieder erinnern sich noch gut [auf|an] die erste Messung im Jahr 2024.",
+            tipp: "Prüfe die Präposition nach dem reflexiven Verb.",
+            erklaerung_de: "**sich erinnern an** + Akkusativ – nicht „auf“."
+          },
+          {
+            typ: "fehler",
+            thema: "folgen: Perfekt mit „sein“",
+            text: "Das gesamte Team [hat|ist] der Direktorin in den Kontrollraum gefolgt.",
+            tipp: "Prüfe das Hilfsverb im Perfekt. Es geht um eine Bewegung.",
+            erklaerung_de: "**folgen** (Bewegung) bildet das Perfekt mit **sein**: Das Team **ist** der Direktorin gefolgt."
+          },
+          {
+            typ: "fehler",
+            thema: "hängen (mit Objekt) + Wohin? → Akkusativ",
+            text: "Bitte hängen Sie die Warnschilder sofort an [der|die] Tür des Labors.",
+            tipp: "Hier wird etwas bewegt. Wo? oder Wohin?",
+            erklaerung_de: "**hängen** mit Objekt = Richtung → Wohin? → Akkusativ: an **die** Tür."
+          },
+          {
+            typ: "fehler",
+            thema: "sich verlassen auf + Akkusativ (Relativsatz)",
+            text: "Die Daten, auf [denen|die] wir uns verlassen, stammen aus dem Jahr 2024.",
+            tipp: "Welchen Kasus verlangt die Präposition nach diesem Verb?",
+            erklaerung_de: "sich verlassen **auf + Akkusativ** → Relativpronomen im Akkusativ Plural: auf **die**. „denen“ wäre Dativ."
+          },
+          {
+            typ: "fehler",
+            thema: "antworten + Dativ",
+            text: "Leider haben wir [die|der] Kollegin aus Garching noch nicht geantwortet.",
+            tipp: "Welchen Kasus verlangt das Verb am Ende des Satzes?",
+            erklaerung_de: "**antworten + Dativ**: Wem? → **der** Kollegin."
+          }
+        ]
+      },
+
+      /* ---------- C1 · Raum 4 ---------- */
+      {
+        name: "Der Kontrollraum",
+        thema: "Satzumformungen",
+        geschichte: "Im Kontrollraum blinkt nur noch ein Bildschirm. Abschnitt 4 muss umformuliert werden – im präzisen Stil eines wissenschaftlichen Berichts.",
+        geschafft: "„Bericht vollständig“, meldet das System. Nur noch die Notausgangstür ist verriegelt.",
+        belohnung: "🖥️ Abschnitt 4 des Berichts",
+        aufgaben: [
+          {
+            typ: "satz",
+            thema: "Passiv mit Funktionsverbgefüge",
+            satz: "Forme ins Passiv um (Präsens): **Man stellt die Ergebnisse infrage.**",
+            loesung: ["Die Ergebnisse werden infrage gestellt.", "Die Ergebnisse werden in Frage gestellt."],
+            tipp: "werden + Partizip II; das Akkusativobjekt wird zum Subjekt (Plural!).",
+            erklaerung_de: "**Die Ergebnisse werden infrage gestellt.** – Passiv Präsens: werden (Plural) + Partizip II."
+          },
+          {
+            typ: "satz",
+            thema: "Relativsatz mit Präposition",
+            satz: "Verbinde mit Präposition + Relativpronomen: **Das ist die Methode. Wir haben uns lange mit dieser Methode beschäftigt.**",
+            loesung: ["Das ist die Methode, mit der wir uns lange beschäftigt haben.", "Das ist die Methode, mit welcher wir uns lange beschäftigt haben."],
+            tipp: "sich beschäftigen mit + Dativ; das Verb steht am Ende.",
+            erklaerung_de: "**Das ist die Methode, mit der wir uns lange beschäftigt haben.**"
+          },
+          {
+            typ: "satz",
+            thema: "Pronominaladverb (da + Präposition)",
+            satz: "Ersetze „auf die Ergebnisse“ durch ein Pronominaladverb: **Wir freuen uns auf die Ergebnisse.**",
+            loesung: ["Wir freuen uns darauf.", "Darauf freuen wir uns."],
+            tipp: "da + Präposition. Beginnt die Präposition mit einem Vokal, kommt ein -r- dazwischen.",
+            erklaerung_de: "**Wir freuen uns darauf.** – da + r + auf (für Sachen, nicht für Personen)."
+          },
+          {
+            typ: "satz",
+            thema: "Kritik üben an + Dativ",
+            satz: "Forme mit dem Funktionsverbgefüge „Kritik üben an“ um: **Das Team hat das Messverfahren kritisiert.**",
+            loesung: ["Das Team hat Kritik am Messverfahren geübt.", "Das Team hat Kritik an dem Messverfahren geübt.", "Das Team hat am Messverfahren Kritik geübt.", "Das Team hat an dem Messverfahren Kritik geübt."],
+            tipp: "Kritik üben an + Dativ; Perfekt mit „haben“.",
+            erklaerung_de: "**Das Team hat Kritik am (an dem) Messverfahren geübt.** – Kritik üben **an + Dativ**."
+          },
+          {
+            typ: "satz",
+            thema: "Indirekte Frage mit Pronominaladverb",
+            satz: "Bilde eine indirekte Frage: **Woran erinnert sich der Gutachter?** → Ich weiß nicht, …",
+            loesung: ["Ich weiß nicht, woran sich der Gutachter erinnert.", "Ich weiß nicht, woran der Gutachter sich erinnert.", "woran sich der Gutachter erinnert", "woran der Gutachter sich erinnert"],
+            tipp: "Das Fragewort steht am Anfang des Nebensatzes, das Verb geht ans Ende.",
+            erklaerung_de: "**Ich weiß nicht, woran sich der Gutachter erinnert.** – Nebensatz: Verb am Ende, Komma davor."
+          }
+        ]
+      },
+
+      /* ---------- C1 · Raum 5 ---------- */
+      {
+        name: "Der Notausgang",
+        thema: "Finale",
+        geschichte: "Vor der Notausgangstür wartet ein letztes Terminal. Draußen lässt der Sandsturm langsam nach. Drei letzte Sätze – dann seid ihr frei.",
+        geschafft: "Die Notausgangstür entriegelt sich mit einem tiefen Summen.",
+        belohnung: "🚪 Notausgang",
+        aufgaben: [
+          {
+            typ: "satz",
+            thema: "sich verlassen auf + Akkusativ (Perfekt)",
+            satz: "Bilde einen Satz im Perfekt: **die Forscherin / sich verlassen auf / ihre langjährige Erfahrung**",
+            loesung: ["Die Forscherin hat sich auf ihre langjährige Erfahrung verlassen.", "Auf ihre langjährige Erfahrung hat sich die Forscherin verlassen."],
+            tipp: "Reflexive Verben bilden das Perfekt mit „haben“. auf + Akkusativ, feminin.",
+            erklaerung_de: "**Die Forscherin hat sich auf ihre langjährige Erfahrung verlassen.**"
+          },
+          {
+            typ: "luecke",
+            thema: "zur Verfügung stehen",
+            satz: "Erst als der Strom wieder zur Verfügung ___, ließ sich die Tür öffnen. (Präteritum)",
+            loesung: "stand",
+            tipp: "Funktionsverbgefüge mit „Verfügung“ – Präteritum.",
+            erklaerung_de: "**zur Verfügung stehen** – Präteritum: stand."
+          },
+          {
+            typ: "auswahl",
+            thema: "es kommt jemandem auf etwas (Akk.) an",
+            satz: "Das ist genau der Punkt, ___ es mir ankommt.",
+            optionen: ["auf den", "auf dem", "an den"],
+            loesung: "auf den",
+            tipp: "es kommt auf etwas an – welcher Kasus folgt?",
+            erklaerung_de: "**es kommt (mir) auf etwas an** + Akkusativ: der Punkt, **auf den** es mir ankommt."
+          }
+        ]
+      }
+    ]
+  }
+
+};
+</script>
+
+<style>
+:root{
+  --bg:#0b1626; --panel:#14243b; --panel2:#1c3150; --line:#3b5a85;
+  --text:#f4f6fa; --muted:#c3cede; --accent:#ffd166; --accent-text:#1a1a1a;
+  --ok:#5ee08f; --ok-bg:#103a26; --bad:#ff8a8a; --bad-bg:#45181c;
+  --focus:#ffe066; --btn:#2b4a75; --btnh:#365c90;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  background-image:radial-gradient(ellipse at 20% 0%, #1b2f52 0%, transparent 55%),radial-gradient(ellipse at 90% 100%, #22163d 0%, transparent 50%);
+  background-attachment:fixed;
+  color:var(--text);
+  font-family:Roboto,Arial,"Segoe UI",system-ui,sans-serif;
+  font-size:20px; line-height:1.45; min-height:100vh;
+}
+h1,h2,h3{line-height:1.2;margin:.2em 0 .5em}
+h1{font-size:2em} h2{font-size:1.4em} h3{font-size:1.05em}
+p{margin:.4em 0 .8em}
+a{color:var(--accent)}
+button{
+  font:inherit;color:var(--text);cursor:pointer;border-radius:12px;
+  border:2px solid #5d7ba8;background:var(--btn);padding:.4em .9em;min-height:48px;
+  touch-action:manipulation;
+}
+button:hover:not(:disabled){background:var(--btnh)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,summary:focus-visible,[tabindex]:focus-visible,a:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.primary:hover:not(:disabled){background:#ffe08f}
+input[type=text]{
+  font:inherit;font-size:1em;color:#111;background:#fff;border:3px solid #8fa9d6;border-radius:10px;
+  padding:.25em .45em;min-height:46px;
+}
+input[readonly]{background:#e6e9ee}
+.muted{color:var(--muted)} .small{font-size:.85em}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Kopfzeile ---------- */
+#top{
+  position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:.6em;flex-wrap:wrap;
+  padding:.35em .8em;background:rgba(9,18,32,.95);border-bottom:2px solid var(--line);
+}
+#top .brand{font-weight:800;font-size:1.05em;margin-right:.4em;white-space:nowrap}
+#hud{display:flex;gap:.5em;flex-wrap:wrap;align-items:center;flex:1}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.1em .7em;white-space:nowrap}
+.badge{background:var(--accent);color:var(--accent-text);font-weight:800;border-radius:8px;padding:.05em .5em}
+#top .tools{display:flex;gap:.4em}
+#top .tools button{min-height:42px;padding:.2em .7em;font-size:.9em}
+
+/* ---------- Layout ---------- */
+.homelink{color:var(--muted);text-decoration:none;font-size:.85em;border:1px solid var(--line);border-radius:999px;padding:.15em .7em;white-space:nowrap}
+.homelink:hover{color:var(--text);border-color:var(--accent)}
+main{max-width:1320px;margin:0 auto;padding:.8em 1em 2em}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:1em 1.3em;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.narrow{max-width:860px;margin:0 auto}
+.center{text-align:center}
+.row{display:flex;gap:.6em;flex-wrap:wrap;align-items:center}
+.spacer{flex:1}
+.story p{font-size:1.05em}
+.chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.05em .7em;font-size:.85em;color:var(--muted)}
+.warnbox{background:#4a3a00;border:2px solid var(--accent);border-radius:12px;padding:.6em 1em;margin:.6em 0;font-size:.85em}
+.warnbox ul{margin:.3em 0 0;padding-left:1.2em}
+
+/* ---------- Start ---------- */
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8em;margin:.6em 0 1em}
+.level{display:flex;flex-direction:column;align-items:flex-start;gap:.15em;text-align:left;padding:.8em 1em;border-radius:16px;min-height:150px}
+.level .lv{font-size:1.6em;font-weight:800;color:var(--accent)}
+.level .lt{font-weight:700}
+.level .lo,.level .ln{font-size:.85em;color:var(--muted)}
+.check{display:flex;align-items:center;gap:.5em;cursor:pointer}
+.check input{width:26px;height:26px}
+
+/* ---------- Raum ---------- */
+.room{display:grid;grid-template-columns:1fr 270px;gap:1em;align-items:start}
+.task-head{display:flex;gap:.6em;align-items:baseline;flex-wrap:wrap;margin-bottom:.2em}
+.task-head h2{margin:0;font-size:1.15em}
+details.story-mini{margin:.2em 0 .5em}
+details.story-mini summary{cursor:pointer;color:var(--muted);font-size:.9em;padding:.2em 0}
+details.story-mini div{font-size:.9em;background:var(--panel2);border-radius:10px;padding:.3em .8em;margin-top:.3em}
+.instr{color:var(--muted);font-size:.9em;margin:.2em 0 .4em}
+.satz{font-size:1.2em;margin:.4em 0 .7em}
+.gap{display:inline-block;min-width:4.5em;border-bottom:3px solid var(--accent);text-align:center;color:var(--accent);font-weight:700;padding:0 .2em}
+.gapin{width:8ch;max-width:100%;text-align:center;font-weight:700}
+.fullin{width:100%}
+.options{display:flex;flex-wrap:wrap;gap:.6em;margin:.3em 0 .4em}
+.opt{min-width:7em;font-size:1.05em;display:inline-flex;align-items:center;gap:.5em}
+.opt .k{display:inline-flex;align-items:center;justify-content:center;width:1.5em;height:1.5em;border-radius:6px;background:rgba(255,255,255,.12);font-size:.75em}
+.opt.sel{background:#4c6fa3;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.mark-ok{background:var(--ok-bg)!important;border-color:var(--ok)!important;color:#fff}
+.mark-bad{background:var(--bad-bg)!important;border-color:var(--bad)!important;color:#fff}
+.mark-ok::after{content:" ✓";color:var(--ok);font-weight:800}
+.mark-bad::after{content:" ✗";color:var(--bad);font-weight:800}
+.actions{display:flex;gap:.5em;flex-wrap:wrap;align-items:center;margin-top:.5em}
+.tipbox{background:#3a3214;border:2px solid #b89a3a;border-radius:12px;padding:.4em .8em;margin-top:.5em}
+.tipbox.es{background:#13324a;border-color:#4f8fc0}
+.feedback:empty{display:none}
+.feedback{margin-top:.6em;border-radius:14px;padding:.6em 1em;border:2px solid var(--line);background:var(--panel2)}
+.feedback.ok{border-color:var(--ok);background:var(--ok-bg)}
+.feedback.bad{border-color:var(--bad);background:var(--bad-bg)}
+.feedback.try{border-color:var(--accent);background:#3a3214}
+.fb-title{font-weight:800;font-size:1.1em}
+.feedback .row{margin-top:.4em}
+.digit-reveal{display:inline-block;background:var(--accent);color:var(--accent-text);border-radius:8px;padding:0 .5em;font-weight:800;margin-left:.3em}
+.umlauts{display:flex;gap:.35em;flex-wrap:wrap;align-items:center;margin:.3em 0}
+.umlauts button{min-width:48px;font-weight:700;padding:.2em .5em}
+
+/* ---------- Seitenleiste ---------- */
+.side{display:flex;flex-direction:column;gap:.7em}
+.side .card{padding:.6em .9em}
+.side h3{font-size:.95em;margin:0 0 .4em}
+.digits{display:flex;gap:.3em;flex-wrap:wrap}
+.dg{width:1.6em;height:1.9em;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:2px solid var(--line);background:#0e1a2c;font-weight:800;font-size:1.05em}
+.dg.on{border-color:var(--accent);color:var(--accent)}
+.inv{list-style:none;margin:0;padding:0;font-size:.9em}
+.inv li{padding:.15em 0}
+
+/* ---------- Szene ---------- */
+.scene{position:relative;width:100%;max-width:calc(44vh * 1000 / 560);min-width:min(100%,420px);aspect-ratio:1000/560;margin:.3em auto .5em;border-radius:14px;overflow:hidden;border:2px solid var(--line);background:#1d2d44}
+.scene svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.scene .lbl{font:700 30px Arial,sans-serif;fill:#fff;stroke:#0b1626;stroke-width:7px;paint-order:stroke;text-anchor:middle}
+.zone{position:absolute;min-height:0;padding:0;background:transparent;border:3px dashed transparent;border-radius:12px}
+.zone:hover:not(:disabled){background:rgba(255,255,255,.12)}
+.scene.armed .zone,body.dragging .zone{border-color:rgba(255,209,102,.75);background:rgba(255,209,102,.07)}
+.zone.drop-hover{background:rgba(255,209,102,.3)!important}
+.zone.z-ok{border:4px solid var(--ok)!important;background:rgba(94,224,143,.2)!important}
+.zone.z-bad{border:4px solid var(--bad)!important;background:rgba(255,138,138,.2)!important}
+.shown,.sitem{position:absolute;display:flex;align-items:center;justify-content:center;font-size:clamp(26px,3.8vw,50px);line-height:1;pointer-events:none}
+.sitem{pointer-events:auto;touch-action:none;cursor:grab;z-index:3;background:transparent;border:none;min-height:0;padding:0;width:auto;height:auto;transform:translate(-50%,-50%)}
+.item{font-size:clamp(30px,4vw,52px);line-height:1;padding:.1em .3em;min-height:0;background:#24456f;border:3px solid var(--accent);border-radius:14px;cursor:grab;touch-action:none;user-select:none}
+.item.sel,.sitem.sel{box-shadow:0 0 0 4px var(--focus)}
+.sitem.sel{border-radius:14px;background:rgba(255,224,102,.25)}
+.scene-row{display:flex;gap:.8em;align-items:center;justify-content:center;flex-wrap:wrap}
+.scene-row .scene{flex:1 1 420px;margin:0}
+.scene-row .tray{flex:0 0 140px;flex-direction:column;min-height:160px;margin:0;text-align:center}
+.tray{display:flex;align-items:center;gap:.8em;justify-content:center;min-height:70px;border:2px dashed var(--line);border-radius:14px;padding:.3em;margin-bottom:.4em}
+.zbadge{position:absolute;right:4px;top:2px;font-weight:900;font-size:22px;pointer-events:none}
+.ghost{position:fixed;z-index:1000;pointer-events:none;transform:translate(-50%,-50%) scale(1.08);opacity:.92}
+
+/* ---------- Sortieren / Ordnen ---------- */
+.pool{display:flex;flex-wrap:wrap;gap:.5em;min-height:64px;padding:.5em;border:2px dashed var(--line);border-radius:14px;margin:.3em 0 .6em}
+.bins{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.7em}
+.bin{border:2px solid var(--line);border-radius:14px;background:#0e1a2c;min-height:150px;padding:.4em}
+.bin.drop-hover,.pool.drop-hover,.tray.drop-hover{background:rgba(255,209,102,.15);border-color:var(--accent)}
+.binbtn{width:100%;font-weight:800;margin-bottom:.4em}
+.bin-items{display:flex;flex-wrap:wrap;gap:.4em}
+.card-s{background:#24456f;border:2px solid #6f8fbf;font-size:.95em;cursor:grab;touch-action:none;user-select:none}
+.card-s.sel{box-shadow:0 0 0 4px var(--focus);border-color:var(--focus)}
+.build{display:inline-flex;flex-wrap:wrap;gap:.3em;min-width:8em;min-height:52px;border-bottom:3px solid var(--accent);padding:.15em .3em;vertical-align:middle}
+.chipw{font-size:1em;background:#24456f;border-color:#6f8fbf}
+.build .chipw{background:#4c6fa3;border-color:var(--accent)}
+
+/* ---------- Fehlersuche ---------- */
+.ftext{display:flex;flex-wrap:wrap;gap:.2em .25em;font-size:1.15em;margin:.3em 0 .7em;line-height:1.3}
+.tok{background:transparent;border:2px solid transparent;border-radius:8px;padding:.05em .2em;min-height:44px}
+.tok:hover:not(:disabled){background:rgba(255,255,255,.1);border-color:var(--line)}
+.tok.sel{border-color:var(--accent);background:#4a3f12}
+
+/* ---------- Schloss ---------- */
+.lockcode{font-size:2.2em;letter-spacing:.3em;font-weight:800;text-align:center;background:#0e1a2c;border:3px solid var(--line);border-radius:14px;padding:.2em;margin:.4em auto;max-width:12em;min-height:1.7em}
+.keypad{display:grid;grid-template-columns:repeat(3,80px);gap:.5em;justify-content:center;margin:.6em 0}
+.keypad button{font-size:1.4em;font-weight:800;min-height:64px}
+.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.door{font-size:4em;text-align:center;margin:.1em 0}
+.reward{font-size:1.2em;background:var(--panel2);border:2px solid var(--accent);border-radius:14px;padding:.5em 1em;display:inline-block}
+
+/* ---------- Ergebnis ---------- */
+.restable{border-collapse:collapse;margin:.5em 0;width:100%;max-width:620px}
+.restable th,.restable td{text-align:left;padding:.3em .6em;border-bottom:1px solid var(--line)}
+.restable th{color:var(--muted);font-weight:600;width:40%}
+.bigcode{font-family:"Roboto Mono",Consolas,monospace;font-size:1.6em;font-weight:800;letter-spacing:.06em;background:#fff;color:#111;border-radius:12px;padding:.2em .6em;display:inline-block;margin:.3em 0}
+.wronglist{padding-left:1.3em}
+.wronglist li{margin-bottom:.7em}
+.okline{color:var(--ok)} .badline{color:var(--bad)}
+
+@media (max-width: 980px){
+  .room{grid-template-columns:1fr}
+  .side{flex-direction:row;flex-wrap:wrap}
+  .side .card{flex:1;min-width:200px}
+}
+@media (max-width: 600px){
+  body{font-size:18px}
+  #top{gap:.4em}
+  #top .tools{margin-left:auto}
+  #hud{order:3;flex:1 1 100%}
+  .scene-row .tray{flex:1 1 100%;flex-direction:row;min-height:70px}
+  main{padding:.5em .6em 2em}
+  .card{padding:.8em}
+  .keypad{grid-template-columns:repeat(3,70px)}
+}
+@media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<header id="top">
+  <a class="homelink" href="index.html" title="Zur Startseite mit allen Spielen">← Alle Spiele</a>
+  <div class="brand">🔐 Kasus-Code</div>
+  <div id="hud" aria-live="off"></div>
+  <div class="tools">
+    <button type="button" id="btnSound" aria-pressed="false" title="Ton an/aus">🔇 Ton aus</button>
+    <button type="button" id="btnRestart" hidden>↺ Neu starten</button>
+  </div>
+</header>
+<main id="app" tabindex="-1"></main>
+
+<script>
+/* =====================================================================
+   AB HIER: SPIEL-LOGIK (keine Änderungen nötig)
+   ===================================================================== */
+(function(){
+'use strict';
+
+/* ---------- Grundwerte ---------- */
+const E = EINSTELLUNGEN;
+const LEVELS = ['A2','B1','B2','C1'].filter(l => QUESTIONS[l]);
+const LS_GAME = 'kasuscode.spiel.v1';
+const LS_SET  = 'kasuscode.einstellungen.v1';
+const ACTIVE  = ['roomintro','task','lock','roomdone'];
+const app = document.getElementById('app');
+
+let state = null;           // gespeicherter Spielstand
+let view = 'start';         // 'start' | 'game'
+let ui = {};                // Zustand der aktuellen Aufgabe (nicht gespeichert)
+let settings = { sound:false };
+
+/* ---------- Speicher (immer in try/catch) ---------- */
+function lsGet(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { window.localStorage.setItem(k,v); } catch(e){} }
+function lsDel(k){ try { window.localStorage.removeItem(k); } catch(e){} }
+function save(){ if(state) lsSet(LS_GAME, JSON.stringify(state)); }
+function saveSettings(){ lsSet(LS_SET, JSON.stringify(settings)); }
+
+/* ---------- Hilfsfunktionen ---------- */
+const $  = (s,r) => (r||document).querySelector(s);
+const $$ = (s,r) => Array.from((r||document).querySelectorAll(s));
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+function plain(s){ return String(s==null?'':s).replace(/\*\*/g,''); }
+function paras(s){ return String(s||'').split(/\n\s*\n/).map(p => '<p>'+fmt(p)+'</p>').join(''); }
+function asList(x){ return Array.isArray(x) ? x : [x]; }
+function shuffle(a){ a = a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function gapHTML(satz, inner){ const p = String(satz).split('___'); return p.length>1 ? p.map(fmt).join(inner) : fmt(satz); }
+function fillGap(satz, txt){ return plain(String(satz).replace('___', txt)); }
+function fmtTime(ms){ const s=Math.max(0,Math.round(ms/1000)); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; const p=n=>String(n).padStart(2,'0'); return (h? h+':'+p(m) : p(m))+':'+p(x); }
+function fmtDate(d){ const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear(); }
+
+/* ---------- Antworten vergleichen ----------
+   tolerant: Leerzeichen, Satzzeichen, Großschreibung am Satzanfang,
+   ae/oe/ue/ss statt ä/ö/ü/ß. Exakt: alle Endungen.                  */
+function canon(s){
+  return String(s==null?'':s).normalize('NFC')
+    .replace(/[„“”‟"«»‚‘’']/g,' ')
+    .replace(/[.,!?;:…]/g,' ')
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue')
+    .replace(/Ä/g,'Ae').replace(/Ö/g,'Oe').replace(/Ü/g,'Ue').replace(/ß/g,'ss')
+    .replace(/\s+/g,' ').trim();
+}
+function lowFirst(s){ return s.charAt(0).toLowerCase() + s.slice(1); }
+function compare(input, solutions, atStart){
+  const a = canon(input);
+  if(!a) return { empty:true };
+  const sols = asList(solutions);
+  for(const sol of sols){
+    const b = canon(sol);
+    if(a===b || (atStart!==false && lowFirst(a)===lowFirst(b))) return { ok:true, match:sol, note:commaNote(input, sol) };
+  }
+  for(const sol of sols){
+    if(a.toLowerCase()===canon(sol).toLowerCase())
+      return { ok:true, match:sol, note:'Achte auf die Groß- und Kleinschreibung: „'+sol+'“.' };
+  }
+  return { ok:false };
+}
+function commaNote(input, sol){
+  return (String(sol).includes(',') && !String(input).includes(',')) ? 'Denk an das Komma: „'+sol+'“.' : '';
+}
+
+/* ---------- Prüfcode ---------- */
+function cyrb53(str, seed){
+  let h1 = 0xdeadbeef ^ (seed||0), h2 = 0x41c6ce57 ^ (seed||0);
+  for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1 = Math.imul(h1^(h1>>>16),2246822507) ^ Math.imul(h2^(h2>>>13),3266489909);
+  h2 = Math.imul(h2^(h2>>>16),2246822507) ^ Math.imul(h1^(h1>>>13),3266489909);
+  return 4294967296*(2097151&h2) + (h1>>>0);
+}
+const B32 = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function normName(n){ return String(n||'').replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]/g,''); }
+function checksum(level, ch, pct, ddmmyy, name){
+  let n = cyrb53([level, ch?'C':'N', pct, ddmmyy, normName(name), E.geheimwort].join('|'));
+  let out = '';
+  for(let i=0;i<5;i++){ out += B32[n % 32]; n = Math.floor(n/32); }
+  return out;
+}
+function makeCode(level, ch, pct, date, name){
+  const p=n=>String(n).padStart(2,'0');
+  const d = p(date.getDate())+p(date.getMonth()+1)+p(date.getFullYear()%100);
+  return level+(ch?'C':'')+'-'+pct+'-'+d+'-'+checksum(level,ch,pct,d,name);
+}
+function verifyCode(code, name){
+  const m = String(code||'').toUpperCase().replace(/\s+/g,'').match(/^(A2|B1|B2|C1)(C?)-(\d{1,3})-(\d{6})-([A-Z0-9]{5})$/);
+  if(!m) return { valid:false, reason:'Das Format stimmt nicht. Beispiel: A2-75-081026-K7QFM' };
+  const ok = checksum(m[1], !!m[2], +m[3], m[4], name) === m[5];
+  return { valid:ok, level:m[1], challenge:!!m[2], pct:+m[3], date:m[4].slice(0,2)+'.'+m[4].slice(2,4)+'.20'+m[4].slice(4,6) };
+}
+
+/* ---------- Ton (standardmäßig aus) ---------- */
+let actx = null;
+const SND = { ok:[[660,.12],[880,.2]], bad:[[220,.28]], door:[[523,.12],[659,.12],[784,.12],[1047,.35]], tick:[[520,.06]] };
+function sound(name){
+  if(!settings.sound) return;
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    let t = actx.currentTime;
+    SND[name].forEach(([f,d]) => {
+      const o=actx.createOscillator(), g=actx.createGain();
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.18,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+      o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d+0.03); t += d*0.9;
+    });
+  }catch(e){}
+}
+
+/* =====================================================================
+   RAUMBILDER (SVG, Koordinaten 1000 × 560)
+   ===================================================================== */
+function stars(n,x,y,w,h,seed){
+  let s=seed||1, out='';
+  const r=()=>{ s=(s*16807)%2147483647; return s/2147483647; };
+  for(let i=0;i<n;i++) out += '<circle cx="'+Math.round(x+r()*w)+'" cy="'+Math.round(y+r()*h)+'" r="'+(1+r()*2).toFixed(1)+'" fill="#fff" opacity="'+(0.5+r()*0.5).toFixed(2)+'"/>';
+  return out;
+}
+const SCENES = {
+  schlafraum: {
+    svg:
+      '<rect width="1000" height="470" fill="#1d2d44"/><rect y="470" width="1000" height="90" fill="#5a4330"/><rect y="466" width="1000" height="6" fill="#2b2017"/>'+
+      '<rect x="660" y="55" width="180" height="140" fill="#08101e"/>'+stars(18,665,60,170,130,7)+
+      '<rect x="660" y="55" width="180" height="140" fill="none" stroke="#cfd8e3" stroke-width="8"/><line x1="750" y1="55" x2="750" y2="195" stroke="#cfd8e3" stroke-width="6"/><line x1="660" y1="125" x2="840" y2="125" stroke="#cfd8e3" stroke-width="6"/>'+
+      '<text class="lbl" x="750" y="228">das Fenster</text>'+
+      '<line x1="185" y1="0" x2="185" y2="140" stroke="#c9d1d9" stroke-width="3"/><path d="M150 140 L220 140 L242 178 L128 178 Z" fill="#ffd166" stroke="#8a6d1f" stroke-width="3"/>'+
+      '<text class="lbl" x="75" y="125">die Lampe</text><text class="lbl" x="332" y="30">die Wand</text>'+
+      '<rect x="38" y="290" width="24" height="180" rx="4" fill="#6b4f35"/><rect x="60" y="360" width="270" height="38" rx="8" fill="#dfe6f0"/><rect x="140" y="354" width="190" height="44" rx="8" fill="#4f78b8"/><ellipse cx="102" cy="358" rx="32" ry="13" fill="#fff"/>'+
+      '<rect x="60" y="396" width="270" height="14" fill="#6b4f35"/><rect x="64" y="408" width="12" height="62" fill="#6b4f35"/><rect x="316" y="408" width="12" height="62" fill="#6b4f35"/>'+
+      '<text class="lbl" x="236" y="386">das Bett</text>'+
+      '<rect x="420" y="170" width="140" height="300" fill="#7a5a3c" stroke="#3d2b1b" stroke-width="4"/><line x1="490" y1="174" x2="490" y2="466" stroke="#3d2b1b" stroke-width="3"/><circle cx="480" cy="330" r="5" fill="#e0c080"/><circle cx="500" cy="330" r="5" fill="#e0c080"/>'+
+      '<text class="lbl" x="490" y="262">der Schrank</text>'+
+      '<rect x="640" y="330" width="220" height="14" rx="3" fill="#a07850"/><rect x="655" y="344" width="12" height="126" fill="#a07850"/><rect x="833" y="344" width="12" height="126" fill="#a07850"/>'+
+      '<text class="lbl" x="750" y="374">der Tisch</text>'+
+      '<rect x="935" y="292" width="10" height="98" fill="#a07850"/><rect x="872" y="380" width="73" height="10" fill="#a07850"/><rect x="875" y="390" width="8" height="80" fill="#a07850"/><rect x="935" y="390" width="8" height="80" fill="#a07850"/>'+
+      '<text class="lbl" x="905" y="280">der Stuhl</text>'+
+      '<ellipse cx="760" cy="515" rx="150" ry="30" fill="#a0442c" stroke="#e0a060" stroke-width="4"/><text class="lbl" x="515" y="532">der Teppich</text><text class="lbl" x="130" y="540">der Boden</text>',
+    orte: {
+      bett_auf:              { r:[75,288,250,64],  name:'auf dem Bett' },
+      bett_unter:            { r:[78,410,236,58],  name:'unter dem Bett' },
+      bett_ueber:            { r:[90,185,200,98],  name:'über dem Bett' },
+      wand:                  { r:[262,40,140,140], name:'an der Wand' },
+      schrank_auf:           { r:[425,104,130,62], name:'auf dem Schrank' },
+      zwischen_bett_schrank: { r:[338,330,78,138], name:'zwischen dem Bett und dem Schrank' },
+      zwischen_schrank_tisch:{ r:[566,330,70,138], name:'zwischen dem Schrank und dem Tisch' },
+      tisch_auf:             { r:[650,262,200,64], name:'auf dem Tisch' },
+      tisch_unter:           { r:[672,350,156,118],name:'unter dem Tisch' },
+      stuhl_auf:             { r:[870,318,62,60],  name:'auf dem Stuhl' },
+      teppich_auf:           { r:[640,490,240,52], name:'auf dem Teppich' }
+    }
+  },
+  kuppel: {
+    svg:
+      '<rect width="1000" height="560" fill="#07101f"/>'+stars(40,0,0,1000,300,3)+
+      '<path d="M0 560 L0 240 Q500 -140 1000 240 L1000 560 Z" fill="#26384f"/><path d="M462 60 L538 60 L538 300 L462 300 Z" fill="#07101f"/>'+stars(8,466,64,68,230,11)+
+      '<rect y="470" width="1000" height="90" fill="#3b3f46"/><rect y="466" width="1000" height="6" fill="#23262b"/>'+
+      '<rect x="455" y="452" width="90" height="18" rx="4" fill="#6c7782"/><rect x="486" y="335" width="28" height="120" fill="#9aa5b1"/>'+
+      '<g transform="rotate(-70 500 330)"><rect x="470" y="302" width="240" height="56" rx="12" fill="#e8edf2" stroke="#6c7782" stroke-width="4"/><rect x="690" y="296" width="30" height="68" rx="6" fill="#6c7782"/></g>'+
+      '<circle cx="500" cy="330" r="24" fill="#c9d1d9" stroke="#6c7782" stroke-width="4"/><text class="lbl" x="650" y="330">das Teleskop</text>'+
+      '<rect x="60" y="340" width="220" height="14" rx="3" fill="#a07850"/><rect x="75" y="354" width="12" height="116" fill="#a07850"/><rect x="253" y="354" width="12" height="116" fill="#a07850"/><text class="lbl" x="170" y="388">der Tisch</text>'+
+      '<rect x="760" y="190" width="12" height="280" fill="#8a6a48"/><rect x="928" y="190" width="12" height="280" fill="#8a6a48"/>'+
+      '<rect x="760" y="186" width="180" height="10" fill="#8a6a48"/><rect x="760" y="270" width="180" height="10" fill="#8a6a48"/><rect x="760" y="360" width="180" height="10" fill="#8a6a48"/><rect x="760" y="460" width="180" height="10" fill="#8a6a48"/>'+
+      '<rect x="780" y="222" width="18" height="48" fill="#c0392b"/><rect x="800" y="230" width="16" height="40" fill="#2980b9"/><rect x="818" y="216" width="20" height="54" fill="#27ae60"/><rect x="860" y="310" width="22" height="50" fill="#8e44ad"/><rect x="884" y="318" width="18" height="42" fill="#f39c12"/>'+
+      '<text class="lbl" x="850" y="425">das Regal</text>'+
+      '<ellipse cx="500" cy="515" rx="170" ry="28" fill="#2f6f63" stroke="#8fd3c3" stroke-width="4"/><text class="lbl" x="790" y="540">der Teppich</text>',
+    orte: {
+      tisch_auf:       { r:[70,272,200,64],  name:'auf dem Tisch' },
+      tisch_unter:     { r:[92,358,156,110], name:'unter dem Tisch' },
+      teleskop_links:  { r:[372,360,100,90], name:'neben dem Teleskop (links)' },
+      teleskop_rechts: { r:[528,360,100,90], name:'neben dem Teleskop (rechts)' },
+      regal_auf:       { r:[765,120,170,64], name:'auf dem Regal' },
+      teppich_auf:     { r:[360,488,280,50], name:'auf dem Teppich' }
+    }
+  },
+  dachboden: {
+    svg:
+      '<rect width="1000" height="560" fill="#4a3829"/><polygon points="0,0 300,0 0,230" fill="#2a1d13"/><polygon points="1000,0 700,0 1000,230" fill="#2a1d13"/><rect width="1000" height="16" fill="#2a1d13"/>'+
+      '<rect y="470" width="1000" height="90" fill="#7a5535"/><g stroke="#5a3d25" stroke-width="3"><line x1="0" y1="500" x2="1000" y2="500"/><line x1="0" y1="530" x2="1000" y2="530"/></g>'+
+      '<circle cx="560" cy="110" r="48" fill="#0c1a33" stroke="#b8c4d0" stroke-width="8"/>'+stars(6,530,80,60,60,5)+
+      '<rect x="262" y="118" width="110" height="16" rx="4" fill="#8a6a48"/><path d="M317 134 v22 q0 16 16 16" stroke="#d0d6dc" stroke-width="6" fill="none" stroke-linecap="round"/><text class="lbl" x="317" y="106">der Haken</text>'+
+      '<ellipse cx="560" cy="300" rx="52" ry="88" fill="#9fb4c7" stroke="#c9a35a" stroke-width="8"/><text class="lbl" x="560" y="422">der Spiegel</text>'+
+      '<rect x="80" y="388" width="170" height="82" rx="6" fill="#7a4f2a" stroke="#3d2b1b" stroke-width="4"/><rect x="74" y="372" width="182" height="24" rx="8" fill="#94612f" stroke="#3d2b1b" stroke-width="4"/><rect x="158" y="400" width="14" height="20" rx="3" fill="#e0c080"/><text class="lbl" x="165" y="455">die Truhe</text>'+
+      '<rect x="665" y="300" width="150" height="100" rx="24" fill="#7b2d3b"/><rect x="650" y="380" width="180" height="44" rx="12" fill="#93394a"/><rect x="636" y="350" width="32" height="88" rx="12" fill="#6a2532"/><rect x="812" y="350" width="32" height="88" rx="12" fill="#6a2532"/>'+
+      '<rect x="660" y="438" width="10" height="32" fill="#3d2b1b"/><rect x="810" y="438" width="10" height="32" fill="#3d2b1b"/><text class="lbl" x="740" y="414">der Sessel</text>'+
+      '<text class="lbl" x="150" y="540">der Boden</text>',
+    orte: {
+      haken:        { r:[262,140,110,150], name:'an dem (am) Haken' },
+      truhe_auf:    { r:[88,306,155,62],   name:'auf der Truhe' },
+      neben_truhe:  { r:[262,372,100,96],  name:'neben der Truhe' },
+      sessel_auf:   { r:[672,318,136,58],  name:'auf dem Sessel' },
+      neben_sessel: { r:[856,330,110,138], name:'neben dem Sessel' },
+      boden:        { r:[380,482,240,58],  name:'auf dem Boden' }
+    }
+  }
+};
+function zpos(r){ return 'left:'+(r[0]/10)+'%;top:'+(r[1]/5.6)+'%;width:'+(r[2]/10)+'%;height:'+(r[3]/5.6)+'%'; }
+function zcenter(r){ return 'left:'+((r[0]+r[2]/2)/10)+'%;top:'+((r[1]+r[3]/2)/5.6)+'%'; }
+function sceneHTML(q, interactive){
+  const S = q.szene && SCENES[q.szene];
+  if(!S) return '';
+  let html = '<div class="scene" id="scene"><svg viewBox="0 0 1000 560" aria-hidden="true" focusable="false">'+S.svg+'</svg>';
+  if(interactive){
+    Object.keys(S.orte).forEach((id,n) => {
+      html += '<button type="button" class="zone" data-drop="'+id+'" aria-label="Stelle '+(n+1)+'" style="'+zpos(S.orte[id].r)+'"></button>';
+    });
+  }
+  if(q.zeige && S.orte[q.zeige.ort]){
+    const r = S.orte[q.zeige.ort].r;
+    html += '<div class="shown" aria-hidden="true" style="'+zpos(r)+'">'+esc(q.zeige.gegenstand)+'</div>';
+  }
+  return html + '</div>';
+}
+
+/* =====================================================================
+   PRÜFUNG DER AUFGABEN-DATEN (Hinweis für die Lehrkraft)
+   ===================================================================== */
+const TYPEN = ['auswahl','luecke','satz','ordnen','sortieren','ziehen','fehler'];
+const FEHLER_RX = /\[([^|\]]+)\|([^\]]+)\]/g;
+function validate(){
+  const errs = [];
+  LEVELS.forEach(lv => {
+    const L = QUESTIONS[lv];
+    if(!L.raeume || !L.raeume.length){ errs.push(lv+': keine Räume.'); return; }
+    L.raeume.forEach((R,ri) => {
+      if(!R.aufgaben || !R.aufgaben.length){ errs.push(lv+', Raum '+(ri+1)+': keine Aufgaben.'); return; }
+      R.aufgaben.forEach((q,qi) => {
+        q.niveau = lv; q.raum = ri+1;
+        const w = lv+', Raum '+(ri+1)+' („'+R.name+'“), Aufgabe '+(qi+1)+': ';
+        if(!TYPEN.includes(q.typ)){ errs.push(w+'unbekannter typ „'+q.typ+'“.'); return; }
+        if(q.typ!=='fehler' && !q.satz) errs.push(w+'satz fehlt.');
+        if(q.szene && !SCENES[q.szene]) errs.push(w+'Raumbild „'+q.szene+'“ gibt es nicht.');
+        if(q.zeige && (!q.szene || !SCENES[q.szene] || !SCENES[q.szene].orte[q.zeige.ort])) errs.push(w+'zeige.ort „'+(q.zeige.ort)+'“ gibt es im Raumbild nicht.');
+        switch(q.typ){
+          case 'auswahl':
+            if(!Array.isArray(q.optionen) || q.optionen.length<2) errs.push(w+'mindestens zwei optionen nötig.');
+            else if(!q.optionen.includes(q.loesung)) errs.push(w+'loesung „'+q.loesung+'“ steht nicht in den optionen.');
+            if(new Set(q.optionen||[]).size !== (q.optionen||[]).length) errs.push(w+'eine Option steht doppelt da.');
+            break;
+          case 'luecke':
+            if((String(q.satz).split('___').length-1)!==1) errs.push(w+'der satz braucht genau eine Lücke ___.');
+            if(!q.loesung || !asList(q.loesung).length) errs.push(w+'loesung fehlt.');
+            break;
+          case 'satz':
+            if(!q.loesung || !asList(q.loesung).length) errs.push(w+'loesung fehlt.');
+            break;
+          case 'ordnen':
+            if(!Array.isArray(q.woerter) || q.woerter.length<2) errs.push(w+'mindestens zwei woerter nötig.');
+            if(!String(q.satz).includes('___')) errs.push(w+'der satz braucht eine Lücke ___.');
+            break;
+          case 'sortieren':
+            if(!Array.isArray(q.gruppen) || q.gruppen.length<2) errs.push(w+'mindestens zwei gruppen nötig.');
+            (q.karten||[]).forEach((k,ki) => { if(!(k.gruppe>=1 && k.gruppe<=(q.gruppen||[]).length)) errs.push(w+'Karte '+(ki+1)+' hat keine gültige gruppe.'); });
+            if(!q.karten || q.karten.length<2) errs.push(w+'mindestens zwei karten nötig.');
+            break;
+          case 'ziehen':
+            if(!q.szene || !SCENES[q.szene]) errs.push(w+'ziehen braucht ein Raumbild (szene).');
+            else asList(q.loesung).forEach(z => { if(!SCENES[q.szene].orte[z]) errs.push(w+'Stelle „'+z+'“ gibt es im Raumbild „'+q.szene+'“ nicht.'); });
+            if(!q.gegenstand) errs.push(w+'gegenstand fehlt.');
+            break;
+          case 'fehler':
+            if(!q.text || (String(q.text).match(FEHLER_RX)||[]).length!==1) errs.push(w+'der text braucht genau eine Markierung [falsch|richtig].');
+            break;
+        }
+      });
+    });
+  });
+  return errs;
+}
+const DATA_ERRORS = validate();
+
+/* =====================================================================
+   SPIELSTAND
+   ===================================================================== */
+function signature(level){ return QUESTIONS[level].raeume.map(r => r.aufgaben.length).join(','); }
+function L(){ return QUESTIONS[state.level]; }
+function R(){ return L().raeume[state.room]; }
+function curIndex(){ return state.order[state.room][state.task]; }
+function curQ(){ return R().aufgaben[curIndex()]; }
+function key(){ return state.room+'-'+curIndex(); }
+function totalTasks(level){ return QUESTIONS[level].raeume.reduce((n,r) => n + r.aufgaben.length, 0); }
+function limitMs(){ return (E.challengeMinuten[state.level]||30)*60000; }
+function spanish(){ return !!(E.spanischeHilfe && E.spanischeHilfe[state.level]); }
+
+function newGame(level, challenge){
+  const Lv = QUESTIONS[level];
+  state = {
+    v:1, level, challenge:!!challenge, sig:signature(level),
+    phase:'intro', room:0, task:0, attempts:0, tipFor:null,
+    order:  Lv.raeume.map(r => shuffle(r.aufgaben.map((_,i) => i))),
+    digits: Lv.raeume.map(r => r.aufgaben.map(() => 1 + Math.floor(Math.random()*9))),
+    results:{}, score:0, tipsUsed: Lv.raeume.map(() => 0),
+    wrong:[], inventory:[], elapsed:0,
+    name:'', finished:null, timeout:false
+  };
+  save();
+}
+function loadGame(){
+  try{
+    const s = JSON.parse(lsGet(LS_GAME) || 'null');
+    if(s && s.v===1 && QUESTIONS[s.level] && s.sig===signature(s.level)) return s;
+  }catch(e){}
+  return null;
+}
+
+/* =====================================================================
+   ZEIT
+   ===================================================================== */
+let tickN = 0;
+setInterval(() => {
+  if(!state || view!=='game' || !ACTIVE.includes(state.phase) || document.hidden || location.hash==='#lehrer') return;
+  state.elapsed += 1000; tickN++;
+  updateTime();
+  if(state.challenge && state.elapsed >= limitMs()){
+    state.timeout = true; state.phase = 'end'; save(); render(); return;
+  }
+  if(tickN % 5 === 0) save();
+}, 1000);
+function updateTime(){
+  const el = document.getElementById('hudTime');
+  if(!el || !state) return;
+  if(state.challenge){ const rest = limitMs()-state.elapsed; el.textContent = '⏳ '+fmtTime(rest); el.classList.toggle('mark-bad', rest < 120000); }
+  else el.textContent = '⏱ '+fmtTime(state.elapsed);
+}
+document.addEventListener('visibilitychange', save);
+window.addEventListener('pagehide', save);
+
+/* =====================================================================
+   KOPFZEILE
+   ===================================================================== */
+function renderHUD(){
+  const hud = $('#hud');
+  const inGame = state && view==='game' && location.hash!=='#lehrer';
+  $('#btnRestart').hidden = !state;
+  if(!inGame){ hud.innerHTML=''; return; }
+  const Lv = L();
+  let h = '<span class="badge" title="Niveau">'+esc(state.level)+'</span>';
+  if(['roomintro','task','lock','roomdone'].includes(state.phase))
+    h += '<span class="pill">Raum '+(state.room+1)+'/'+Lv.raeume.length+'</span>';
+  h += '<span class="pill" title="Punkte">⭐ '+Math.max(0,state.score)+' Punkte</span>';
+  h += '<span class="pill" id="hudTime"></span>';
+  hud.innerHTML = h; updateTime();
+}
+$('#btnSound').addEventListener('click', () => {
+  settings.sound = !settings.sound; saveSettings(); updateSoundBtn(); sound('tick');
+});
+function updateSoundBtn(){
+  const b = $('#btnSound');
+  b.textContent = settings.sound ? '🔊 Ton an' : '🔇 Ton aus';
+  b.setAttribute('aria-pressed', settings.sound ? 'true' : 'false');
+}
+$('#btnRestart').addEventListener('click', () => {
+  if(!window.confirm('Willst du wirklich neu starten? Dein Fortschritt wird gelöscht.')) return;
+  lsDel(LS_GAME); state = null; view = 'start';
+  if(location.hash) history.replaceState(null,'',location.pathname+location.search);
+  render();
+});
+
+/* =====================================================================
+   BILDSCHIRME
+   ===================================================================== */
+function render(){
+  ui = {};
+  if(location.hash === '#lehrer') renderTeacher();
+  else if(!state || view==='start') renderStart();
+  else switch(state.phase){
+    case 'intro':     renderIntro(); break;
+    case 'roomintro': renderRoomIntro(); break;
+    case 'task':      renderTask(); break;
+    case 'lock':      renderLock(); break;
+    case 'roomdone':  renderRoomDone(); break;
+    case 'final':     renderFinal(); break;
+    case 'end':       renderEnd(); break;
+    default:          renderStart();
+  }
+  renderHUD();
+}
+function focusMain(sel){
+  const el = sel ? $(sel) : null;
+  (el || app).focus({preventScroll:false});
+  window.scrollTo(0,0);
+}
+
+/* ---------- Start ---------- */
+function renderStart(){
+  let h = '<section class="narrow"><div class="center"><h1>🔐 Kasus-Code</h1>'+
+    '<p class="story">Ein Grammatik-Escape-Room: Löse die Rätsel auf Deutsch und finde den Weg nach draußen!</p></div>';
+  if(DATA_ERRORS.length){
+    h += '<div class="warnbox" role="alert"><strong>Hinweis für die Lehrkraft:</strong> In den Aufgaben stimmt etwas nicht.<ul>'+
+      DATA_ERRORS.map(e => '<li>'+esc(e)+'</li>').join('')+'</ul></div>';
+  }
+  if(state){
+    const Lv = L();
+    const where = state.phase==='end' ? 'abgeschlossen' : (state.phase==='final' ? 'fast fertig' : 'Raum '+(state.room+1)+' von '+Lv.raeume.length);
+    h += '<div class="card" style="margin:.8em 0"><h2>Dein gespeichertes Spiel</h2><p><span class="badge">'+esc(state.level)+'</span> '+
+      esc(Lv.titel)+' · '+where+' · ⭐ '+Math.max(0,state.score)+' Punkte</p>'+
+      '<div class="row"><button type="button" class="primary" id="btnContinue">'+(state.phase==='end'?'Ergebnis anzeigen':'▶ Weiterspielen')+'</button></div></div>';
+  }
+  h += '<h2>Wähle dein Niveau</h2><div class="levels">';
+  LEVELS.forEach(lv => {
+    const Lv = QUESTIONS[lv];
+    h += '<button type="button" class="level" data-l="'+lv+'"><span class="lv">'+lv+'</span><span class="lt">'+esc(Lv.titel)+'</span>'+
+      '<span class="lo">📍 '+esc(Lv.ort||'')+'</span><span class="ln">'+totalTasks(lv)+' Aufgaben · '+Lv.raeume.length+' Räume</span></button>';
+  });
+  h += '</div><div class="card"><label class="check"><input type="checkbox" id="chkChallenge"> ⏳ Challenge-Modus: mit Zeitlimit</label>'+
+    '<p class="small muted" style="margin:.4em 0 0">Ohne Challenge gibt es keinen Zeitdruck. Die Zeit wird trotzdem gemessen.</p></div>'+
+    '<p class="small muted center" style="margin-top:1em">🔒 Dein Fortschritt wird nur auf diesem Gerät gespeichert. Es werden keine Daten verschickt.</p>'+
+    '<p class="small center"><a href="#lehrer">Für Lehrkräfte: Prüfcode kontrollieren</a></p></section>';
+  app.innerHTML = h;
+  const c = $('#btnContinue');
+  if(c) c.addEventListener('click', () => { view='game'; render(); focusMain(); });
+  $$('.level').forEach(b => b.addEventListener('click', () => {
+    if(state && state.phase!=='end' && !window.confirm('Du hast ein gespeichertes Spiel. Wenn du ein neues Spiel startest, wird es gelöscht. Weiter?')) return;
+    newGame(b.dataset.l, $('#chkChallenge').checked); view='game'; render(); focusMain();
+  }));
+}
+
+/* ---------- Einleitung ---------- */
+function renderIntro(){
+  const Lv = L();
+  app.innerHTML = '<section class="card narrow story"><p class="chip">'+esc(state.level)+' · 📍 '+esc(Lv.ort||'')+'</p><h1>'+esc(Lv.titel)+'</h1>'+paras(Lv.intro)+
+    (state.challenge ? '<p class="tipbox">⏳ Challenge-Modus: Du hast <strong>'+(E.challengeMinuten[state.level]||30)+' Minuten</strong>.</p>' : '')+
+    '<p class="small muted">So geht’s: Du hast pro Aufgabe zwei Versuche. Pro Raum gibt es '+E.tippsProRaum+' Tipps (ein Tipp kostet '+E.tippKosten+' Punkte).</p>'+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnGo">Los geht’s ➜</button></div></section>';
+  $('#btnGo').addEventListener('click', () => { state.phase='roomintro'; save(); render(); focusMain('#btnGo'); });
+  focusMain('#btnGo');
+}
+
+/* ---------- Raum-Einleitung ---------- */
+function renderRoomIntro(){
+  const Rm = R();
+  app.innerHTML = '<section class="card narrow story"><p class="chip">Raum '+(state.room+1)+' von '+L().raeume.length+' · '+esc(Rm.thema||'')+'</p>'+
+    '<h1>🚪 '+esc(Rm.name)+'</h1>'+paras(Rm.geschichte)+
+    pistaHTML(Rm)+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnGo">Zu den Aufgaben ➜</button></div></section>';
+  bindPista();
+  $('#btnGo').addEventListener('click', () => { state.phase='task'; state.task=0; state.attempts=0; state.tipFor=null; save(); render(); });
+  focusMain('#btnGo');
+}
+function pistaHTML(Rm){
+  if(!spanish() || !Rm.hinweis_es) return '';
+  return '<div class="row" style="margin:.3em 0"><button type="button" id="btnPista" lang="es" aria-expanded="false">💬 Pista en español</button></div>'+
+    '<div id="pistaBox" class="tipbox es" lang="es" hidden>'+fmt(Rm.hinweis_es)+'</div>';
+}
+function bindPista(){
+  const b = $('#btnPista'); if(!b) return;
+  b.addEventListener('click', () => { const box=$('#pistaBox'); box.hidden=!box.hidden; b.setAttribute('aria-expanded', String(!box.hidden)); });
+}
+
+/* ---------- Aufgabe ---------- */
+const DEFAULT_INSTR = {
+  auswahl:'Wähle die richtige Antwort. (Tastatur: 1, 2, 3 …)',
+  luecke:'Schreib die fehlende Form in die Lücke.',
+  satz:'Schreib den ganzen Satz.',
+  ordnen:'Klick die Wörter in der richtigen Reihenfolge an. Klick ein Wort noch einmal, um es zurückzulegen.',
+  sortieren:'Zieh jede Karte in die richtige Gruppe – oder: Karte antippen, dann Gruppe antippen.',
+  ziehen:'Zieh den Gegenstand an die richtige Stelle im Bild – oder: Gegenstand antippen, dann Stelle antippen.',
+  fehler:'Ein Wort ist falsch. Klick auf das falsche Wort und schreib die richtige Form in das Feld.'
+};
+function renderTask(){
+  const Rm = R();
+  while(state.task < Rm.aufgaben.length && state.results[key()]) { state.task++; state.attempts=0; state.tipFor=null; }
+  if(state.task >= Rm.aufgaben.length){ state.phase='lock'; save(); return render(); }
+  const q = curQ();
+  ui = { q, done:false };
+  const tipsLeft = E.tippsProRaum - state.tipsUsed[state.room];
+  const tipShown = state.tipFor === key();
+  app.innerHTML =
+    '<div class="room"><section class="card" aria-labelledby="taskTitle">'+
+      '<div class="task-head"><h2 id="taskTitle">'+esc(Rm.name)+' · Aufgabe '+(state.task+1)+' von '+Rm.aufgaben.length+'</h2><span class="chip">'+esc(Rm.thema||'')+'</span></div>'+
+      '<details class="story-mini"><summary>📖 Geschichte noch einmal lesen</summary><div>'+paras(Rm.geschichte)+'</div></details>'+
+      '<div class="instr">'+fmt(q.anweisung || DEFAULT_INSTR[q.typ])+'</div>'+
+      '<div id="taskBody"></div>'+
+      '<div class="actions">'+
+        '<button type="button" id="btnTip" '+((tipsLeft<=0 && !tipShown)||tipShown?'disabled':'')+'>💡 Tipp (−'+E.tippKosten+')</button>'+
+        (spanish() && Rm.hinweis_es ? '<button type="button" id="btnPista" lang="es" aria-expanded="false">💬 Pista</button>' : '')+
+        '<span class="spacer"></span><span class="muted small" id="attemptInfo">Versuch '+(state.attempts+1)+' von 2</span>'+
+        '<button type="button" class="primary" id="btnCheck">Prüfen ✔</button>'+
+      '</div>'+
+      '<div id="tipBox" class="tipbox" '+(tipShown?'':'hidden')+'>💡 '+fmt(q.tipp || ('Denk an: '+(q.thema||'')))+'</div>'+
+      (spanish() && Rm.hinweis_es ? '<div id="pistaBox" class="tipbox es" lang="es" hidden>'+fmt(Rm.hinweis_es)+'</div>' : '')+
+      '<div id="feedback" class="feedback" role="status" aria-live="polite"></div>'+
+    '</section>'+sideHTML()+'</div>';
+  T[q.typ].init(q, $('#taskBody'));
+  if(state.attempts>0){ showTry('Du hast noch einen Versuch. Denk an: '+(q.thema||'')); }
+  $('#btnCheck').addEventListener('click', check);
+  $('#btnTip').addEventListener('click', useTip);
+  bindPista();
+  window.scrollTo(0,0);
+  const first = $('#taskBody input, #taskBody button:not(:disabled)');
+  if(first) first.focus({preventScroll:true});
+}
+function sideHTML(){
+  const Rm = R(); const dg = state.digits[state.room];
+  let d = '';
+  for(let i=0;i<Rm.aufgaben.length;i++){
+    const idx = state.order[state.room][i];
+    const done = !!state.results[state.room+'-'+idx];
+    d += '<span class="dg'+(done?' on':'')+'">'+(done?dg[i]:'?')+'</span>';
+  }
+  const tipsLeft = E.tippsProRaum - state.tipsUsed[state.room];
+  return '<aside class="side" aria-label="Status">'+
+    '<div class="card"><h3>🔢 Code für die Tür</h3><div class="digits" id="digits">'+d+'</div></div>'+
+    '<div class="card"><h3>💡 Tipps</h3><p style="margin:0" id="tipsLeft">'+tipsLeft+' von '+E.tippsProRaum+' übrig</p></div>'+
+    '<div class="card"><h3>🎒 Inventar</h3>'+(state.inventory.length ? '<ul class="inv">'+state.inventory.map(x => '<li>'+esc(x)+'</li>').join('')+'</ul>' : '<p class="muted small" style="margin:0">noch leer</p>')+'</div>'+
+  '</aside>';
+}
+function useTip(){
+  if(ui.done || state.tipFor===key()) return;
+  if(state.tipsUsed[state.room] >= E.tippsProRaum) return;
+  state.tipsUsed[state.room]++; state.tipFor = key(); state.score -= E.tippKosten; save();
+  $('#tipBox').hidden = false; $('#btnTip').disabled = true;
+  $('#tipsLeft').textContent = (E.tippsProRaum - state.tipsUsed[state.room])+' von '+E.tippsProRaum+' übrig';
+  renderHUD();
+}
+function showTry(msg){
+  const fb = $('#feedback');
+  fb.className = 'feedback try';
+  fb.innerHTML = '<div class="fb-title">✗ Noch nicht richtig.</div><p style="margin:.2em 0 0">'+fmt(msg)+'</p>';
+}
+function showInvalid(msg){
+  const fb = $('#feedback');
+  fb.className = 'feedback';
+  fb.innerHTML = '<p style="margin:0">ℹ️ '+fmt(msg)+'</p>';
+}
+function check(){
+  if(ui.done) return;
+  const q = ui.q;
+  const res = T[q.typ].check(q);
+  if(res.invalid){ showInvalid(res.invalid); return; }
+  if(res.ok){ finish(true, res); return; }
+  if(state.attempts === 0){
+    state.attempts = 1; save();
+    if(T[q.typ].markWrong) T[q.typ].markWrong(q, res);
+    $('#attemptInfo').textContent = 'Versuch 2 von 2';
+    showTry((res.msg ? res.msg+' ' : '')+'Du hast noch einen Versuch. Denk an: **'+(q.thema||'')+'**');
+    sound('bad');
+    return;
+  }
+  finish(false, res);
+}
+function finish(ok, res){
+  ui.done = true;
+  const q = ui.q, Rm = R();
+  const pts = ok ? (state.attempts===0 ? E.punkteErsterVersuch : E.punkteZweiterVersuch) : 0;
+  state.score += pts;
+  state.results[key()] = { p:pts, ok };
+  if(!ok){
+    state.wrong.push({ raum:Rm.name, aufgabe:taskText(q), deine:T[q.typ].answer(q) || '–', loesung:solutionText(q), thema:q.thema||'' });
+  }
+  const digit = state.digits[state.room][state.task];
+  save();
+  if(T[q.typ].reveal) T[q.typ].reveal(q, ok);
+  $$('#taskBody input').forEach(i => i.readOnly = true);
+  $$('#taskBody button').forEach(b => b.disabled = true);
+  $('#btnCheck').hidden = true; $('#btnTip').disabled = true;
+  $('#attemptInfo').textContent = '';
+  const fb = $('#feedback');
+  fb.className = 'feedback ' + (ok ? 'ok' : 'bad');
+  let h = ok
+    ? '<div class="fb-title">✓ Richtig! +'+pts+' Punkte</div>'
+    : '<div class="fb-title">✗ Leider falsch.</div><p style="margin:.2em 0">Richtig ist: <strong>'+esc(solutionText(q))+'</strong></p>';
+  if(res && res.note) h += '<p style="margin:.2em 0">ℹ️ '+esc(res.note)+'</p>';
+  if(q.erklaerung_de) h += '<p style="margin:.3em 0">'+fmt(q.erklaerung_de)+'</p>';
+  h += '<p style="margin:.3em 0">🔢 Zahl für das Türschloss:<span class="digit-reveal">'+digit+'</span></p>';
+  if(spanish() && q.erklaerung_es) h += '<div id="esBox" class="tipbox es" lang="es" hidden>'+fmt(q.erklaerung_es)+'</div>';
+  h += '<div class="row">'+(spanish() && q.erklaerung_es ? '<button type="button" id="btnES" lang="es" aria-expanded="false">💬 Ayuda en español</button>' : '')+
+       '<span class="spacer"></span><button type="button" class="primary" id="btnNext">Weiter ➜</button></div>';
+  fb.innerHTML = h;
+  const es = $('#btnES');
+  if(es) es.addEventListener('click', () => { const b=$('#esBox'); b.hidden=!b.hidden; es.setAttribute('aria-expanded', String(!b.hidden)); });
+  $('#btnNext').addEventListener('click', nextTask);
+  const dEl = $$('#digits .dg')[state.task]; if(dEl){ dEl.textContent = digit; dEl.classList.add('on'); }
+  renderHUD();
+  sound(ok ? 'ok' : 'bad');
+  $('#btnNext').focus({preventScroll:true});
+  fb.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+function nextTask(){
+  state.task++; state.attempts=0; state.tipFor=null;
+  if(state.task >= R().aufgaben.length) state.phase = 'lock';
+  save(); render();
+}
+function taskText(q){ return q.typ==='fehler' ? plain(String(q.text).replace(FEHLER_RX,'$1')) : plain(q.satz); }
+function solutionText(q){
+  switch(q.typ){
+    case 'auswahl': return String(q.satz).includes('___') ? fillGap(q.satz, q.loesung) : q.loesung;
+    case 'luecke':  return fillGap(q.satz, asList(q.loesung)[0]);
+    case 'satz':    return asList(q.loesung)[0];
+    case 'ordnen':  return fillGap(q.satz, q.woerter.join(' '));
+    case 'sortieren': return q.gruppen.map((g,i) => g+': '+q.karten.filter(k => k.gruppe===i+1).map(k => k.text).join(' · ')).join(' | ');
+    case 'ziehen':  return SCENES[q.szene].orte[asList(q.loesung)[0]].name;
+    case 'fehler':  return plain(String(q.text).replace(FEHLER_RX,'$2'));
+  }
+  return '';
+}
+
+/* =====================================================================
+   ZIEHEN & ABLEGEN (Maus, Touch; Klick-Alternative für Tastatur)
+   ===================================================================== */
+let drag = null, suppressClick = false;
+function draggable(el, payload){
+  el.addEventListener('pointerdown', e => {
+    if(ui.done || (e.pointerType==='mouse' && e.button!==0)) return;
+    drag = { el, payload, sx:e.clientX, sy:e.clientY, ghost:null };
+  });
+}
+function dropTargetAt(x,y){ const t = document.elementFromPoint(x,y); return t ? t.closest('[data-drop]') : null; }
+function clearHover(){ $$('.drop-hover').forEach(x => x.classList.remove('drop-hover')); }
+document.addEventListener('pointermove', e => {
+  if(!drag) return;
+  if(!drag.ghost){
+    if(Math.hypot(e.clientX-drag.sx, e.clientY-drag.sy) < 8) return;
+    drag.ghost = drag.el.cloneNode(true);
+    drag.ghost.removeAttribute('id'); drag.ghost.classList.add('ghost'); drag.ghost.style.cssText = '';
+    if(drag.ghost.classList.contains('sitem')){ drag.ghost.classList.remove('sitem'); drag.ghost.classList.add('item'); }
+    drag.el.style.opacity = '.35'; drag.el.style.pointerEvents = 'none';
+    document.body.appendChild(drag.ghost); document.body.classList.add('dragging');
+  }
+  drag.ghost.style.left = e.clientX+'px'; drag.ghost.style.top = e.clientY+'px';
+  clearHover(); const dz = dropTargetAt(e.clientX, e.clientY); if(dz) dz.classList.add('drop-hover');
+  e.preventDefault();
+}, { passive:false });
+function endDrag(e, cancel){
+  const d = drag; drag = null;
+  if(!d || !d.ghost) return;
+  d.ghost.remove(); document.body.classList.remove('dragging'); clearHover();
+  d.el.style.opacity = ''; d.el.style.pointerEvents = '';
+  suppressClick = true; setTimeout(() => { suppressClick = false; }, 60);
+  if(cancel) return;
+  const dz = dropTargetAt(e.clientX, e.clientY);
+  if(dz && ui.onDrop) ui.onDrop(d.payload, dz.dataset.drop);
+}
+document.addEventListener('pointerup', e => endDrag(e, false));
+document.addEventListener('pointercancel', e => endDrag(e, true));
+
+/* =====================================================================
+   AUFGABENTYPEN
+   ===================================================================== */
+function umlautBar(){
+  return '<div class="umlauts" aria-label="Sonderzeichen">'+['ä','ö','ü','ß','Ä','Ö','Ü'].map(c => '<button type="button" class="uml" data-c="'+c+'" tabindex="-1">'+c+'</button>').join('')+
+    '<span class="muted small">oder tippe ae, oe, ue, ss</span></div>';
+}
+function bindInputs(body){
+  $$('input[type=text]', body).forEach(inp => {
+    inp.addEventListener('focus', () => { ui.lastInput = inp; });
+    inp.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); check(); } });
+  });
+  ui.lastInput = $('input[type=text]', body);
+  $$('.uml', body).forEach(b => {
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', () => {
+      const inp = ui.lastInput; if(!inp || inp.readOnly) return;
+      const s = inp.selectionStart ?? inp.value.length, en = inp.selectionEnd ?? inp.value.length;
+      inp.value = inp.value.slice(0,s) + b.dataset.c + inp.value.slice(en);
+      inp.focus(); inp.setSelectionRange(s+1, s+1);
+    });
+  });
+}
+const INPUT_ATTR = 'type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"';
+
+const T = {
+
+  /* ---------- Multiple Choice ---------- */
+  auswahl: {
+    init(q, body){
+      ui.opts = shuffle(q.optionen); ui.sel = null;
+      body.innerHTML = sceneHTML(q,false)+
+        '<p class="satz">'+gapHTML(q.satz,'<span class="gap" id="gap">&nbsp;</span>')+'</p>'+
+        '<div class="options" role="radiogroup" aria-label="Antworten">'+
+        ui.opts.map((o,i) => '<button type="button" class="opt" role="radio" aria-checked="false" data-i="'+i+'"><span class="k" aria-hidden="true">'+(i+1)+'</span>'+esc(o)+'</button>').join('')+'</div>';
+      $$('.opt', body).forEach(b => b.addEventListener('click', e => {
+        if(ui.done || b.disabled) return;
+        const i = +b.dataset.i;
+        if(e.detail===0 && ui.sel===i){ check(); return; }
+        T.auswahl.select(i);
+      }));
+    },
+    select(i){
+      ui.sel = i;
+      $$('.opt').forEach((b,j) => { b.classList.toggle('sel', j===i); b.setAttribute('aria-checked', String(j===i)); });
+      const g = $('#gap'); if(g) g.textContent = ui.opts[i];
+    },
+    check(q){
+      if(ui.sel==null) return { invalid:'Bitte wähle zuerst eine Antwort.' };
+      return { ok: ui.opts[ui.sel] === q.loesung };
+    },
+    markWrong(){
+      const b = $$('.opt')[ui.sel]; b.classList.remove('sel'); b.classList.add('mark-bad'); b.disabled = true; b.setAttribute('aria-checked','false');
+      ui.sel = null; const g=$('#gap'); if(g) g.innerHTML='&nbsp;';
+      const n = $$('.opt').find(x => !x.disabled); if(n) n.focus();
+    },
+    reveal(q){
+      $$('.opt').forEach((b,i) => { b.classList.remove('sel'); if(ui.opts[i]===q.loesung) b.classList.add('mark-ok'); else if(i===ui.sel) b.classList.add('mark-bad'); });
+      const g=$('#gap'); if(g) g.textContent = q.loesung;
+    },
+    answer(){ return ui.sel==null ? '' : ui.opts[ui.sel]; }
+  },
+
+  /* ---------- Lücke mit Eingabe ---------- */
+  luecke: {
+    init(q, body){
+      const len = Math.max(...asList(q.loesung).map(s => String(s).length));
+      const w = Math.min(32, Math.max(7, len+3));
+      body.innerHTML = sceneHTML(q,false)+
+        '<p class="satz">'+gapHTML(q.satz,'<input '+INPUT_ATTR+' id="ans" class="gapin" aria-label="Lücke" style="width:'+w+'ch">')+'</p>'+umlautBar();
+      bindInputs(body);
+    },
+    check(q){
+      const v = $('#ans').value; ui.ans = v;
+      const before = String(q.satz).split('___')[0].trim();
+      const r = compare(v, q.loesung, before==='' || /[.!?:„“"–]$/.test(before));
+      if(r.empty) return { invalid:'Bitte schreib zuerst eine Antwort in die Lücke.' };
+      return r;
+    },
+    markWrong(){ const i=$('#ans'); i.select(); },
+    answer(){ return ui.ans || ''; }
+  },
+
+  /* ---------- ganzer Satz ---------- */
+  satz: {
+    init(q, body){
+      body.innerHTML = sceneHTML(q,false)+'<p class="satz">'+fmt(q.satz)+'</p>'+
+        '<label class="sr" for="ans">Deine Antwort</label><input '+INPUT_ATTR+' id="ans" class="fullin" placeholder="Schreib hier den ganzen Satz …">'+umlautBar();
+      bindInputs(body);
+    },
+    check(q){
+      const v = $('#ans').value; ui.ans = v;
+      const r = compare(v, q.loesung);
+      if(r.empty) return { invalid:'Bitte schreib zuerst einen Satz.' };
+      return r;
+    },
+    markWrong(){ $('#ans').focus(); },
+    answer(){ return ui.ans || ''; }
+  },
+
+  /* ---------- Wörter ordnen ---------- */
+  ordnen: {
+    init(q, body){
+      const words = q.woerter.concat(q.extra||[]).map((w,i) => ({ w, id:i }));
+      let pool = shuffle(words);
+      if(pool.length>1 && !(q.extra||[]).length){ let n=0; while(pool.map(x=>x.w).join(' ')===q.woerter.join(' ') && n++<10) pool = shuffle(words); }
+      ui.pool = pool; ui.built = [];
+      body.innerHTML = sceneHTML(q,false)+'<p class="satz">'+gapHTML(q.satz,'<span class="build" id="build" aria-label="Deine Antwort" aria-live="polite"></span>')+'</p>'+
+        '<div class="pool" id="pool" aria-label="Wörter"></div><div class="row"><button type="button" id="btnReset">↺ Zurücksetzen</button></div>';
+      $('#btnReset').addEventListener('click', () => { if(ui.done) return; ui.pool = ui.pool.concat(ui.built); ui.built=[]; T.ordnen.draw(); });
+      T.ordnen.draw();
+    },
+    draw(){
+      const mk = (x,where) => '<button type="button" class="chipw" data-id="'+x.id+'" data-where="'+where+'">'+esc(x.w)+'</button>';
+      $('#build').innerHTML = ui.built.map(x => mk(x,'build')).join('');
+      $('#pool').innerHTML = ui.pool.map(x => mk(x,'pool')).join('') || '<span class="muted small">alle Wörter verwendet</span>';
+      $$('.chipw').forEach(b => b.addEventListener('click', () => {
+        if(ui.done) return;
+        const id = +b.dataset.id;
+        if(b.dataset.where==='pool'){ const i=ui.pool.findIndex(x=>x.id===id); ui.built.push(ui.pool.splice(i,1)[0]); }
+        else { const i=ui.built.findIndex(x=>x.id===id); ui.pool.push(ui.built.splice(i,1)[0]); }
+        T.ordnen.draw();
+        const nb = $('#pool .chipw') || $('#btnCheck'); if(nb) nb.focus();
+      }));
+    },
+    check(q){
+      if(!ui.built.length) return { invalid:'Klick zuerst die Wörter in der richtigen Reihenfolge an.' };
+      const a = ui.built.map(x=>x.w).join(' ');
+      const sols = [q.woerter.join(' ')].concat((q.alternativen||[]).map(x => Array.isArray(x)?x.join(' '):x));
+      return { ok: sols.some(s => canon(s)===canon(a)) };
+    },
+    markWrong(){ $('#build').classList.add('shake'); setTimeout(()=>{ const b=$('#build'); if(b) b.classList.remove('shake'); },500); },
+    reveal(q, ok){
+      if(!ok){ $('#build').innerHTML = q.woerter.map(w => '<span class="chipw mark-ok" style="padding:.3em .7em;border-radius:12px;border:2px solid">'+esc(w)+'</span>').join(''); }
+    },
+    answer(){ return (ui.built||[]).map(x=>x.w).join(' '); }
+  },
+
+  /* ---------- Sortieren ---------- */
+  sortieren: {
+    init(q, body){
+      ui.cards = shuffle(q.karten.map((k,i) => ({ ...k, id:i })));
+      ui.place = {}; ui.sel = null;
+      body.innerHTML = '<p class="satz">'+fmt(q.satz)+'</p>'+
+        '<div class="pool" id="pool" data-drop="pool" aria-label="Karten"></div>'+
+        '<div class="bins">'+q.gruppen.map((g,i) => '<div class="bin" data-drop="'+(i+1)+'"><button type="button" class="binbtn" data-bin="'+(i+1)+'">⬇ '+esc(g)+'</button><div class="bin-items" id="bin'+(i+1)+'"></div></div>').join('')+'</div>';
+      ui.onDrop = (id, target) => { if(ui.done) return; ui.place[id] = target==='pool' ? undefined : +target; ui.sel=null; T.sortieren.draw(); };
+      $$('.binbtn', body).forEach(b => b.addEventListener('click', () => { if(ui.sel!=null) ui.onDrop(ui.sel, b.dataset.bin); }));
+      $$('.bin', body).forEach(b => b.addEventListener('click', e => { if(e.target===b && ui.sel!=null) ui.onDrop(ui.sel, b.dataset.drop); }));
+      $('#pool').addEventListener('click', e => { if(e.target.id==='pool' && ui.sel!=null) ui.onDrop(ui.sel, 'pool'); });
+      T.sortieren.draw();
+    },
+    draw(){
+      $('#pool').innerHTML=''; $$('.bin-items').forEach(b => b.innerHTML='');
+      ui.cards.forEach(c => {
+        const b = document.createElement('button');
+        b.type='button'; b.className='card-s'+(ui.sel===c.id?' sel':''); b.textContent=c.text; b.dataset.id=c.id;
+        if(ui.marks && ui.marks[c.id]) b.classList.add(ui.marks[c.id]);
+        b.setAttribute('aria-pressed', String(ui.sel===c.id));
+        const where = ui.place[c.id];
+        (where ? $('#bin'+where) : $('#pool')).appendChild(b);
+        draggable(b, c.id);
+        b.addEventListener('click', () => {
+          if(suppressClick || ui.done) return;
+          ui.sel = ui.sel===c.id ? null : c.id; T.sortieren.draw();
+          const f = $('.card-s[data-id="'+c.id+'"]'); if(f) f.focus();
+        });
+      });
+      if(!$('#pool').children.length) $('#pool').innerHTML = '<span class="muted small">Alle Karten sind einsortiert. Hier kannst du Karten zurücklegen.</span>';
+      if(ui.marks) ui.marks = null;
+    },
+    check(q){
+      if(ui.cards.some(c => !ui.place[c.id])) return { invalid:'Bitte sortiere zuerst alle Karten in eine Gruppe.' };
+      ui.ans = q.gruppen.map((g,i) => g+': '+ui.cards.filter(c => ui.place[c.id]===i+1).map(c=>c.text).join(' · ')).join(' | ');
+      const wrong = ui.cards.filter(c => ui.place[c.id]!==c.gruppe).length;
+      return { ok: wrong===0, msg: wrong ? (wrong===1 ? '1 Karte ist falsch (✗).' : wrong+' Karten sind falsch (✗).') : '' };
+    },
+    markWrong(){
+      ui.marks = {}; ui.cards.forEach(c => { if(ui.place[c.id]!==c.gruppe) ui.marks[c.id]='mark-bad'; });
+      T.sortieren.draw();
+    },
+    reveal(q){
+      const before = { ...ui.place };
+      ui.cards.forEach(c => ui.place[c.id] = c.gruppe);
+      ui.marks = {}; ui.cards.forEach(c => ui.marks[c.id] = before[c.id]===c.gruppe ? 'mark-ok' : 'mark-bad');
+      ui.sel = null; T.sortieren.draw();
+      $$('.card-s').forEach(b => b.disabled = true);
+    },
+    answer(){ return ui.ans || ''; }
+  },
+
+  /* ---------- Gegenstand im Raumbild platzieren ---------- */
+  ziehen: {
+    init(q, body){
+      ui.zone = null; ui.sel = false;
+      body.innerHTML = '<p class="satz">'+fmt(q.satz)+'</p><div class="scene-row">'+sceneHTML(q,true)+
+        '<div class="tray" id="tray" data-drop="tray"><button type="button" class="item" id="item" aria-label="Gegenstand '+esc(q.gegenstand)+' auswählen">'+esc(q.gegenstand)+'</button><span class="muted small">← zieh mich ins Bild</span></div></div>';
+      ui.onDrop = (_, target) => { if(ui.done) return; ui.zone = target==='tray' ? null : target; ui.sel=false; T.ziehen.draw(); };
+      $$('.zone', body).forEach(z => z.addEventListener('click', () => { if(suppressClick || ui.done) return; if(ui.sel) ui.onDrop(null, z.dataset.drop); }));
+      $('#tray').addEventListener('click', e => { if(e.target.id==='tray' && ui.sel) ui.onDrop(null,'tray'); });
+      T.ziehen.draw();
+    },
+    draw(){
+      const q = ui.q, S = SCENES[q.szene];
+      const old = $('#item'); if(old) old.remove();
+      const b = document.createElement('button');
+      b.type='button'; b.id='item'; b.textContent=q.gegenstand;
+      b.setAttribute('aria-label','Gegenstand '+q.gegenstand+(ui.sel?' (ausgewählt – jetzt eine Stelle wählen)':' auswählen'));
+      if(ui.zone){
+        b.className = 'sitem'+(ui.sel?' sel':''); b.style.cssText = zcenter(S.orte[ui.zone].r);
+        $('#scene').appendChild(b);
+      } else {
+        b.className = 'item'+(ui.sel?' sel':'');
+        $('#tray').insertBefore(b, $('#tray').firstChild);
+      }
+      draggable(b, 'item');
+      b.addEventListener('click', () => { if(suppressClick || ui.done) return; ui.sel = !ui.sel; T.ziehen.draw(); const n=$('#item'); if(n) n.focus(); });
+      $('#scene').classList.toggle('armed', !!ui.sel);
+      $$('.zone').forEach(z => z.classList.remove('z-bad'));
+    },
+    check(q){
+      if(!ui.zone) return { invalid:'Zieh den Gegenstand zuerst an eine Stelle im Bild.' };
+      ui.ans = SCENES[q.szene].orte[ui.zone].name;
+      return { ok: asList(q.loesung).includes(ui.zone) };
+    },
+    markWrong(){ const z = $('.zone[data-drop="'+ui.zone+'"]'); if(z) z.classList.add('z-bad'); },
+    reveal(q, ok){
+      const wrongZone = ok ? null : ui.zone;
+      if(!ok){ ui.zone = asList(q.loesung)[0]; ui.sel = false; T.ziehen.draw(); }
+      if(wrongZone){ const z = $('.zone[data-drop="'+wrongZone+'"]'); if(z) z.classList.add('z-bad'); }
+      const zr = $('.zone[data-drop="'+ui.zone+'"]'); if(zr) zr.classList.add('z-ok');
+    },
+    answer(){ return ui.ans || ''; }
+  },
+
+  /* ---------- Fehlersuche ---------- */
+  fehler: {
+    init(q, body){
+      const MARK = '\u0001';
+      let falsch='', richtig='';
+      const txt = String(q.text).replace(FEHLER_RX, (_,a,b) => { falsch=a; richtig=b; return MARK; });
+      ui.tokens = txt.split(/\s+/).filter(Boolean).map(t => t.includes(MARK) ? { t:t.replace(MARK,falsch), err:true } : { t, err:false });
+      ui.richtig = richtig; ui.sel = null;
+      body.innerHTML = sceneHTML(q,false)+'<div class="ftext" id="ftext" role="group" aria-label="Text – klick auf das falsche Wort">'+
+        ui.tokens.map((x,i) => '<button type="button" class="tok" data-i="'+i+'" aria-pressed="false">'+esc(x.t)+'</button>').join('')+'</div>'+
+        '<p class="row" style="margin:.2em 0"><label for="ans">Korrektur für <strong id="selWord">…</strong>:</label> <input '+INPUT_ATTR+' id="ans" class="gapin" style="width:14ch"></p>'+umlautBar();
+      $$('.tok', body).forEach(b => b.addEventListener('click', () => {
+        if(ui.done || b.disabled) return;
+        ui.sel = +b.dataset.i;
+        $$('.tok').forEach(x => { x.classList.toggle('sel', x===b); x.setAttribute('aria-pressed', String(x===b)); });
+        $('#selWord').textContent = '„'+ui.tokens[ui.sel].t.replace(/[.,!?;:]+$/,'')+'“';
+        $('#ans').focus();
+      }));
+      bindInputs(body);
+    },
+    check(q){
+      if(ui.sel==null) return { invalid:'Klick zuerst auf das Wort, das falsch ist.' };
+      const v = $('#ans').value;
+      if(!canon(v)) return { invalid:'Schreib die richtige Form in das Feld.' };
+      ui.ans = '„'+ui.tokens[ui.sel].t.replace(/[.,!?;:]+$/,'')+'“ → „'+v+'“';
+      if(!ui.tokens[ui.sel].err) return { ok:false, msg:'Das Wort „'+ui.tokens[ui.sel].t.replace(/[.,!?;:]+$/,'')+'“ ist richtig. Der Fehler steckt woanders.' };
+      const r = compare(v, ui.richtig, ui.sel===0);
+      if(!r.ok) return { ok:false, msg:'Das falsche Wort hast du gefunden, aber die Korrektur stimmt noch nicht.' };
+      return r;
+    },
+    markWrong(){},
+    reveal(q){
+      $$('.tok').forEach((b,i) => { if(ui.tokens[i].err){ b.classList.add('mark-ok'); b.textContent = ui.tokens[i].t+' → '+ui.richtig; } else if(i===ui.sel) b.classList.add('mark-bad'); });
+    },
+    answer(){ return ui.ans || ''; }
+  }
+};
+
+/* ---------- Tastatur: Zahlen für Multiple Choice ---------- */
+document.addEventListener('keydown', e => {
+  if(!state || view!=='game' || location.hash==='#lehrer') return;
+  if(e.target && e.target.matches && e.target.matches('input,textarea')) return;
+  if(state.phase==='task' && ui.q && ui.q.typ==='auswahl' && !ui.done){
+    const n = parseInt(e.key,10);
+    if(n>=1 && n<=ui.opts.length){ const b=$$('.opt')[n-1]; if(!b.disabled){ T.auswahl.select(n-1); b.focus(); } e.preventDefault(); }
+  }
+  if(state.phase==='lock' && ui.lock){
+    if(/^[0-9]$/.test(e.key)){ ui.lock.press(e.key); e.preventDefault(); }
+    else if(e.key==='Backspace'){ ui.lock.press('del'); e.preventDefault(); }
+    else if(e.key==='Enter' && !(e.target && e.target.closest && e.target.closest('button'))){ ui.lock.press('ok'); e.preventDefault(); }
+  }
+});
+
+/* ---------- Türschloss ---------- */
+function renderLock(){
+  const Rm = R(); const code = state.digits[state.room].join('');
+  app.innerHTML = '<section class="card narrow center"><h1>🔒 Die Tür ist verschlossen</h1>'+
+    '<p>Ihr habt alle Zahlen gefunden! Gib den Code in der richtigen Reihenfolge ein.</p>'+
+    '<div class="digits" style="justify-content:center">'+state.digits[state.room].map(d => '<span class="dg on">'+d+'</span>').join('')+'</div>'+
+    '<div class="lockcode" id="lockcode" tabindex="0" aria-live="polite" aria-label="Eingegebener Code – Zahlen tippen, Enter bestätigt"></div>'+
+    '<div class="keypad">'+['1','2','3','4','5','6','7','8','9','del','0','ok'].map(k => '<button type="button" data-k="'+k+'"'+(k==='ok'?' class="primary"':'')+' aria-label="'+(k==='del'?'Löschen':k==='ok'?'Bestätigen':k)+'">'+(k==='del'?'⌫':k==='ok'?'✔':k)+'</button>').join('')+'</div>'+
+    '<div id="lockfb" role="status" aria-live="polite"></div></section>';
+  let entered = '';
+  const show = () => { $('#lockcode').textContent = entered.padEnd(code.length,'_').split('').join(' '); };
+  ui.lock = { press(k){
+    if(k==='del') entered = entered.slice(0,-1);
+    else if(k==='ok'){
+      if(entered===code){
+        state.inventory.push(Rm.belohnung); state.phase='roomdone'; save(); sound('door'); render(); return;
+      }
+      const lc=$('#lockcode'); lc.classList.remove('shake'); void lc.offsetWidth; lc.classList.add('shake');
+      $('#lockfb').innerHTML = '<p class="badline">✗ Der Code stimmt nicht. Versuch es noch einmal.</p>'; sound('bad'); entered='';
+    }
+    else if(entered.length < code.length) entered += k;
+    show();
+  }};
+  $$('.keypad button').forEach(b => b.addEventListener('click', () => ui.lock.press(b.dataset.k)));
+  show(); focusMain('#lockcode');
+}
+
+/* ---------- Tür offen ---------- */
+function renderRoomDone(){
+  const Rm = R(); const last = state.room >= L().raeume.length-1;
+  app.innerHTML = '<section class="card narrow center story"><div class="door" aria-hidden="true">🚪✨</div><h1>Die Tür ist offen!</h1>'+paras(Rm.geschafft)+
+    '<p class="reward">🎒 Neu im Inventar: <strong>'+esc(Rm.belohnung)+'</strong></p>'+
+    '<p class="muted">Zwischenstand: ⭐ '+Math.max(0,state.score)+' Punkte</p>'+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnGo">'+(last?'Hinaus ins Freie ➜':'Weiter in den nächsten Raum ➜')+'</button></div></section>';
+  $('#btnGo').addEventListener('click', () => {
+    state.room++; state.task=0; state.attempts=0; state.tipFor=null;
+    state.phase = state.room >= L().raeume.length ? 'final' : 'roomintro';
+    save(); render();
+  });
+  focusMain('#btnGo');
+}
+
+/* ---------- Schluss ---------- */
+function renderFinal(){
+  app.innerHTML = '<section class="card narrow story"><div class="door center" aria-hidden="true">🌌</div><h1 class="center">Geschafft!</h1>'+paras(L().schluss)+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnGo">🏁 Zum Ergebnis</button></div></section>';
+  $('#btnGo').addEventListener('click', () => { state.phase='end'; save(); render(); });
+  focusMain('#btnGo');
+}
+
+/* ---------- Ergebnis ---------- */
+function stats(){
+  const total = totalTasks(state.level);
+  const max = total * E.punkteErsterVersuch;
+  const score = Math.max(0, state.score);
+  const answered = Object.keys(state.results).length;
+  return { total, max, score, answered, pct: Math.round(score/max*100), open: total-answered };
+}
+function renderEnd(){
+  if(!state.name){
+    app.innerHTML = '<section class="card narrow"><h1>'+(state.timeout?'⏳ Die Zeit ist abgelaufen!':'🏁 Fast fertig!')+'</h1>'+
+      '<p>Schreib deinen Namen, damit deine Lehrkraft dein Ergebnis zuordnen kann. Der Name bleibt nur auf diesem Gerät.</p>'+
+      '<p class="row"><label for="nameIn">Dein Name:</label> <input '+INPUT_ATTR+' id="nameIn" maxlength="60" style="flex:1;min-width:220px" placeholder="Vorname Nachname"></p>'+
+      '<div id="nameFb" role="status"></div><div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnName">Ergebnis anzeigen ➜</button></div></section>';
+    const go = () => {
+      const n = $('#nameIn').value.trim().replace(/\s+/g,' ');
+      if(normName(n).length < 2){ $('#nameFb').innerHTML='<p class="badline">Bitte schreib deinen Namen.</p>'; return; }
+      state.name = n; state.finished = new Date().toISOString(); save(); render();
+    };
+    $('#btnName').addEventListener('click', go);
+    $('#nameIn').addEventListener('keydown', e => { if(e.key==='Enter') go(); });
+    focusMain('#nameIn'); return;
+  }
+  const s = stats(); const d = new Date(state.finished);
+  const code = makeCode(state.level, state.challenge, s.pct, d, state.name);
+  const Lv = L();
+  const rows = [
+    ['Name', state.name], ['Niveau', state.level+' – '+Lv.titel], ['Modus', state.challenge ? 'Challenge (mit Zeitlimit)' : 'normal'],
+    ['Punkte', s.score+' von '+s.max], ['Prozent', s.pct+' %'], ['Zeit', fmtTime(state.elapsed)+' min'], ['Datum', fmtDate(d)],
+    ['Richtig', Object.values(state.results).filter(r=>r.ok).length+' von '+s.total+' Aufgaben']
+  ];
+  if(s.open) rows.push(['Nicht bearbeitet', s.open+' Aufgaben (Zeit abgelaufen)']);
+  let h = '<section class="card narrow"><h1>🏆 Dein Ergebnis</h1>'+(state.timeout?'<p class="tipbox">⏳ Die Zeit ist abgelaufen.</p>':'')+
+    '<table class="restable">'+rows.map(r => '<tr><th scope="row">'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table>'+
+    '<p style="margin-bottom:0">Prüfcode:</p><div class="bigcode" id="pcode">'+esc(code)+'</div>'+
+    '<p class="small muted">Mach einen Screenshot oder kopiere das Ergebnis und gib es in Google Classroom ab.</p>'+
+    '<div class="row"><button type="button" class="primary" id="btnCopy">📋 Ergebnis kopieren</button><button type="button" id="btnNew">↺ Neues Spiel</button><span id="copyFb" role="status" class="okline"></span></div>';
+  h += '<h2 style="margin-top:1em">Falsch beantwortete Aufgaben ('+state.wrong.length+')</h2>';
+  if(!state.wrong.length) h += '<p class="okline">✓ Keine Fehler – super!</p>';
+  else h += '<ol class="wronglist">'+state.wrong.map(w => '<li><span class="muted small">'+esc(w.raum)+' · '+esc(w.thema)+'</span><br>'+esc(w.aufgabe)+
+    '<br><span class="badline">✗ Deine Antwort: '+esc(w.deine)+'</span><br><span class="okline">✓ Richtig: '+esc(w.loesung)+'</span></li>').join('')+'</ol>';
+  app.innerHTML = h + '</section>';
+  $('#btnCopy').addEventListener('click', () => copyText(resultText(code, s, d)));
+  $('#btnNew').addEventListener('click', () => {
+    if(!window.confirm('Neues Spiel starten? Dieses Ergebnis wird gelöscht. Hast du schon einen Screenshot gemacht?')) return;
+    lsDel(LS_GAME); state=null; view='start'; render();
+  });
+  focusMain('#btnCopy');
+}
+function resultText(code, s, d){
+  const Lv = L();
+  let t = 'Kasus-Code – Grammatik-Escape-Room\n'+
+    'Name: '+state.name+'\nNiveau: '+state.level+' – '+Lv.titel+'\nModus: '+(state.challenge?'Challenge':'normal')+
+    '\nPunkte: '+s.score+' / '+s.max+' ('+s.pct+' %)\nZeit: '+fmtTime(state.elapsed)+' min\nDatum: '+fmtDate(d)+
+    (s.open ? '\nNicht bearbeitet: '+s.open : '')+'\nPrüfcode: '+code+'\n';
+  t += '\nFalsch beantwortet ('+state.wrong.length+'):\n';
+  t += state.wrong.length ? state.wrong.map((w,i) => (i+1)+'. '+w.aufgabe+'\n   Meine Antwort: '+w.deine+'\n   Richtig: '+w.loesung).join('\n') : '–';
+  return t;
+}
+function copyText(t){
+  const done = () => { $('#copyFb').textContent = '✓ Kopiert! Jetzt in Google Classroom einfügen (Strg + V).'; };
+  const fallback = () => {
+    const ta = document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch(e){ $('#copyFb').textContent = 'Kopieren hat nicht geklappt – bitte Screenshot machen.'; }
+    ta.remove();
+  };
+  let settled = false;
+  const once = f => () => { if(!settled){ settled = true; f(); } };
+  try {
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(t).then(once(done), once(fallback));
+      setTimeout(once(fallback), 800);   // falls der Browser nicht antwortet
+    } else once(fallback)();
+  } catch(e){ once(fallback)(); }
+}
+
+/* ---------- Lehrkraft: Prüfcode kontrollieren ---------- */
+function renderTeacher(){
+  app.innerHTML = '<section class="card narrow"><h1>🔎 Prüfcode kontrollieren</h1>'+
+    '<p class="muted">Für Lehrkräfte. Name genau so eingeben, wie er im Ergebnis steht (Groß-/Kleinschreibung, Akzente und Leerzeichen sind egal).</p>'+
+    '<p><label for="tName">Name</label><br><input '+INPUT_ATTR+' id="tName" class="fullin"></p>'+
+    '<p><label for="tCode">Prüfcode</label><br><input '+INPUT_ATTR+' id="tCode" class="fullin" placeholder="z. B. A2-75-081026-K7QFM"></p>'+
+    '<div class="row"><button type="button" class="primary" id="tCheck">Prüfen</button><span class="spacer"></span><button type="button" id="tBack">← Zurück zum Spiel</button></div>'+
+    '<div id="tRes" role="status" aria-live="polite" style="margin-top:.8em"></div>'+
+    '<p class="small muted" style="margin-top:1em">Aufbau des Codes: Niveau (C = Challenge-Modus) – Prozent – Datum (TTMMJJ) – Prüfsumme. Die Prüfsumme hängt vom Namen und vom Geheimwort in der Datei ab.</p></section>';
+  const go = () => {
+    const r = verifyCode($('#tCode').value, $('#tName').value);
+    $('#tRes').innerHTML = r.valid
+      ? '<div class="feedback ok"><div class="fb-title">✓ Der Code ist gültig.</div><p style="margin:.3em 0 0">Niveau <strong>'+r.level+'</strong>'+(r.challenge?' (Challenge)':'')+' · <strong>'+r.pct+' %</strong> · '+r.date+'</p></div>'
+      : '<div class="feedback bad"><div class="fb-title">✗ Der Code ist nicht gültig.</div><p style="margin:.3em 0 0">'+esc(r.reason || 'Name oder Code passen nicht zusammen. Vielleicht ist der Name anders geschrieben oder die Zahlen wurden geändert.')+'</p></div>';
+  };
+  $('#tCheck').addEventListener('click', go);
+  ['#tName','#tCode'].forEach(s => $(s).addEventListener('keydown', e => { if(e.key==='Enter') go(); }));
+  $('#tBack').addEventListener('click', () => { history.replaceState(null,'',location.pathname+location.search); view='start'; render(); });
+  focusMain('#tName');
+}
+
+/* =====================================================================
+   START
+   ===================================================================== */
+try { settings = Object.assign(settings, JSON.parse(lsGet(LS_SET) || '{}')); } catch(e){}
+updateSoundBtn();
+state = loadGame();
+window.addEventListener('hashchange', () => { if(location.hash!=='#lehrer') view='start'; render(); });
+render();
+
+/* Testzugang nur mit ?test in der Adresse (für automatische Tests) */
+if(/[?&]test\b/.test(location.search)){
+  window.__kc = { state:()=>state, q:()=>ui.q, ui:()=>ui, SCENES, check, verifyCode, makeCode, compare };
+}
+})();
+</script>
+</body>
+</html>
