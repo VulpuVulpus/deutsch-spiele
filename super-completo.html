@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Das Geheimnis des Super-Completo – Satzbau-Escape-Room</title>
+<script>
+/* =====================================================================
+   DAS GEHEIMNIS DES SUPER-COMPLETO · Satzbau-Escape-Room
+   =====================================================================
+
+   ANLEITUNG FÜR LEHRKRÄFTE
+   ---------------------------------------------------------------------
+   Alles, was Sie ändern können, steht in diesem ersten Abschnitt
+   (EINSTELLUNGEN, REGELN und SPIEL). Die Spiel-Logik weiter unten
+   müssen Sie nicht anfassen.
+
+   AUFBAU
+   SPIEL → Niveau (A2, B1 …) → stationen → aufgaben
+
+   Jede Station hat eine „art“:
+     "hoeren"   – Hörtext (MP3 im Ordner audio/) + Multiple-Choice-Fragen
+     "bauen"    – Satzbaustelle: Satzteile in die richtige Reihenfolge klicken
+     "bus"      – Verb-Wächter: das fehlende Verb in die richtige Lücke klicken
+                  (mit Zeitlimit beim ersten Versuch)
+     "tore"     – Konnektor-Tore: den richtigen Satz von drei wählen
+     "detektiv" – Zettel mit Fehlern: falsche Sätze finden und neu bauen,
+                  danach „Wer ist der Dieb?“
+     "finale"   – wie "bauen", danach wird der Super-Completo fertig
+
+   FELDER EINER STATION
+     art, name, ort  : siehe oben / Name und Ort der Station
+     szene           : Bild oben: "valpo" | "markt" | "bus" | "vulkan" |
+                       "nacht" | "fuente"
+     zutat           : Belohnung: "pan" | "vienesa" | "tomate" | "palta" | "mayo"
+     anreise         : Text der kurzen Reise-Animation vor der Station
+     ruf             : Sprechblase im Bild beim Ankommen
+     thema           : „Das trainierst du hier“
+     geschichte      : Text beim Ankommen (\n\n = neuer Absatz)
+     geschafft       : Text, wenn die Station gelöst ist
+
+   FELDER EINER AUFGABE
+     auftrag   : Arbeitsanweisung, z. B. "Beginne mit „Heute“."
+     vorgabe   : (optional) Text, der schon dasteht, z. B. "Sofía bleibt zu Hause,"
+     teile     : (bauen) Satzteile in der RICHTIGEN Reihenfolge.
+                 Verbteile stehen in [eckigen Klammern] → sie werden
+                 zum „Brot“: ["Heute", "[kaufen]", "wir", "Vienesas"]
+                 Das Spiel mischt die Teile selbst.
+     auch      : (optional) weitere richtige Sätze als Text
+     ende      : (optional) Satzzeichen am Ende, Standard "."
+     satz      : (bus) Satz mit dem Verb in [eckigen Klammern]:
+                 "Der Bus [fährt] heute nach Pucón."
+     optionen  : (tore, hoeren) die Antwortmöglichkeiten
+     loesung   : (tore, hoeren) die richtige Antwort (genau wie in optionen)
+     regel     : Name einer Regel aus REGELN (Denkhilfe nach dem 1. Fehler)
+     es        : (optional) der Satz auf Spanisch – Hilfe für A2/B1
+     tipp      : (optional) zusätzlicher Tipp
+
+   AUDIO (Hörverstehen)
+     Die Datei kommt in den Ordner „audio“ neben dieser Datei, z. B.
+     audio/completo-a2.mp3. Fehlt sie, liest die Computerstimme des
+     Chromebooks den Text vor. Lehrerseite (#lehrer) zeigt, welche
+     Dateien gefunden wurden.
+
+   REGELN
+     · Texte immer in "Anführungszeichen"; im Text selbst „…“ verwenden.
+     · Nach jedem Feld und jeder } ein Komma.
+     · **Wort** = fett.
+     · Fehler in den Daten zeigt die Startseite als gelben Hinweis an.
+     · Wenn Sie die Zahl der Aufgaben ändern, beginnen gespeicherte
+       Spiele dieses Niveaus von vorn.
+   ===================================================================== */
+
+const EINSTELLUNGEN = {
+  geheimwort: "Completo-Valparaiso-2026",   // für die Prüfcodes
+  punkteErsterVersuch: 10,
+  punkteZweiterVersuch: 5,
+  tippKosten: 3,
+  challengeMinuten: { A2: 25, B1: 25, B2: 25, C1: 25 },
+  busSekunden: { A2: 25, B1: 20, B2: 18, C1: 15 },  // Zeit beim 1. Versuch im Bus
+  spanischeHilfe: { A2: true, B1: true, B2: false, C1: false },
+  hoerenWiederholungen: 2,                          // wie oft man den Hörtext hören darf
+  audioOrdner: "audio/",
+  computerstimmeTempo: { A2: 0.85, B1: 0.95, B2: 1.0, C1: 1.05 }
+};
+
+/* ---------------------------------------------------------------------
+   REGELN – Denkhilfen (Deutsch, Spanisch, Sprechauftrag für Paare)
+   --------------------------------------------------------------------- */
+const REGELN = {
+  v2: {
+    name: "Verb auf Platz 2",
+    de: "Das Verb steht im Hauptsatz immer auf **Platz 2**. Steht etwas anderes auf Platz 1 (z. B. „Heute“), dann kommt das Subjekt **hinter** das Verb: **Heute kaufen** wir Vienesas.",
+    es: "En español decimos «Hoy nosotros compramos vienesas». En alemán el verbo conjugado va SIEMPRE en la posición 2: «Heute **kaufen** wir Vienesas».",
+    frage: "Was steht auf Platz 1? Und was steht auf Platz 2?"
+  },
+  klammer: {
+    name: "Das Completo-Prinzip (Satzklammer)",
+    de: "Das Verb ist das Brot – oben und unten! Das konjugierte Verb (haben, sein, werden, können, müssen …) steht auf **Platz 2**. Der zweite Verbteil (Partizip, Infinitiv oder Vorsilbe wie „an“, „auf“) steht ganz am **Ende**. Dazwischen liegt der Belag: Ich **habe** Tomaten **gekauft**.",
+    es: "En español los verbos van juntos: «he comprado», «quiero comer». En alemán se separan como las dos mitades del pan: «Ich **habe** Tomaten **gekauft**», «Ich **will** einen Completo **essen**».",
+    frage: "Wo ist das obere Brot, wo das untere? Was liegt dazwischen?"
+  },
+  ende: {
+    name: "Verb ans Ende",
+    de: "**weil, dass, wenn, ob, obwohl, als, bevor** … schicken das konjugierte Verb ganz ans **Ende** des Nebensatzes: …, weil der Weg steil **ist**.",
+    es: "«porque el camino **es** empinado» → «weil der Weg steil **ist**». ¡Después de weil/dass/wenn/ob el verbo se va al final!",
+    frage: "Welches Wort schickt das Verb ans Ende?"
+  },
+  nebenklammer: {
+    name: "Nebensatz mit zwei Verben",
+    de: "Im Nebensatz steht das konjugierte Verb **ganz am Ende** – noch **hinter** dem Partizip oder Infinitiv: …, dass sie gewonnen **hat**. / …, weil ich gewinnen **will**.",
+    es: "«que **ha ganado**» → «dass sie **gewonnen hat**». El verbo conjugado (hat, ist, will, muss…) es la última palabra.",
+    frage: "Welches Verb ist das letzte Wort im Nebensatz?"
+  },
+  null: {
+    name: "Platz 0: und, aber, oder, denn, sondern",
+    de: "**und, aber, oder, denn, sondern** stehen auf **Platz 0**. Sie ändern nichts – danach kommt der Satz ganz normal: …, aber er **läuft** weiter.",
+    es: "Igual que en español: «pero él **sigue** caminando» → «aber er **läuft** weiter». Estas palabras no cambian el orden.",
+    frage: "Ändert dieses Wort etwas an der Wortstellung?"
+  },
+  deshalb: {
+    name: "deshalb, trotzdem, dann …",
+    de: "**deshalb, trotzdem, dann, danach, zuerst** stehen selbst auf **Platz 1**. Darum kommt danach **sofort das Verb**: Deshalb **trinken** wir viel Wasser.",
+    es: "«Por eso nosotros tomamos agua» → NO «Deshalb wir trinken». Después de deshalb/trotzdem/dann viene directamente el verbo: «Deshalb **trinken** wir».",
+    frage: "Was kommt direkt nach diesem Wort?"
+  },
+  vorne: {
+    name: "Nebensatz auf Platz 1",
+    de: "Steht der Nebensatz vorne, ist er **Platz 1**. Nach dem Komma kommt deshalb **sofort das Verb** des Hauptsatzes: Wenn ihr oben seid, **seht** ihr den See. Merke: **Verb, Verb!**",
+    es: "«Cuando estén arriba, ustedes ven el lago» → «Wenn ihr oben **seid**, **seht** ihr den See». Verbo – coma – verbo.",
+    frage: "Was steht direkt vor und direkt nach dem Komma?"
+  },
+  zuinf: {
+    name: "um … zu + Infinitiv",
+    de: "Bei **um … zu** steht „zu + Infinitiv“ ganz am **Ende**: …, um die Vienesas nach Valparaíso **zu bringen**.",
+    es: "«para llevar las vienesas» → «um die Vienesas **zu bringen**». El infinitivo con «zu» va al final.",
+    frage: "Wo steht „zu + Infinitiv“?"
+  },
+  relativ: {
+    name: "Relativsatz",
+    de: "Ein Relativsatz (der, die, das …) ist ein Nebensatz: Das Verb steht am **Ende**. Die Señora, die neben Sofía **sitzt**, verkauft Tomaten.",
+    es: "«la señora que **está sentada** al lado de Sofía» → «die Señora, die neben Sofía **sitzt**». En la oración relativa el verbo va al final.",
+    frage: "Wo endet der Relativsatz? Wo steht dort das Verb?"
+  }
+};
+
+const SPIEL = {
+
+  /* =================================================================
+     A2 · Klasse 9
+     ================================================================= */
+  A2: {
+    titel: "Das Rezept ist weg!",
+    klasse: "Klasse 9",
+    schwerpunkt: "Verb auf Platz 2, Perfekt und Modalverben, weil/dass, deshalb",
+    schluss: "Am Samstag ist der große Wettbewerb in Viña del Mar. Die Jury probiert den Super-Completo – und Tía Carmen gewinnt! 🏆\n\nUnd Don Lucho? Er sagt „Entschuldigung“ und hilft jetzt jeden Samstag in der Fuente de Soda. Canelo bekommt jeden Tag eine Vienesa. 🐕\n\nMerk dir: **Das Verb ist das Brot – oben und unten. Der Rest ist Belag!**",
+    stationen: [
+
+      /* ---------- A2 · Station 1: Hören ---------- */
+      {
+        art: "hoeren", name: "Die Fuente de Soda", ort: "Valparaíso", szene: "valpo", zutat: "pan",
+        ruf: "¡Hola, chiquillos! Mein Rezept ist weg! 😱",
+        thema: "Hörverstehen",
+        geschichte: "Fiestas Patrias in Valparaíso! Sofía, Matías und Benja besuchen Tía Carmen in ihrer Fuente de Soda. Aber Tía Carmen ist traurig. Sie muss euch etwas erzählen.\n\nLies zuerst die Fragen. Dann hör gut zu. Du kannst den Text **zweimal** hören.",
+        hoertext: {
+          datei: "completo-a2.mp3",
+          skript: "¡Hola, chiquillos! Schön, dass ihr da seid. Ich bin Tía Carmen.\n\nIch habe ein großes Problem. Am Samstag ist der Completo-Wettbewerb in Viña del Mar. Ich mache jedes Jahr mit. Mein Super-Completo ist sehr berühmt.\n\nAber heute Morgen war mein Rezeptbuch weg! Jemand hat es gestohlen. Ohne Rezept kann ich nicht kochen. Ich habe nur noch das Brot. Das backe ich jeden Morgen selbst.\n\nBitte helft mir! Ihr müsst die Zutaten finden. Fahrt zuerst nach Santiago, zum Mercado Central. Dort arbeitet mein Freund Don Pancho. Er verkauft die besten Vienesas in Chile.\n\nDann fahrt ihr mit dem Bus nach Pucón. Dort wohnt meine Schwester Rosa. Sie hat Paltas in ihrem Garten.\n\nUnd passt auf! Vielleicht ist der Dieb noch in Valparaíso. Viel Glück, chiquillos!"
+        },
+        fragen: [
+          {
+            frage: "Wann ist der Completo-Wettbewerb?",
+            optionen: ["am Freitag", "am Samstag", "am Sonntag"], loesung: "am Samstag",
+            erklaerung_de: "Tía Carmen sagt: „**Am Samstag** ist der Completo-Wettbewerb in Viña del Mar.“",
+            erklaerung_es: "«Am Samstag» = el sábado."
+          },
+          {
+            frage: "Was hat Tía Carmen noch?",
+            optionen: ["das Rezeptbuch", "die Vienesas", "das Brot"], loesung: "das Brot",
+            erklaerung_de: "„Ich habe **nur noch das Brot**. Das backe ich jeden Morgen selbst.“",
+            erklaerung_es: "«nur noch» = solo le queda… El libro de recetas no está: ¡lo robaron!"
+          },
+          {
+            frage: "Wo wohnt Tía Carmens Schwester?",
+            optionen: ["in Santiago", "in Pucón", "in Viña del Mar"], loesung: "in Pucón",
+            erklaerung_de: "„Dann fahrt ihr mit dem Bus **nach Pucón**. Dort wohnt meine Schwester Rosa.“",
+            erklaerung_es: "La hermana (Schwester) Rosa vive en Pucón."
+          }
+        ],
+        geschafft: "„Danke, dass ihr mir helft!“, sagt Tía Carmen. Sie gibt euch ein frisches Brot. Ihr habt das **🥖 Pan**!"
+      },
+
+      /* ---------- A2 · Station 2: Satzbaustelle ---------- */
+      {
+        art: "bauen", name: "Der Mercado Central", ort: "Santiago", szene: "markt", zutat: "vienesa",
+        anreise: "🚌 Mit dem Bus nach Santiago …",
+        ruf: "Ah, ihr kommt von Carmen!",
+        thema: "Verb auf Platz 2 · Perfekt · Modalverben",
+        geschichte: "Der Mercado Central in Santiago ist laut und voll. Don Pancho steht hinter seinem Stand.\n\n„Ihr bekommt die Vienesas“, sagt er. „Aber zuerst helft ihr mir. Der Wind hat meine Notizen durcheinandergeweht!“\n\nKlick die Satzteile in der richtigen Reihenfolge an. Das **🥖 Brot** ist immer das Verb!",
+        aufgaben: [
+          {
+            auftrag: "Bau den Satz.",
+            teile: ["Don Pancho", "[verkauft]", "jeden Tag", "Vienesas"],
+            auch: ["Jeden Tag verkauft Don Pancho Vienesas"],
+            regel: "v2", es: "Don Pancho vende vienesas todos los días."
+          },
+          {
+            auftrag: "Beginne mit „Heute“.",
+            teile: ["Heute", "[kaufen]", "wir", "zwanzig Vienesas"],
+            regel: "v2", es: "Hoy (nosotros) compramos veinte vienesas."
+          },
+          {
+            auftrag: "Beginne mit „Im Mercado Central“.",
+            teile: ["Im Mercado Central", "[gibt]", "es", "viel frischen Fisch"],
+            regel: "v2", es: "En el Mercado Central hay mucho pescado fresco."
+          },
+          {
+            auftrag: "Bau einen Satz im Perfekt.",
+            teile: ["Don Pancho", "[hat]", "die Vienesas", "schon", "[eingepackt]"],
+            auch: ["Don Pancho hat schon die Vienesas eingepackt", "Die Vienesas hat Don Pancho schon eingepackt"],
+            regel: "klammer", es: "Don Pancho ya empacó las vienesas."
+          },
+          {
+            auftrag: "Bau den Satz mit dem Modalverb „müssen“.",
+            teile: ["Ihr", "[müsst]", "die Vienesas", "in die Kühlbox", "[legen]"],
+            auch: ["Die Vienesas müsst ihr in die Kühlbox legen"],
+            regel: "klammer", es: "Ustedes tienen que poner las vienesas en el cooler."
+          }
+        ],
+        geschafft: "Don Pancho lacht: „Perfekt! Hier sind die Vienesas für Carmen.“ Ihr habt die **🌭 Vienesa**!"
+      },
+
+      /* ---------- A2 · Station 3: Verb-Wächter im Bus ---------- */
+      {
+        art: "bus", name: "Im Bus nach Pucón", ort: "Ruta 5 Sur", szene: "bus", zutat: "tomate",
+        anreise: "🚌 Zum Terminal Alameda …",
+        ruf: "Wo fehlt das Verb? ¡Rápido!",
+        thema: "Wo steht das Verb?",
+        haltestellen: ["Santiago", "Rancagua", "Talca", "Chillán", "Temuco", "Pucón"],
+        geschichte: "Ihr sitzt im Bus nach Pucón. Neben euch sitzt Señora Teresa mit einem Korb voller Tomaten.\n\n„Spielen wir ein Spiel?“, fragt sie. „In meinen Sätzen fehlt immer das Verb. Wo gehört es hin? Aber schnell – der Bus wartet nicht lange!“\n\nKlick auf die richtige **Lücke**. Beim ersten Versuch hast du nur wenig Zeit.",
+        aufgaben: [
+          { satz: "Der Bus [fährt] heute nach Pucón.", regel: "v2", es: "El bus va hoy a Pucón." },
+          { satz: "Um acht Uhr [kommen] wir in Talca an.", regel: "v2", es: "A las ocho llegamos a Talca.", tipp: "„ankommen“ ist ein trennbares Verb: „an“ steht schon am Ende." },
+          { satz: "In Chillán [kauft] die Señora Empanadas.", regel: "v2", es: "En Chillán la señora compra empanadas." },
+          { satz: "Benja [hat] im Bus geschlafen.", regel: "klammer", es: "Benja durmió en el bus." },
+          { satz: "Ich weiß, dass die Señora Tomaten [verkauft].", regel: "ende", es: "Sé que la señora vende tomates." }
+        ],
+        geschafft: "Endstation Pucón! Señora Teresa schenkt euch Tomaten aus ihrem Garten. Ihr habt die **🍅 Tomate**!"
+      },
+
+      /* ---------- A2 · Station 4: Konnektor-Tore am Vulkan ---------- */
+      {
+        art: "tore", name: "Der Vulkan Villarrica", ort: "Pucón", szene: "vulkan", zutat: "palta",
+        anreise: "🥾 Zu Fuß zum Vulkan …",
+        ruf: "Die Paltas sind in meiner Hütte!",
+        thema: "weil, dass, aber, deshalb",
+        geschichte: "Tía Rosa, die Schwester von Tía Carmen, wohnt am Vulkan Villarrica. „Die Paltas? Die liegen in meiner Hütte oben am Berg!“\n\nDer Weg hat **vier Tore**. Nur der richtige Satz öffnet das Tor. Die falschen Tore führen zur Lava! 🌋",
+        aufgaben: [
+          {
+            vorgabe: "Wir gehen langsam,",
+            optionen: ["weil der Weg steil ist.", "weil der Weg ist steil.", "weil ist der Weg steil."],
+            loesung: "weil der Weg steil ist.", regel: "ende"
+          },
+          {
+            vorgabe: "Es ist sehr heiß.",
+            optionen: ["Deshalb wir trinken viel Wasser.", "Deshalb trinken wir viel Wasser.", "Deshalb wir viel Wasser trinken."],
+            loesung: "Deshalb trinken wir viel Wasser.", regel: "deshalb"
+          },
+          {
+            vorgabe: "Benja ist müde,",
+            optionen: ["aber läuft er weiter.", "aber er weiter läuft.", "aber er läuft weiter."],
+            loesung: "aber er läuft weiter.", regel: "null"
+          },
+          {
+            vorgabe: "Tía Rosa sagt,",
+            optionen: ["dass die Paltas sind in der Hütte.", "dass die Paltas in der Hütte sind.", "dass sind die Paltas in der Hütte."],
+            loesung: "dass die Paltas in der Hütte sind.", regel: "ende"
+          }
+        ],
+        geschafft: "Oben in der Hütte liegen viele Paltas. „Nehmt die besten!“, sagt Tía Rosa. Ihr habt die **🥑 Palta**!"
+      },
+
+      /* ---------- A2 · Station 5: Fehlerdetektiv ---------- */
+      {
+        art: "detektiv", name: "Der Zettel am Ascensor", ort: "Valparaíso", szene: "nacht", zutat: "mayo",
+        anreise: "🚌 Zurück nach Valparaíso …",
+        ruf: "Wuff! 🐕",
+        thema: "Fehler finden und verbessern",
+        geschichte: "Es ist schon dunkel in Valparaíso. Am Ascensor Reina Victoria findet Sofía einen Zettel. Ist er vom Dieb?\n\nDer Dieb schreibt kein gutes Deutsch: **Drei Sätze** im Zettel sind falsch. Klick auf die falschen Sätze und bau sie richtig!",
+        zettel: {
+          titel: "Ein Zettel am Ascensor",
+          anrede: "Hallo Carmen,",
+          saetze: [
+            "Ich habe dein Rezeptbuch.",
+            { falsch: "Morgen ich gewinne den Wettbewerb.", teile: ["Morgen", "[gewinne]", "ich", "den Wettbewerb"], regel: "v2" },
+            "Ich arbeite direkt neben deiner Fuente de Soda.",
+            "Mein Hund Canelo liebt deine Vienesas.",
+            { falsch: "Ich trage immer meine Colo-Colo-Mütze, weil ich bin ein großer Fan.", teile: ["Ich", "[trage]", "immer", "meine Colo-Colo-Mütze,", "weil", "ich", "ein großer Fan", "[bin]"], regel: "ende" },
+            { falsch: "Ich habe das Buch versteckt im Ascensor.", teile: ["Ich", "[habe]", "das Buch", "im Ascensor", "[versteckt]"], auch: ["Ich habe im Ascensor das Buch versteckt"], regel: "klammer" }
+          ],
+          gruss: "Bis Samstag!\n???"
+        },
+        wer: {
+          frage: "Wer hat den Zettel geschrieben? Lies den Zettel noch einmal genau.",
+          verdaechtige: [
+            { name: "Don Pancho", bild: "👴🏻", fakten: ["Er wohnt in Santiago.", "Er hat eine Katze.", "Er ist Fan von Colo-Colo."] },
+            { name: "Señora Teresa", bild: "👵🏽", fakten: ["Sie wohnt in Temuco.", "Sie hat einen Hund.", "Sie ist Fan von der U."] },
+            { name: "Don Lucho", bild: "🧔🏽", fakten: ["Er wohnt in Valparaíso.", "Er hat einen Hund.", "Er ist Fan von Colo-Colo."] }
+          ],
+          loesung: "Don Lucho",
+          erklaerung_de: "Im Zettel steht: Der Dieb arbeitet **neben der Fuente de Soda** (also in Valparaíso), er hat einen **Hund** und er ist **Colo-Colo-Fan**. Das passt nur zu **Don Lucho**!",
+          erklaerung_es: "La nota dice: trabaja al lado de la fuente de soda, tiene un perro y es hincha de Colo-Colo → Don Lucho."
+        },
+        geschafft: "Don Lucho hat einen Hot-Dog-Stand neben der Fuente de Soda. Er wird rot. „Perdón … Ich wollte nur einmal gewinnen.“ Er gibt euch das Rezeptbuch zurück – und ein Glas Mayo als Entschuldigung. Ihr habt die **🥫 Mayo**!"
+      },
+
+      /* ---------- A2 · Station 6: Finale ---------- */
+      {
+        art: "finale", name: "Das Rezept", ort: "Valparaíso", szene: "fuente",
+        anreise: "🏃 Schnell zurück zu Tía Carmen …",
+        ruf: "Oh nein – die letzte Seite ist zerrissen!",
+        thema: "Das Rezept zusammensetzen",
+        geschichte: "Ihr seid zurück in der Fuente de Soda. Tía Carmen öffnet das Rezeptbuch. Aber die letzte Seite ist zerrissen!\n\nBaut das Rezept wieder zusammen – dann ist der Super-Completo fertig.",
+        aufgaben: [
+          {
+            auftrag: "Beginne mit „Zuerst“.",
+            teile: ["Zuerst", "[schneidest]", "du", "das Brot", "[auf]"],
+            regel: "klammer", es: "Primero cortas el pan.", tipp: "„aufschneiden“ ist trennbar: „auf“ ist das untere Brot!"
+          },
+          {
+            auftrag: "Beginne mit „Dann“.",
+            teile: ["Dann", "[legst]", "du", "die heiße Vienesa", "ins Brot"],
+            regel: "deshalb", es: "Luego pones la vienesa caliente en el pan."
+          },
+          {
+            auftrag: "Beginne mit „Danach“.",
+            teile: ["Danach", "[kommen]", "Tomate, Palta und Mayo", "auf die Vienesa"],
+            regel: "deshalb", es: "Después van el tomate, la palta y la mayo sobre la vienesa."
+          },
+          {
+            auftrag: "Bau den letzten Satz.",
+            teile: ["Du", "[musst]", "den Super-Completo", "mit zwei Händen", "[essen]"],
+            auch: ["Den Super-Completo musst du mit zwei Händen essen", "Mit zwei Händen musst du den Super-Completo essen"],
+            regel: "klammer", es: "Tienes que comer el Super-Completo con las dos manos."
+          }
+        ]
+      }
+    ]
+  },
+
+  /* =================================================================
+     B1 · Klasse 10
+     ================================================================= */
+  B1: {
+    titel: "Wettlauf gegen die Zeit",
+    klasse: "Klasse 10",
+    schwerpunkt: "Satzklammer, Nebensätze (auch vorne), um … zu, Relativsätze",
+    schluss: "Am Samstag steht Tía Carmen in Viña del Mar vor der Jury. Der Präsident der Jury beißt in den Super-Completo, schließt die Augen – und lächelt. Tía Carmen gewinnt zum vierten Mal! 🏆\n\nDon Lucho gratuliert ihr als Erster. Seit diesem Tag verkaufen die beiden zusammen Completos, und Canelo passt auf die Vienesas auf. 🐕\n\nMerk dir: **Das Verb ist das Brot – oben und unten. Der Rest ist Belag!**",
+    stationen: [
+
+      /* ---------- B1 · Station 1: Hören ---------- */
+      {
+        art: "hoeren", name: "Die Fuente de Soda", ort: "Valparaíso", szene: "valpo", zutat: "pan",
+        ruf: "Chiquillos, ich brauche eure Hilfe!",
+        thema: "Hörverstehen",
+        geschichte: "Es sind Fiestas Patrias, und überall in Valparaíso hängen chilenische Fahnen. Sofía, Matías und Benja wollen bei Tía Carmen Completos essen. Doch die Fuente de Soda ist geschlossen, und Tía Carmen sieht verzweifelt aus.\n\nLies zuerst die Fragen. Dann hör zu. Du kannst den Text **zweimal** hören.",
+        hoertext: {
+          datei: "completo-b1.mp3",
+          skript: "¡Hola, chiquillos! Gut, dass ihr endlich da seid. Setzt euch, ich muss euch etwas erzählen.\n\nIhr wisst ja, dass am Samstag in Viña del Mar der große Completo-Wettbewerb stattfindet. Seit fünfzehn Jahren mache ich mit, und dreimal habe ich schon gewonnen.\n\nAber heute Morgen, als ich die Fuente de Soda aufgemacht habe, war das Fenster offen – und mein Rezeptbuch war verschwunden! Das Buch hat meine Großmutter geschrieben. Es gibt keine Kopie.\n\nBrot habe ich zum Glück noch, das backe ich jeden Morgen selbst. Aber für den Rest brauche ich eure Hilfe. Mein alter Freund Don Pancho hat einen Stand im Mercado Central in Santiago. Er weiß genau, welche Vienesas ich immer nehme. Danach müsst ihr nach Pucón fahren, wo meine Schwester Rosa wohnt. Sie hat die besten Paltas im ganzen Süden.\n\nAch ja, und noch etwas: Ich glaube, der Dieb hat einen Zettel verloren. Wenn ihr ihn findet, wisst ihr vielleicht, wer es war. Also los – wir haben nur bis Samstag Zeit!"
+        },
+        fragen: [
+          {
+            frage: "Was ist heute Morgen passiert?",
+            optionen: ["Tía Carmen hat vergessen, Brot zu backen.", "Jemand hat das Rezeptbuch aus der Fuente de Soda genommen.", "Das Fenster der Fuente de Soda ist kaputtgegangen."],
+            loesung: "Jemand hat das Rezeptbuch aus der Fuente de Soda genommen.",
+            erklaerung_de: "„… war das Fenster offen – und mein **Rezeptbuch war verschwunden**!“ Das Fenster war offen, aber nicht kaputt.",
+            erklaerung_es: "«verschwunden» = desaparecido. La ventana estaba abierta, no rota."
+          },
+          {
+            frage: "Wer hat das Rezeptbuch geschrieben?",
+            optionen: ["Tía Carmen", "ihre Schwester Rosa", "ihre Großmutter"], loesung: "ihre Großmutter",
+            erklaerung_de: "„Das Buch hat **meine Großmutter** geschrieben. Es gibt keine Kopie.“",
+            erklaerung_es: "«Großmutter» = abuela."
+          },
+          {
+            frage: "Warum sollen die Kinder zu Don Pancho fahren?",
+            optionen: ["Er weiß, welche Vienesas Tía Carmen benutzt.", "Er hat das Rezeptbuch gefunden.", "Er backt das Brot für die Fuente de Soda."],
+            loesung: "Er weiß, welche Vienesas Tía Carmen benutzt.",
+            erklaerung_de: "„Er weiß genau, **welche Vienesas ich immer nehme**.“",
+            erklaerung_es: "Don Pancho sabe qué vienesas usa siempre Tía Carmen."
+          },
+          {
+            frage: "Wie oft hat Tía Carmen den Wettbewerb schon gewonnen?",
+            optionen: ["einmal", "dreimal", "fünfzehnmal"], loesung: "dreimal",
+            erklaerung_de: "„Seit fünfzehn Jahren mache ich mit, und **dreimal** habe ich schon gewonnen.“ – 15 Jahre macht sie mit, 3-mal hat sie gewonnen.",
+            erklaerung_es: "Participa hace 15 años y ha ganado 3 veces."
+          }
+        ],
+        geschafft: "„Ihr seid meine Rettung!“, sagt Tía Carmen und gibt euch ein frisch gebackenes Brot. Ihr habt das **🥖 Pan**!"
+      },
+
+      /* ---------- B1 · Station 2: Satzbaustelle ---------- */
+      {
+        art: "bauen", name: "Der Mercado Central", ort: "Santiago", szene: "markt", zutat: "vienesa",
+        anreise: "🚌 Mit dem Bus nach Santiago …",
+        ruf: "Carmen hat mich schon angerufen!",
+        thema: "Satzklammer · Nebensatz vorne · um … zu",
+        geschichte: "Im Mercado Central ist viel los: Die Fischverkäufer rufen laut, und es riecht nach Machas und Merluza. Don Pancho erkennt euch sofort.\n\n„Carmen hat mich schon angerufen! Ich gebe euch die Vienesas, die sie immer nimmt. Aber zuerst müsst ihr mir helfen: Meine Notizen sind total durcheinander.“\n\nKlick die Satzteile in der richtigen Reihenfolge an. Das **🥖 Brot** ist immer das Verb!",
+        aufgaben: [
+          {
+            auftrag: "Beginne mit „Seit dreißig Jahren“.",
+            teile: ["Seit dreißig Jahren", "[verkauft]", "Don Pancho", "im Mercado Central", "Vienesas"],
+            auch: ["Seit dreißig Jahren verkauft Don Pancho Vienesas im Mercado Central"],
+            regel: "v2", es: "Hace treinta años que Don Pancho vende vienesas en el Mercado Central."
+          },
+          {
+            auftrag: "Beginne mit „Gestern“.",
+            teile: ["Gestern", "[hat]", "Tía Carmen", "bei ihm", "zwanzig Vienesas", "[bestellt]"],
+            auch: ["Gestern hat Tía Carmen zwanzig Vienesas bei ihm bestellt"],
+            regel: "klammer", es: "Ayer Tía Carmen le encargó veinte vienesas."
+          },
+          {
+            auftrag: "Ergänze den Nebensatz.",
+            vorgabe: "Don Pancho erzählt,",
+            teile: ["dass", "Tía Carmen", "schon dreimal", "[gewonnen]", "[hat]"],
+            regel: "nebenklammer", es: "Don Pancho cuenta que Tía Carmen ya ha ganado tres veces."
+          },
+          {
+            auftrag: "Beginne mit „Weil“.",
+            teile: ["Weil", "die Vienesas", "frisch", "[bleiben]", "[müssen],", "[legt]", "Don Pancho", "sie", "in eine Kühlbox"],
+            auch: ["Weil die Vienesas frisch bleiben müssen, legt sie Don Pancho in eine Kühlbox"],
+            regel: "vorne", es: "Como las vienesas tienen que mantenerse frescas, Don Pancho las pone en un cooler."
+          },
+          {
+            auftrag: "Ergänze den Satz mit „um … zu“.",
+            vorgabe: "Ihr braucht eine Kühlbox,",
+            teile: ["um", "die Vienesas", "nach Valparaíso", "[zu bringen]"],
+            regel: "zuinf", es: "Necesitan un cooler para llevar las vienesas a Valparaíso."
+          }
+        ],
+        geschafft: "„Genau so!“, ruft Don Pancho. „Grüßt Carmen von mir!“ Ihr habt die **🌭 Vienesa**!"
+      },
+
+      /* ---------- B1 · Station 3: Verb-Wächter im Bus ---------- */
+      {
+        art: "bus", name: "Im Bus nach Pucón", ort: "Ruta 5 Sur", szene: "bus", zutat: "tomate",
+        anreise: "🚌 Zum Terminal Alameda …",
+        ruf: "Wo fehlt das Verb? ¡Rápido!",
+        thema: "Wo steht das Verb?",
+        haltestellen: ["Santiago", "Rancagua", "Talca", "Chillán", "Temuco", "Pucón"],
+        geschichte: "Der Nachtbus nach Pucón ist voll. Neben Sofía sitzt Señora Teresa, die einen Korb voller Tomaten auf dem Schoß hat.\n\n„Damit die Fahrt schneller vergeht, spielen wir ein Spiel“, schlägt sie vor. „In meinen Sätzen fehlt immer ein Verb. Ihr müsst schnell sagen, wo es hingehört!“\n\nKlick auf die richtige **Lücke**. Beim ersten Versuch läuft die Zeit.",
+        aufgaben: [
+          { satz: "Um 22 Uhr [fährt] der Bus am Terminal Alameda ab.", regel: "klammer", es: "A las 22 horas sale el bus del Terminal Alameda." },
+          { satz: "Weil die Fahrt zehn Stunden [dauert], schlafen alle im Bus.", regel: "ende", es: "Como el viaje dura diez horas, todos duermen en el bus." },
+          { satz: "Matías fragt, ob es im Bus WLAN [gibt].", regel: "ende", es: "Matías pregunta si hay wifi en el bus." },
+          { satz: "In Temuco [muss] der Bus eine Pause machen.", regel: "klammer", es: "En Temuco el bus tiene que hacer una pausa." },
+          { satz: "Die Señora, die neben Sofía [sitzt], verkauft Tomaten aus ihrem Garten.", regel: "relativ", es: "La señora que está sentada al lado de Sofía vende tomates de su huerto." }
+        ],
+        geschafft: "Am Morgen kommt der Bus in Pucón an. Señora Teresa schenkt euch die schönsten Tomaten aus ihrem Korb. Ihr habt die **🍅 Tomate**!"
+      },
+
+      /* ---------- B1 · Station 4: Konnektor-Tore am Vulkan ---------- */
+      {
+        art: "tore", name: "Der Vulkan Villarrica", ort: "Pucón", szene: "vulkan", zutat: "palta",
+        anreise: "🥾 Zu Fuß zum Vulkan …",
+        ruf: "Die Paltas sind oben in der Hütte!",
+        thema: "Konnektoren und Nebensätze",
+        geschichte: "Tía Rosa wartet schon am Fuß des Vulkans. „Die Paltas habe ich in meiner Hütte gelassen“, erklärt sie. „Der Weg dorthin ist steil, und er hat fünf alte Tore.“\n\nNur wer den richtigen Satz wählt, kommt durch das Tor. Wer falsch wählt, landet bei der Lava! 🌋",
+        aufgaben: [
+          {
+            vorgabe: "Tía Rosa wohnt in einer Hütte,",
+            optionen: ["die kann man nur zu Fuß erreichen.", "die man kann nur zu Fuß erreichen.", "die man nur zu Fuß erreichen kann."],
+            loesung: "die man nur zu Fuß erreichen kann.", regel: "relativ"
+          },
+          {
+            vorgabe: "Der Vulkan ist aktiv.",
+            optionen: ["Trotzdem steigen viele Touristen jeden Tag hinauf.", "Trotzdem viele Touristen steigen jeden Tag hinauf.", "Trotzdem viele Touristen jeden Tag hinaufsteigen."],
+            loesung: "Trotzdem steigen viele Touristen jeden Tag hinauf.", regel: "deshalb"
+          },
+          {
+            vorgabe: "Wenn ihr oben angekommen seid,",
+            optionen: ["ihr seht den ganzen See.", "seht ihr den ganzen See.", "ihr den ganzen See seht."],
+            loesung: "seht ihr den ganzen See.", regel: "vorne"
+          },
+          {
+            vorgabe: "Tía Rosa erklärt,",
+            optionen: ["dass sie hat die Paltas gestern geerntet.", "dass sie die Paltas gestern hat geerntet.", "dass sie die Paltas gestern geerntet hat."],
+            loesung: "dass sie die Paltas gestern geerntet hat.", regel: "nebenklammer"
+          },
+          {
+            vorgabe: "Benja hat Angst vor der Lava,",
+            optionen: ["aber Sofía lacht nur.", "aber lacht Sofía nur.", "aber Sofía nur lacht."],
+            loesung: "aber Sofía lacht nur.", regel: "null"
+          }
+        ],
+        geschafft: "In der Hütte stehen drei Kisten voller Paltas. „Für Carmens Super-Completo nur die besten!“, lacht Tía Rosa. Ihr habt die **🥑 Palta**!"
+      },
+
+      /* ---------- B1 · Station 5: Fehlerdetektiv ---------- */
+      {
+        art: "detektiv", name: "Der Zettel am Ascensor", ort: "Valparaíso", szene: "nacht", zutat: "mayo",
+        anreise: "🚌 Mit dem Nachtbus zurück nach Valparaíso …",
+        ruf: "Wuff! 🐕",
+        thema: "Fehler finden und verbessern",
+        geschichte: "Als ihr in Valparaíso ankommt, ist es schon dunkel. Neben dem Ascensor Reina Victoria liegt ein Zettel, und ein Hund schnüffelt daran. Das muss der Zettel sein, den der Dieb verloren hat!\n\nDer Dieb macht typische Fehler beim Satzbau: **Vier Sätze** sind falsch. Finde sie und bau sie richtig.",
+        zettel: {
+          titel: "Ein Zettel am Ascensor",
+          anrede: "Liebe Carmen,",
+          saetze: [
+            { falsch: "Seit Jahren ich verkaufe Hot Dogs direkt neben deiner Fuente de Soda.", teile: ["Seit Jahren", "[verkaufe]", "ich", "Hot Dogs", "direkt neben deiner Fuente de Soda"], regel: "v2" },
+            "Jeden Tag sehe ich, wie die Leute vor deinem Lokal Schlange stehen.",
+            { falsch: "Ich habe dein Rezept genommen, weil ich will auch einmal gewinnen.", teile: ["Ich", "[habe]", "dein Rezept", "[genommen],", "weil", "ich", "auch einmal", "[gewinnen]", "[will]"], regel: "nebenklammer" },
+            "Mein Hund Canelo hat mir dabei geholfen.",
+            { falsch: "Wenn ich gewinne den Wettbewerb, ich kaufe Canelo eine neue Hundehütte.", teile: ["Wenn", "ich", "den Wettbewerb", "[gewinne],", "[kaufe]", "ich", "Canelo", "eine neue Hundehütte"], regel: "vorne" },
+            "Am Samstag trage ich natürlich meine Colo-Colo-Mütze.",
+            { falsch: "Das Rezeptbuch ich habe im Ascensor versteckt.", teile: ["Das Rezeptbuch", "[habe]", "ich", "im Ascensor", "[versteckt]"], auch: ["Ich habe das Rezeptbuch im Ascensor versteckt"], regel: "klammer" }
+          ],
+          gruss: "Viele Grüße von deinem Nachbarn\n???"
+        },
+        wer: {
+          frage: "Wer hat den Zettel geschrieben? Vergleiche den Zettel mit den Steckbriefen.",
+          verdaechtige: [
+            { name: "Don Pancho", bild: "👴🏻", fakten: ["Er verkauft seit dreißig Jahren Vienesas in Santiago.", "Er hat eine Katze, die Michi heißt.", "Er geht jeden Sonntag ins Stadion von Colo-Colo."] },
+            { name: "Señora Teresa", bild: "👵🏽", fakten: ["Sie hat einen Gemüsegarten in Temuco.", "Ihr Hund passt auf die Tomaten auf.", "Sie ist ein großer Fan der U."] },
+            { name: "Don Lucho", bild: "🧔🏽", fakten: ["Er hat einen kleinen Stand in Valparaíso.", "Sein Hund folgt ihm überallhin.", "Er trägt immer etwas in Weiß und Schwarz – den Farben von Colo-Colo."] }
+          ],
+          loesung: "Don Lucho",
+          erklaerung_de: "Der Dieb verkauft Hot Dogs **neben der Fuente de Soda** (Valparaíso), hat einen **Hund** (Canelo) und trägt eine **Colo-Colo-Mütze**. Alle drei Hinweise passen nur zu **Don Lucho**.",
+          erklaerung_es: "Vende hot dogs al lado de la fuente de soda, tiene perro y usa gorro de Colo-Colo → Don Lucho."
+        },
+        geschafft: "Ihr klingelt bei Don Lucho, dessen Stand direkt neben der Fuente de Soda steht. Er senkt den Kopf: „Ihr habt mich erwischt. Ich wollte nur ein einziges Mal gewinnen.“ Er gibt euch das Rezeptbuch zurück – und ein Glas seiner selbst gemachten Mayo. Ihr habt die **🥫 Mayo**!"
+      },
+
+      /* ---------- B1 · Station 6: Finale ---------- */
+      {
+        art: "finale", name: "Das Rezept", ort: "Valparaíso", szene: "fuente",
+        anreise: "🏃 Schnell zurück zu Tía Carmen …",
+        ruf: "Die letzte Seite ist zerrissen!",
+        thema: "Das Rezept zusammensetzen",
+        geschichte: "Tía Carmen umarmt euch, als sie das Rezeptbuch sieht. Doch dann wird sie blass: Die letzte Seite mit dem Geheimnis des Super-Completo ist zerrissen.\n\nSetzt die Sätze wieder zusammen, damit Tía Carmen am Samstag kochen kann!",
+        aufgaben: [
+          {
+            auftrag: "Beginne mit „Bevor“.",
+            teile: ["Bevor", "du", "die Vienesa", "ins Brot", "[legst],", "[musst]", "du", "sie", "fünf Minuten", "[kochen]"],
+            regel: "vorne", es: "Antes de poner la vienesa en el pan, tienes que cocerla cinco minutos."
+          },
+          {
+            auftrag: "Bau den Satz im Passiv.",
+            teile: ["Die Palta", "[wird]", "mit Salz und Zitrone", "[zerdrückt]"],
+            regel: "klammer", es: "La palta se muele con sal y limón."
+          },
+          {
+            auftrag: "Bau den Satz mit „dass“.",
+            vorgabe: "Das Geheimnis ist,",
+            teile: ["dass", "man", "die Mayo", "immer", "selbst", "[machen]", "[muss]"],
+            regel: "nebenklammer", es: "El secreto es que la mayo siempre hay que hacerla uno mismo."
+          },
+          {
+            auftrag: "Beginne mit „Erst“.",
+            teile: ["Erst", "[ist]", "der Super-Completo", "[fertig],", "wenn", "man", "ihn", "nur noch mit zwei Händen", "[halten]", "[kann]"],
+            regel: "nebenklammer", es: "El Super-Completo recién está listo cuando solo se puede sostener con las dos manos."
+          }
+        ]
+      }
+    ]
+  },
+
+  /* B2 und C1 folgen. Solange hier null steht, zeigt die Startseite „kommt bald“. */
+  B2: null,
+  C1: null
+};
+</script>
+
+<style>
+:root{
+  --bg:#1a1020; --panel:#2a1a2e; --panel2:#3a2440; --line:#6a4a6e;
+  --text:#fbf6f0; --muted:#d9c9d4; --accent:#ffc94a; --accent-text:#1a1a1a;
+  --ok:#5ee08f; --ok-bg:#103a26; --bad:#ff8a8a; --bad-bg:#4a1a1f;
+  --focus:#ffe066; --btn:#4a2f52; --btnh:#5d3c66;
+  --bread1:#f6cf8a; --bread2:#cf883c; --breadline:#7a4a1c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);background-image:radial-gradient(ellipse at 15% 0%,#3d1d2e 0%,transparent 55%),radial-gradient(ellipse at 90% 100%,#1d2a45 0%,transparent 50%);background-attachment:fixed;color:var(--text);font-family:Roboto,Arial,"Segoe UI",system-ui,sans-serif;font-size:20px;line-height:1.45;min-height:100vh}
+h1,h2,h3{line-height:1.2;margin:.2em 0 .5em} h1{font-size:1.8em} h2{font-size:1.3em} h3{font-size:1.05em}
+p{margin:.4em 0 .8em} a{color:var(--accent)}
+button{font:inherit;color:var(--text);cursor:pointer;border-radius:12px;border:2px solid #8a6a90;background:var(--btn);padding:.4em .9em;min-height:48px;touch-action:manipulation}
+button:hover:not(:disabled){background:var(--btnh)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.primary:hover:not(:disabled){background:#ffd978}
+input[type=text]{font:inherit;color:#111;background:#fff;border:3px solid #c9a6cf;border-radius:10px;padding:.25em .45em;min-height:46px}
+.muted{color:var(--muted)} .small{font-size:.85em} .center{text-align:center}
+.row{display:flex;gap:.6em;flex-wrap:wrap;align-items:center} .spacer{flex:1}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:1em 1.3em;box-shadow:0 8px 24px rgba(0,0,0,.35);margin-bottom:.9em}
+.narrow{max-width:900px;margin-left:auto;margin-right:auto}
+.chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.05em .7em;font-size:.85em;color:var(--muted)}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.1em .7em;white-space:nowrap;font-size:.9em}
+.warnbox{background:#4a3a00;border:2px solid var(--accent);border-radius:12px;padding:.6em 1em;margin:.6em 0;font-size:.85em}
+.warnbox ul{margin:.3em 0 0;padding-left:1.2em}
+.okline{color:var(--ok)} .badline{color:var(--bad)}
+.tipbox{background:#3a3214;border:2px solid #b89a3a;border-radius:12px;padding:.5em .9em;margin-top:.6em}
+.tipbox.es{background:#13324a;border-color:#4f8fc0}
+.tipbox.ok{background:var(--ok-bg);border-color:var(--ok)}
+.tipbox.bad{background:var(--bad-bg);border-color:var(--bad)}
+.tipbox.talk{background:#24304a;border-color:#7d9bd6}
+.tipbox p{margin:.25em 0}
+
+/* Kopfzeile */
+#top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.6em;flex-wrap:wrap;padding:.3em .8em;background:rgba(24,12,28,.95);border-bottom:2px solid var(--line)}
+#top .brand{font-weight:800;white-space:nowrap}
+#hud{display:flex;gap:.5em;flex-wrap:wrap;align-items:center;flex:1}
+#hud .mini{height:34px;width:auto;vertical-align:middle}
+#top .tools{display:flex;gap:.4em}
+#top .tools button{min-height:42px;padding:.2em .7em;font-size:.9em}
+.homelink{color:var(--muted);text-decoration:none;font-size:.85em;border:1px solid var(--line);border-radius:999px;padding:.15em .7em;white-space:nowrap}
+.homelink:hover{color:var(--text);border-color:var(--accent)}
+main{max-width:1180px;margin:0 auto;padding:.6em 1em 1.5em}
+
+/* Start */
+.hero .herorow{display:flex;gap:1em;align-items:center;flex-wrap:wrap}
+.hero .herorow > div:first-child{flex:1 1 380px}
+.herocomp{flex:0 1 300px} .herocomp svg{width:100%;height:auto}
+.merk{background:linear-gradient(90deg,#5a3510,#3a2214);border:2px solid var(--bread2);border-radius:12px;padding:.5em .9em;margin:.4em 0 0}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8em;margin:.6em 0 .2em}
+.level{display:flex;flex-direction:column;align-items:flex-start;gap:.15em;text-align:left;padding:.8em 1em;border-radius:16px;min-height:130px}
+.level .lv{font-size:1.6em;font-weight:800;color:var(--accent)} .level .lt{font-weight:700}
+.level .lo{font-size:.8em;color:var(--muted)}
+.modes{display:flex;gap:.6em;flex-wrap:wrap;margin:.3em 0 .6em}
+.modes button[aria-pressed="true"]{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.names{display:flex;gap:.8em;flex-wrap:wrap}
+.names label{display:flex;flex-direction:column;flex:1 1 220px;font-size:.9em}
+.check{display:flex;align-items:center;gap:.5em;cursor:pointer} .check input{width:26px;height:26px}
+
+/* Bühne */
+.stage{position:relative;container-type:inline-size;width:min(100%, calc(34vh * 1000 / 300));min-width:min(100%,520px);aspect-ratio:1000/300;margin:0 auto .7em;border-radius:16px;overflow:hidden;border:3px solid var(--line);background:#000;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.stage.compact{width:min(100%, calc(24vh * 1000 / 300))}
+.stage svg.bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.fig{position:absolute;transform:translate(-50%,-100%);font-size:calc(var(--s,6) * 1cqw);line-height:1;animation:bob 1.6s ease-in-out infinite alternate;pointer-events:none;filter:drop-shadow(0 3px 2px rgba(0,0,0,.4))}
+.fig.flip{transform:translate(-50%,-100%) scaleX(-1)}
+@keyframes bob{to{margin-top:-.6cqw}}
+.bubble{position:absolute;max-width:40%;background:#fff;color:#222;border:3px solid #333;border-radius:16px;padding:.3em .7em;font-size:max(14px,2cqw);font-weight:600;animation:pop .5s ease-out both;z-index:3}
+.bubble::after{content:"";position:absolute;bottom:-14px;left:24px;border:8px solid transparent;border-top-color:#333}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.busfig{position:absolute;top:52%;width:15cqw;transform:translate(-50%,-50%);transition:left 1.8s cubic-bezier(.45,.05,.3,1);z-index:2}
+.busfig svg{width:100%;height:auto;display:block}
+.busfig.go svg{animation:shake .25s linear infinite}
+@keyframes shake{50%{transform:translateY(-1.5px)}}
+.climber{position:absolute;transform:translate(-50%,-90%);font-size:4.2cqw;transition:left 1.4s ease-in-out,top 1.4s ease-in-out;z-index:2}
+.lavaflash{position:absolute;inset:0;background:radial-gradient(circle at 50% 100%,rgba(255,80,0,.75),rgba(255,30,0,0) 70%);animation:lava .9s ease-out forwards;pointer-events:none;z-index:4}
+@keyframes lava{from{opacity:1}to{opacity:0}}
+.bigcomp{position:absolute;left:50%;top:50%;width:34cqw;transform:translate(-50%,-50%);z-index:2}
+.bigcomp svg{width:100%;height:auto}
+.smoke{animation:smoke 4s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.smoke.s2{animation-delay:1.3s} .smoke.s3{animation-delay:2.6s}
+@keyframes smoke{0%{transform:translate(0,0) scale(.6);opacity:.9}100%{transform:translate(30px,-70px) scale(1.8);opacity:0}}
+.asc{animation:asc 9s ease-in-out infinite}
+@keyframes asc{0%,15%{transform:translate(0,0)}50%,65%{transform:translate(64px,-86px)}100%{transform:translate(0,0)}}
+.twinkle{animation:tw 2.4s ease-in-out infinite alternate}
+@keyframes tw{to{opacity:.25}}
+.wave{animation:wave 3s ease-in-out infinite alternate}
+@keyframes wave{to{transform:translateX(18px)}}
+.glow{animation:glow 1.6s ease-in-out infinite alternate}
+@keyframes glow{to{opacity:.35}}
+
+/* Spielfeld */
+.panelhead{display:flex;gap:.6em;align-items:center;flex-wrap:wrap;margin-bottom:.3em}
+.dots{display:flex;gap:6px}
+.dots span{width:14px;height:14px;border-radius:50%;background:#5d4a62;border:2px solid #8a6a90}
+.dots span.ok{background:var(--ok);border-color:var(--ok)} .dots span.bad{background:var(--bad);border-color:var(--bad)} .dots span.cur{background:var(--accent);border-color:var(--accent)}
+.auftrag{font-size:1.1em;font-weight:700;margin:.2em 0 .5em}
+.esline{color:#9fd0ff;font-size:.85em;margin:-.2em 0 .6em}
+.pair{background:#24304a;border:2px dashed #7d9bd6;border-radius:12px;padding:.35em .8em;margin:.2em 0 .6em;font-size:.9em}
+
+/* Satzbausteine */
+.answer{display:flex;flex-wrap:wrap;gap:.45em;align-items:center;min-height:78px;padding:.6em .7em;border:3px dashed #a98aad;border-radius:18px;background:rgba(255,255,255,.04);margin-bottom:.6em}
+.answer .lbl{color:var(--muted);font-size:.85em}
+.answer .fixed{font-weight:600;color:var(--muted)}
+.answer.ok{border-style:solid;border-color:var(--ok);background:rgba(94,224,143,.08)}
+.answer.bad{border-color:var(--bad);animation:shakeX .45s}
+@keyframes shakeX{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.pool{display:flex;flex-wrap:wrap;gap:.5em;min-height:60px;margin-bottom:.6em}
+.tile{--tc:#fff1bf;display:inline-flex;align-items:center;gap:.25em;font-weight:600;color:#241a12;border-radius:12px;border:3px solid rgba(0,0,0,.35);padding:.15em .75em;min-height:52px;box-shadow:0 4px 0 rgba(0,0,0,.35);transition:transform .12s, filter .12s}
+.tile,.tile:hover:not(:disabled){background:var(--tc)}
+.tile:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.06)}
+.tile.t0{--tc:#ffb3a7} .tile.t1{--tc:#c5e8a8} .tile.t2{--tc:#fff1bf} .tile.t3{--tc:#f7c6d9} .tile.t4{--tc:#cfe4ff}
+.tile.v{--tc:linear-gradient(180deg,var(--bread1),var(--bread2));border-color:var(--breadline);border-radius:30px;color:#3a1f05}
+.tile.v::before{content:"🥖";font-size:.8em}
+.tile:disabled{opacity:1;cursor:default}
+.tile.wrongpos{outline:4px solid var(--bad);outline-offset:2px;animation:shakeX .45s}
+.legend{font-size:.8em;color:var(--muted);display:flex;gap:.8em;flex-wrap:wrap;align-items:center;margin-top:.2em}
+.legend .tile{min-height:30px;padding:0 .5em;font-size:.95em;box-shadow:none;border-width:2px;cursor:default}
+
+/* Lücken (Bus) */
+.verbcard{display:inline-flex;align-items:center;gap:.3em;font-weight:800;font-size:1.15em;background:linear-gradient(180deg,var(--bread1),var(--bread2));color:#3a1f05;border:3px solid var(--breadline);border-radius:30px;padding:.15em .9em;margin:.1em 0 .6em;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.lsent{display:flex;flex-wrap:wrap;align-items:center;gap:.15em;font-size:1.15em;line-height:2.2;padding:.4em .6em;background:rgba(255,255,255,.05);border-radius:14px;margin-bottom:.5em}
+.lsent .tok{padding:0 .1em}
+.gap{min-height:44px;min-width:38px;padding:0 .3em;border-radius:10px;border:3px dashed #c9a6cf;background:transparent;color:var(--muted);font-weight:800}
+.gap:hover:not(:disabled){background:rgba(255,201,74,.2);border-color:var(--accent);color:var(--accent)}
+.gap:disabled{opacity:1;cursor:default}
+.lsent .end{margin-left:-.2em}
+.gap.filled{background:linear-gradient(180deg,var(--bread1),var(--bread2));color:#3a1f05;border:3px solid var(--breadline);border-radius:30px;padding:0 .7em}
+.gap.filled.badv{outline:4px solid var(--bad)}
+.timer{height:14px;border-radius:7px;background:#3d2c42;overflow:hidden;margin:.2em 0 .6em;border:2px solid #6a4a6e}
+.timer > div{height:100%;background:linear-gradient(90deg,#5ee08f,#ffc94a,#ff6b6b);width:100%;transition:width .1s linear}
+
+/* Tore */
+.vorgabe{font-size:1.15em;font-weight:700;margin:.2em 0 .6em}
+.gates{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.7em}
+.gate{position:relative;text-align:left;padding:1.4em .9em .7em;border-radius:60px 60px 12px 12px;border:4px solid #4a3a30;background:linear-gradient(180deg,#8d7b6b,#6b5a4b);color:#fff;font-weight:600;min-height:110px;box-shadow:inset 0 0 0 6px rgba(0,0,0,.15),0 5px 0 rgba(0,0,0,.4)}
+.gate::before{content:"⛩️";position:absolute;top:.15em;left:50%;transform:translateX(-50%);font-size:.8em;opacity:.8}
+.gate,.gate:hover:not(:disabled){background:linear-gradient(180deg,#8d7b6b,#6b5a4b)}
+.gate:hover:not(:disabled){filter:brightness(1.15);transform:translateY(-2px)}
+.gate.burn,.gate.burn:disabled{background:linear-gradient(180deg,#ff7b39,#a3200f);opacity:.6;text-decoration:line-through}
+.gate.open{background:linear-gradient(180deg,#5ee08f,#1e8449);opacity:1;color:#062a14}
+
+/* Multiple Choice */
+.mc{margin-bottom:1em}
+.opts{display:flex;flex-direction:column;gap:.45em}
+.opt{text-align:left}
+.opt.right,.opt.right:disabled{background:var(--ok-bg);border-color:var(--ok);opacity:1}
+.opt.wrong,.opt.wrong:disabled{background:var(--bad-bg);border-color:var(--bad)}
+.suspects{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.7em}
+.suspect{text-align:left;display:flex;flex-direction:column;gap:.2em;padding:.7em .9em;border-radius:16px}
+.suspect .face{font-size:2.6em;line-height:1}
+.suspect ul{margin:.2em 0 0;padding-left:1.1em;font-size:.88em}
+
+/* Hören */
+.player{display:flex;gap:.8em;align-items:center;flex-wrap:wrap;background:#2f2238;border:2px solid var(--line);border-radius:14px;padding:.6em .9em;margin-bottom:.8em}
+.player .big{font-size:1.1em;min-width:220px}
+.progress{flex:1 1 180px;height:12px;background:#4a3a52;border-radius:6px;overflow:hidden}
+.progress > div{height:100%;width:0;background:var(--accent)}
+.transcript{background:#fffaf0;color:#2a2018;border-radius:12px;padding:.8em 1.1em;font-family:Georgia,serif;font-size:.95em}
+
+/* Zettel */
+.paper{background:#fffaf0;color:#2a2018;border-radius:6px;padding:1em 1.3em;box-shadow:0 8px 20px rgba(0,0,0,.45);transform:rotate(-.6deg);font-family:"Comic Sans MS","Comic Neue",cursive,sans-serif;max-width:760px;margin:0 auto .8em;background-image:repeating-linear-gradient(transparent 0 38px,#c9dbea 38px 40px)}
+.paper h3{font-family:Arial,sans-serif;color:#7a2a2a}
+.zs{display:block;width:100%;text-align:left;background:transparent;border:2px solid transparent;color:#2a2018;border-radius:8px;padding:.15em .4em;min-height:40px;margin:.15em 0;font-family:inherit}
+.zs:hover:not(:disabled){background:rgba(255,201,74,.35);border-color:#d4a017}
+.zs.checked,.zs.checked:disabled{opacity:.7;background:rgba(94,224,143,.15)}
+.zs.fixed,.zs.fixed:disabled{background:rgba(94,224,143,.25);border-color:#1e8449;opacity:1;color:#0d4a26}
+.zs.failed,.zs.failed:disabled{background:rgba(255,138,138,.25);border-color:#b03030;opacity:1;color:#5a1010}
+.zs.sel{border-color:#d4a017;background:rgba(255,201,74,.35)}
+.zs s{color:#a03030}
+
+/* Fertig */
+.ingpop{font-size:4em;display:inline-block;animation:ing 1.1s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes ing{from{transform:scale(0) rotate(-40deg)}to{transform:scale(1) rotate(0)}}
+.lay{animation:drop .7s cubic-bezier(.3,1.4,.5,1) both}
+@keyframes drop{from{transform:translateY(-60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.restable{border-collapse:collapse;margin:.5em 0} .restable th,.restable td{text-align:left;padding:.2em .8em .2em 0;border-bottom:1px solid var(--line)}
+.bigcode{font-family:"Courier New",monospace;font-size:1.6em;font-weight:800;letter-spacing:.06em;background:#fff;color:#111;border-radius:12px;padding:.2em .6em;display:inline-block;margin:.2em 0}
+.wronglist li{margin-bottom:.6em}
+.fullin{width:100%}
+#travel{position:fixed;inset:0;z-index:50;background:rgba(15,8,18,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1em}
+#travel[hidden]{display:none}
+#travel .road{width:min(80vw,700px);height:8px;border-radius:4px;background:repeating-linear-gradient(90deg,#ffc94a 0 22px,transparent 22px 36px);position:relative}
+#travel .veh{position:absolute;top:-1.4em;font-size:2.4em;left:0;animation:drive 1.8s ease-in-out forwards}
+@keyframes drive{to{left:calc(100% - 1.2em)}}
+#travel p{font-size:1.4em;font-weight:700}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#fff;color:#222;border-radius:12px;padding:.5em 1em;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:60;max-width:90vw}
+code,pre{font-family:"Courier New",monospace}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important} }
+@media (max-width:700px){ body{font-size:18px} }
+</style>
+</head>
+<body>
+<header id="top">
+  <a class="homelink" href="index.html" title="Zur Startseite mit allen Spielen">← Alle Spiele</a>
+  <span class="brand">🌭 Super-Completo</span>
+  <div id="hud" aria-live="polite"></div>
+  <div class="tools">
+    <button type="button" id="btnMenu" title="Zum Menü">☰ Menü</button>
+    <button type="button" id="btnSound" aria-pressed="false" title="Ton an/aus">🔇 Ton aus</button>
+  </div>
+</header>
+<main id="app" tabindex="-1"></main>
+<div id="travel" hidden><p id="travelTxt"></p><div class="road"><span class="veh" id="travelVeh">🚌</span></div></div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+/* =====================================================================
+   AB HIER: SPIEL-LOGIK (muss nicht geändert werden)
+   ===================================================================== */
+const E = EINSTELLUNGEN;
+const LEVELS = ['A2','B1','B2','C1'];
+const LS_GAME = 'supercompleto.spiel.v1', LS_SET = 'supercompleto.einstellungen.v1';
+const ZUTATEN = {
+  pan:     { name:'Pan (Brot)', emoji:'🥖' },
+  vienesa: { name:'Vienesa',    emoji:'🌭' },
+  tomate:  { name:'Tomate',     emoji:'🍅' },
+  palta:   { name:'Palta',      emoji:'🥑' },
+  mayo:    { name:'Mayo',       emoji:'🥫' }
+};
+const ORDER = ['pan','vienesa','tomate','palta','mayo'];
+const ARTEN = ['hoeren','bauen','bus','tore','detektiv','finale'];
+const INPUT_ATTR = 'type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"';
+
+const app = document.getElementById('app');
+let state = null, view = 'start', ui = {}, settings = { sound:false };
+let startSel = { mode:'allein', names:['',''] };
+const mcOrder = {};
+
+/* ---------- Speicher ---------- */
+function lsGet(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { window.localStorage.setItem(k,v); } catch(e){} }
+function lsDel(k){ try { window.localStorage.removeItem(k); } catch(e){} }
+function save(){ if(state) lsSet(LS_GAME, JSON.stringify(state)); }
+
+/* ---------- Hilfen ---------- */
+const $  = (s,r) => (r||document).querySelector(s);
+const $$ = (s,r) => Array.from((r||document).querySelectorAll(s));
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+function plain(s){ return String(s==null?'':s).replace(/\*\*/g,''); }
+function paras(s){ return String(s||'').split(/\n\s*\n/).map(p => '<p>'+fmt(p)+'</p>').join(''); }
+function asList(x){ return x==null ? [] : (Array.isArray(x) ? x : [x]); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function range(n){ return Array.from({length:n},(_,i)=>i); }
+function fmtTime(ms){ const s=Math.max(0,Math.round(ms/1000)); const m=Math.floor(s/60), x=s%60; return String(m).padStart(2,'0')+':'+String(x).padStart(2,'0'); }
+function fmtDate(d){ const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear(); }
+function canon(s){ return String(s==null?'':s).normalize('NFC').toLowerCase().replace(/[„“”"«»‚‘’']/g,' ').replace(/[.,!?;:…–-]/g,' ').replace(/\s+/g,' ').trim(); }
+function joinWords(arr){ return arr.join(' ').replace(/\s+([,.!?])/g,'$1'); }
+function focusEl(sel){ const el = sel ? $(sel) : null; (el||app).focus({preventScroll:true}); }
+let toastT=null;
+function toast(msg, ms){ const t=$('#toast'); t.innerHTML=fmt(msg); t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; }, ms||3000); }
+function spanish(){ return state && E.spanischeHilfe[state.level]; }
+
+/* ---------- Daten vorbereiten ---------- */
+function parseTeile(teile){
+  return asList(teile).map(t => { const m=String(t).match(/^\[(.+)\](.*)$/); return m ? { text:m[1]+m[2], verb:true } : { text:String(t), verb:false }; });
+}
+function tok(s){ return String(s).replace(/,/g,' , ').split(/\s+/).filter(Boolean); }
+function parseLuecke(satz){
+  let s=String(satz).trim(), end='';
+  const me=s.match(/[.!?]$/); if(me){ end=me[0]; s=s.slice(0,-1); }
+  const m=s.match(/\[([^\]]+)\]/);
+  if(!m) return { tokens:tok(s), verbText:'?', gap:-1, end };
+  const before=tok(s.slice(0,m.index)), after=tok(s.slice(m.index+m[0].length));
+  return { tokens:before.concat(after), verbText:m[1], gap:before.length, end };
+}
+function normTasks(st, si){
+  let list=[];
+  if(st.art==='hoeren') list = asList(st.fragen).map(f => Object.assign({kind:'mc'}, f));
+  else if(st.art==='bauen' || st.art==='finale') list = asList(st.aufgaben).map(a => Object.assign({kind:'bauen'}, a, {tiles:parseTeile(a.teile)}));
+  else if(st.art==='bus') list = asList(st.aufgaben).map(a => Object.assign({kind:'luecke'}, a, parseLuecke(a.satz)));
+  else if(st.art==='tore') list = asList(st.aufgaben).map(a => Object.assign({kind:'tor'}, a));
+  else if(st.art==='detektiv'){
+    asList(st.zettel && st.zettel.saetze).forEach((s,zi) => { if(s && typeof s==='object') list.push(Object.assign({kind:'bauen'}, s, {zi, tiles:parseTeile(s.teile)})); });
+    if(st.wer) list.push(Object.assign({kind:'wer'}, st.wer));
+  }
+  list.forEach((t,i) => { t.id=si+'.'+i; t.si=si; t.ti=i; });
+  return list;
+}
+const DATA = {};
+function D(level){ level=level||state.level; if(!DATA[level]) DATA[level]=SPIEL[level].stationen.map((st,si)=>({ st, tasks:normTasks(st,si) })); return DATA[level]; }
+function allTasks(level){ return D(level).reduce((a,x)=>a.concat(x.tasks),[]); }
+function signature(level){ return D(level).map(x=>x.st.art+x.tasks.length).join('|'); }
+function L(){ return SPIEL[state.level]; }
+
+function solutionText(t){
+  if(t.kind==='bauen') return (t.vorgabe? t.vorgabe+' ' : '')+joinWords(t.tiles.map(x=>x.text))+(t.ende||'.');
+  if(t.kind==='luecke') return lueckeText(t, t.gap);
+  if(t.kind==='tor') return t.vorgabe+' '+t.loesung;
+  return String(t.loesung);
+}
+function taskLabel(t){
+  if(t.kind==='bauen') return t.falsch ? 'Fehler im Zettel: „'+t.falsch+'“' : (t.auftrag||'Satz bauen')+' '+(t.vorgabe? t.vorgabe+' … ':'')+'('+t.tiles.map(x=>x.text).join(' / ')+')';
+  if(t.kind==='luecke') return 'Wo fehlt „'+t.verbText+'“? '+joinWords(t.tokens)+t.end;
+  if(t.kind==='tor') return t.vorgabe+' …';
+  return plain(t.frage);
+}
+function lueckeText(t, g){ const a=t.tokens.slice(0,g).concat([t.verbText]).concat(t.tokens.slice(g)); return joinWords(a)+t.end; }
+
+/* ---------- Daten prüfen (gelber Hinweis) ---------- */
+function dataWarnings(){
+  const w=[];
+  LEVELS.forEach(lv => {
+    const S=SPIEL[lv]; if(S==null) return;
+    if(!Array.isArray(S.stationen) || !S.stationen.length){ w.push(lv+': „stationen“ fehlt.'); return; }
+    S.stationen.forEach((st,si) => {
+      const where=lv+' · Station '+(si+1)+' ('+(st.name||'?')+')';
+      if(!ARTEN.includes(st.art)) { w.push(where+': unbekannte art „'+st.art+'“.'); return; }
+      if(st.zutat && !ZUTATEN[st.zutat]) w.push(where+': unbekannte zutat „'+st.zutat+'“.');
+      if(!SCENES[st.szene]) w.push(where+': unbekannte szene „'+st.szene+'“.');
+      let tasks=[]; try { tasks=normTasks(st,si); } catch(e){ w.push(where+': Daten nicht lesbar.'); return; }
+      if(!tasks.length) w.push(where+': keine Aufgaben.');
+      if(st.art==='hoeren' && !(st.hoertext && st.hoertext.skript)) w.push(where+': hoertext.skript fehlt.');
+      if(st.art==='bus' && asList(st.haltestellen).length < tasks.length+1) w.push(where+': Es braucht '+(tasks.length+1)+' Haltestellen.');
+      tasks.forEach((t,i) => {
+        const tw=where+', Aufgabe '+(i+1)+': ';
+        if(t.regel && !REGELN[t.regel]) w.push(tw+'unbekannte regel „'+t.regel+'“.');
+        if(t.kind==='bauen'){ if(t.tiles.length<2) w.push(tw+'zu wenige teile.'); if(!t.tiles.some(x=>x.verb)) w.push(tw+'kein Verb in [eckigen Klammern].'); }
+        if(t.kind==='luecke' && t.gap<0) w.push(tw+'Im satz fehlt das Verb in [eckigen Klammern].');
+        if((t.kind==='tor'||t.kind==='mc') && !asList(t.optionen).includes(t.loesung)) w.push(tw+'loesung steht nicht genau so in optionen.');
+        if(t.kind==='wer' && !asList(t.verdaechtige).some(v=>v.name===t.loesung)) w.push(tw+'loesung ist kein Name aus verdaechtige.');
+      });
+    });
+  });
+  return w;
+}
+
+/* ---------- Prüfcode ---------- */
+function cyrb53(str){ let h1=0xdeadbeef, h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909); return 4294967296*(2097151&h2)+(h1>>>0); }
+const B32='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function normName(n){ return String(n||'').replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\bund\b|\by\b/g,' ').replace(/[^a-z]/g,''); }
+function checksum(level,ch,pct,d,name){ let n=cyrb53([level,ch?'C':'N',pct,d,normName(name),E.geheimwort].join('|')); let o=''; for(let i=0;i<5;i++){ o+=B32[n%32]; n=Math.floor(n/32); } return o; }
+function makeCode(level,ch,pct,date,name){ const p=n=>String(n).padStart(2,'0'); const d=p(date.getDate())+p(date.getMonth()+1)+p(date.getFullYear()%100); return level+(ch?'C':'')+'-'+pct+'-'+d+'-'+checksum(level,ch,pct,d,name); }
+function verifyCode(code,name){
+  const m=String(code||'').toUpperCase().replace(/\s+/g,'').match(/^(A2|B1|B2|C1)(C?)-(\d{1,3})-(\d{6})-([A-Z0-9]{5})$/);
+  if(!m) return { valid:false, reason:'Das Format stimmt nicht. Beispiel: A2-75-081026-K7QFM' };
+  return { valid: checksum(m[1],!!m[2],+m[3],m[4],name)===m[5], level:m[1], challenge:!!m[2], pct:+m[3], date:m[4].slice(0,2)+'.'+m[4].slice(2,4)+'.20'+m[4].slice(4) };
+}
+function playerName(){ return state.names.filter(Boolean).join(' & '); }
+
+/* ---------- Ton (standardmäßig aus) ---------- */
+let actx=null;
+const SND={ ok:[[660,.12],[880,.2]], bad:[[220,.28]], piece:[[784,.1],[988,.1],[1175,.18]], bus:[[330,.1],[392,.1]], fanfare:[[523,.15],[659,.15],[784,.15],[1047,.4]] };
+function sound(n){ if(!settings.sound) return; try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); let t=actx.currentTime;
+  SND[n].forEach(([f,d])=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type='triangle'; o.frequency.value=f; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.16,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+d); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d+0.03); t+=d*0.9; }); }catch(e){} }
+
+/* =====================================================================
+   ZEICHNUNGEN
+   ===================================================================== */
+function completoSVG(has, cls){
+  has = asList(has); const H = k => has.includes(k);
+  let g='';
+  if(H('pan')) g+='<g class="'+cls+'-pan"><path d="M18 54 Q22 28 110 28 Q198 28 202 54 Z" fill="#dca159" stroke="#6b3e14" stroke-width="4"/></g>';
+  if(H('vienesa')) g+='<g class="'+cls+'-vienesa"><rect x="6" y="38" width="208" height="24" rx="12" fill="#c8553d" stroke="#5a1f12" stroke-width="4"/><path d="M40 44 h20 M90 44 h20 M140 44 h20" stroke="#e98a73" stroke-width="3" stroke-linecap="round"/></g>';
+  if(H('tomate')){ let r=''; for(let x=26;x<=184;x+=19) r+='<rect x="'+x+'" y="'+(30+(x%3))+'" width="12" height="11" rx="2" fill="#e8332a" stroke="#7a1010" stroke-width="2"/>'; g+='<g class="'+cls+'-tomate">'+r+'</g>'; }
+  if(H('palta')) g+='<g class="'+cls+'-palta"><path d="M22 34 Q36 16 52 30 T84 30 T116 30 T148 30 T180 30 Q192 22 200 34 L200 40 L22 40 Z" fill="#8bc34a" stroke="#33691e" stroke-width="3"/></g>';
+  if(H('mayo')) g+='<g class="'+cls+'-mayo"><polyline points="28,24 42,15 56,24 70,15 84,24 98,15 112,24 126,15 140,24 154,15 168,24 182,15 194,22" fill="none" stroke="#fff6c9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><polyline points="28,24 42,15 56,24 70,15 84,24 98,15 112,24 126,15 140,24 154,15 168,24 182,15 194,22" fill="none" stroke="#c9b26a" stroke-width="1.5"/></g>';
+  if(H('pan')) g+='<g class="'+cls+'-pan2"><path d="M8 56 Q12 94 110 94 Q208 94 212 56 Q110 72 8 56 Z" fill="#eab76a" stroke="#6b3e14" stroke-width="4"/><path d="M40 82 q6 -3 12 0 M100 86 q6 -3 12 0 M160 82 q6 -3 12 0" stroke="#b07a35" stroke-width="2" fill="none"/></g>';
+  if(!has.length) g='<path d="M8 56 Q12 94 110 94 Q208 94 212 56 Q110 72 8 56 Z" fill="none" stroke="#8a6a90" stroke-width="3" stroke-dasharray="8 6"/>';
+  return '<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+g+'</svg>';
+}
+function flags(y, x0, x1){
+  let s='<path d="M'+x0+' '+y+' Q'+((x0+x1)/2)+' '+(y+26)+' '+x1+' '+y+'" stroke="#555" stroke-width="2" fill="none"/>';
+  const cols=['#d52b1e','#ffffff','#0039a6'];
+  for(let i=0;i<14;i++){ const t=(i+.5)/14, x=x0+(x1-x0)*t, yy=y+26*4*t*(1-t)*.5*2; s+='<path d="M'+(x-9)+' '+yy+' L'+(x+9)+' '+yy+' L'+x+' '+(yy+16)+' Z" fill="'+cols[i%3]+'" stroke="#333" stroke-width="1"/>'; }
+  return s;
+}
+function houses(list, night){
+  const cols=['#e74c3c','#f1c40f','#3498db','#9b59b6','#e67e22','#1abc9c','#ff6f91','#2ecc71'];
+  return list.map(([x,y],i)=>{ const c=night?['#3b3f6b','#4b3b5e','#2f4a5e','#5a3a4a'][i%4]:cols[i%cols.length];
+    const win=night?(i%3? '#ffd86b':'#2a2a40'):'#fdf2c4';
+    return '<rect x="'+x+'" y="'+y+'" width="44" height="36" fill="'+c+'" stroke="#2c2c3e" stroke-width="2"/><path d="M'+(x-3)+' '+y+' L'+(x+22)+' '+(y-14)+' L'+(x+47)+' '+y+' Z" fill="'+(night?'#2a2030':'#8b3a2a')+'" stroke="#2c2c3e" stroke-width="2"/><rect x="'+(x+7)+'" y="'+(y+10)+'" width="11" height="11" fill="'+win+'"/><rect x="'+(x+26)+'" y="'+(y+10)+'" width="11" height="11" fill="'+(night?(i%2?'#ffd86b':'#2a2a40'):win)+'"/>'; }).join('');
+}
+const HOUSES=[[30,142],[85,124],[140,110],[195,102],[252,108],[308,118],[365,128],[420,136],[110,166],[170,152],[230,146],[290,152],[350,162],[470,140],[525,130],[55,180],[400,170]];
+
+const VPATH=[[372,292],[478,262],[408,228],[512,200],[452,170],[560,146],[652,140]];
+function pathPoint(P, f){
+  const seg=[]; let total=0;
+  for(let i=1;i<P.length;i++){ const d=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]); seg.push(d); total+=d; }
+  let target=Math.max(0,Math.min(1,f))*total;
+  for(let i=0;i<seg.length;i++){ if(target<=seg[i]){ const r=target/seg[i]; return [P[i][0]+(P[i+1][0]-P[i][0])*r, P[i][1]+(P[i+1][1]-P[i][1])*r]; } target-=seg[i]; }
+  return P[P.length-1];
+}
+
+const SCENES = {
+  valpo: { svg: () =>
+    '<defs><linearGradient id="skyV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cc6f2"/><stop offset="1" stop-color="#d9f1ff"/></linearGradient></defs>'+
+    '<rect width="1000" height="300" fill="url(#skyV)"/><circle cx="560" cy="52" r="30" fill="#ffd95a"/>'+
+    '<path d="M0 205 Q120 92 300 112 Q450 128 640 100 L640 240 L0 240 Z" fill="#6aa35c"/>'+houses(HOUSES)+
+    '<line x1="470" y1="236" x2="545" y2="140" stroke="#444" stroke-width="5"/><g class="asc"><rect x="458" y="208" width="28" height="24" rx="3" fill="#c0392b" stroke="#222" stroke-width="2"/><rect x="463" y="213" width="18" height="9" fill="#cfe8f5"/></g>'+
+    '<rect x="0" y="222" width="640" height="34" fill="#2e86c1"/><path class="wave" d="M10 236 q15 -7 30 0 t30 0 M120 244 q15 -7 30 0 t30 0 M300 234 q15 -7 30 0 t30 0 M470 244 q15 -7 30 0 t30 0" stroke="#d6eefc" stroke-width="3" fill="none"/>'+
+    '<rect x="0" y="252" width="1000" height="48" fill="#b8b0a2"/><rect x="0" y="252" width="1000" height="5" fill="#8f877a"/>'+
+    '<rect x="650" y="96" width="340" height="158" fill="#fbe3b0" stroke="#7a4a1c" stroke-width="3"/>'+
+    '<rect x="668" y="104" width="304" height="32" rx="4" fill="#c0392b" stroke="#5a1010" stroke-width="2"/><text x="820" y="127" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="19" fill="#fff">FUENTE DE SODA · TÍA CARMEN</text>'+
+    (()=>{ let s=''; for(let i=0;i<17;i++) s+='<rect x="'+(650+i*20)+'" y="138" width="20" height="22" fill="'+(i%2?'#ffffff':'#d52b1e')+'"/>'; return s; })()+
+    '<rect x="668" y="170" width="200" height="66" fill="#aee0f5" stroke="#7a4a1c" stroke-width="3"/><text x="768" y="214" text-anchor="middle" font-size="30">🌭 🥤 🌭</text>'+
+    '<rect x="900" y="172" width="58" height="82" fill="#8e5b33" stroke="#4a2a10" stroke-width="3"/><circle cx="946" cy="214" r="4" fill="#f4d03f"/>'+
+    flags(18,0,640),
+    figs: [{e:'👩🏽‍🍳',x:880,y:268,s:9,id:'host'},{e:'👧🏽',x:560,y:286,s:5.5},{e:'👦🏻',x:600,y:288,s:5.5},{e:'🧒🏽',x:520,y:290,s:5}],
+    bubble: [690,26]
+  },
+  markt: { svg: () => {
+    let a=''; for(let i=0;i<5;i++){ const x=i*200; a+='<path d="M'+x+' 240 L'+x+' 110 Q'+(x+100)+' 20 '+(x+200)+' 110" stroke="#2f6f4f" stroke-width="9" fill="none"/>'; }
+    return '<rect width="1000" height="300" fill="#f3e2bf"/><rect x="0" y="0" width="1000" height="60" fill="#d9ecf0"/>'+a+
+    '<rect x="0" y="0" width="1000" height="12" fill="#2f6f4f"/>'+
+    '<text x="500" y="52" text-anchor="middle" font-family="Georgia" font-weight="bold" font-size="30" fill="#2f6f4f">MERCADO CENTRAL</text>'+
+    '<rect x="30" y="180" width="260" height="70" fill="#5b8fb9" stroke="#2d4a63" stroke-width="3"/><text x="160" y="172" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="18" fill="#2d4a63">PESCADOS</text><text x="160" y="226" text-anchor="middle" font-size="34">🐟🦀🐟🦐</text>'+
+    '<rect x="370" y="180" width="260" height="70" fill="#c0392b" stroke="#5a1010" stroke-width="3"/><text x="500" y="172" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="18" fill="#5a1010">DON PANCHO · VIENESAS</text><text x="500" y="226" text-anchor="middle" font-size="34">🌭🌭🌭🌭</text>'+
+    '<rect x="710" y="180" width="260" height="70" fill="#7cae55" stroke="#355a1f" stroke-width="3"/><text x="840" y="172" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="18" fill="#355a1f">VERDURAS</text><text x="840" y="226" text-anchor="middle" font-size="34">🍅🥑🌽🧅</text>'+
+    '<rect x="0" y="250" width="1000" height="50" fill="#9c8a72"/>'+
+    '<line x1="250" y1="12" x2="250" y2="70" stroke="#333" stroke-width="2"/><circle cx="250" cy="76" r="9" fill="#ffd86b"/><line x1="750" y1="12" x2="750" y2="70" stroke="#333" stroke-width="2"/><circle cx="750" cy="76" r="9" fill="#ffd86b"/>'+
+    flags(64,0,1000); },
+    figs: [{e:'👴🏻',x:330,y:262,s:8,id:'host'},{e:'👧🏽',x:640,y:296,s:5.5},{e:'👦🏻',x:680,y:298,s:5.5},{e:'🧒🏽',x:600,y:298,s:5}],
+    bubble: [360,64]
+  },
+  bus: { svg: (st) => {
+    const H=asList(st.haltestellen); let stops='';
+    H.forEach((h,i)=>{ const x=60+i*(880/Math.max(1,H.length-1)); stops+='<line x1="'+x+'" y1="196" x2="'+x+'" y2="168" stroke="#333" stroke-width="3"/><rect x="'+(x-12)+'" y="156" width="24" height="16" rx="3" fill="#1f6fb2" stroke="#123" stroke-width="2"/><text x="'+x+'" y="168" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="11" fill="#fff">H</text><text x="'+x+'" y="288" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="17" fill="#fff" stroke="#222" stroke-width="3" paint-order="stroke">'+esc(h)+'</text>'; });
+    return '<defs><linearGradient id="skyB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ecdf5"/><stop offset="1" stop-color="#e8f6ff"/></linearGradient></defs><rect width="1000" height="300" fill="url(#skyB)"/>'+
+    '<path d="M0 170 L80 90 L150 140 L240 60 L330 135 L420 75 L520 140 L610 55 L700 130 L800 70 L890 135 L1000 80 L1000 200 L0 200 Z" fill="#8a8fa3"/>'+
+    '<path d="M218 82 L240 60 L262 82 L250 78 L240 86 L230 78 Z M590 75 L610 55 L630 75 L620 72 L610 80 L600 72 Z M782 88 L800 70 L818 88 L808 84 L800 92 L792 84 Z" fill="#fff"/>'+
+    '<path d="M0 190 Q250 160 500 185 T1000 180 L1000 210 L0 210 Z" fill="#5f9d4c"/>'+
+    '<rect x="0" y="200" width="1000" height="60" fill="#555"/><line x1="0" y1="230" x2="1000" y2="230" stroke="#f4d03f" stroke-width="4" stroke-dasharray="26 18"/>'+
+    '<rect x="0" y="260" width="1000" height="40" fill="#6aa35c"/>'+stops; },
+    figs: [], bubble: [380,24]
+  },
+  vulkan: { svg: (st, n) => {
+    let gates=''; for(let k=1;k<=n;k++){ const [x,y]=pathPoint(VPATH,k/(n+1)); gates+='<path d="M'+(x-13)+' '+(y+4)+' L'+(x-13)+' '+(y-16)+' Q'+x+' '+(y-30)+' '+(x+13)+' '+(y-16)+' L'+(x+13)+' '+(y+4)+'" stroke="#4a3a30" stroke-width="6" fill="none"/><text x="'+x+'" y="'+(y-1)+'" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="12" fill="#fff" stroke="#222" stroke-width="2" paint-order="stroke">'+k+'</text>'; }
+    let trees=''; [[60,250],[110,268],[170,246],[230,272],[800,250],[860,266],[920,248],[960,272],[300,282],[700,284]].forEach(([x,y])=>{ trees+='<path d="M'+x+' '+(y-40)+' L'+(x-16)+' '+y+' L'+(x+16)+' '+y+' Z" fill="#2e6b3a" stroke="#173a1f" stroke-width="2"/>'; });
+    return '<defs><linearGradient id="skyU" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fa8e0"/><stop offset="1" stop-color="#cfe9fb"/></linearGradient></defs><rect width="1000" height="300" fill="url(#skyU)"/>'+
+    '<circle class="smoke" cx="512" cy="40" r="16" fill="#ddd"/><circle class="smoke s2" cx="522" cy="36" r="18" fill="#e8e8e8"/><circle class="smoke s3" cx="505" cy="42" r="14" fill="#cfcfcf"/>'+
+    '<path d="M250 300 L470 58 L550 58 L800 300 Z" fill="#6d5d55" stroke="#3c302b" stroke-width="3"/>'+
+    '<path d="M470 58 L550 58 L600 112 L575 104 L556 120 L530 100 L505 118 L486 102 L455 114 L428 104 Z" fill="#fff"/><ellipse cx="510" cy="58" rx="40" ry="6" fill="#c0392b" class="glow"/>'+
+    '<ellipse cx="120" cy="300" rx="190" ry="40" fill="#3a8fd0"/>'+trees+
+    '<polyline points="'+VPATH.map(p=>p.join(',')).join(' ')+'" fill="none" stroke="#c9a36b" stroke-width="7" stroke-dasharray="12 8" stroke-linecap="round"/>'+gates+
+    '<path d="M630 140 L652 118 L674 140 Z" fill="#8b3a2a" stroke="#3b1a10" stroke-width="2"/><rect x="636" y="140" width="32" height="24" fill="#c8915a" stroke="#3b1a10" stroke-width="2"/><rect x="648" y="150" width="9" height="14" fill="#3b1a10"/>'; },
+    figs: [{e:'👩🏼‍🌾',x:700,y:168,s:6,id:'host'}], bubble: [720,40]
+  },
+  nacht: { svg: () => {
+    let stars=''; [[60,30],[140,60],[230,22],[330,48],[420,18],[610,40],[700,20],[780,56],[880,28],[960,62],[520,70]].forEach(([x,y],i)=>{ stars+='<circle class="twinkle" style="animation-delay:'+(i*.3)+'s" cx="'+x+'" cy="'+y+'" r="2.4" fill="#fff"/>'; });
+    return '<defs><linearGradient id="skyN" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1838"/><stop offset="1" stop-color="#2b3f74"/></linearGradient><radialGradient id="lamp"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".8"/><stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/></radialGradient></defs>'+
+    '<rect width="1000" height="300" fill="url(#skyN)"/>'+stars+'<circle cx="880" cy="60" r="26" fill="#f6f1d5"/><circle cx="890" cy="54" r="24" fill="#0f1d42"/>'+
+    '<path d="M0 205 Q120 92 300 112 Q450 128 640 100 L1000 130 L1000 250 L0 250 Z" fill="#26304f"/>'+houses(HOUSES,true)+houses([[700,140],[760,132],[820,140],[880,146],[940,138]],true)+
+    '<line x1="560" y1="250" x2="640" y2="140" stroke="#222" stroke-width="5"/><g class="asc"><rect x="548" y="222" width="28" height="24" rx="3" fill="#8e2b20" stroke="#111" stroke-width="2"/><rect x="553" y="227" width="18" height="9" fill="#ffd86b"/></g>'+
+    '<rect x="0" y="246" width="1000" height="54" fill="#4a4652"/>'+
+    '<circle cx="470" cy="150" r="70" fill="url(#lamp)"/><line x1="470" y1="150" x2="470" y2="250" stroke="#222" stroke-width="5"/><circle cx="470" cy="150" r="9" fill="#ffe9a0"/>'+
+    '<rect x="90" y="186" width="190" height="64" fill="#e3a43a" stroke="#4a2a10" stroke-width="3"/><rect x="80" y="166" width="210" height="24" fill="#2d2d2d" stroke="#111" stroke-width="2"/><text x="185" y="184" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="15" fill="#fff">LUCHO&#39;S HOT DOGS</text><text x="185" y="230" text-anchor="middle" font-size="28">🌭🌭</text>'+
+    '<g class="glow"><rect x="590" y="262" width="34" height="24" fill="#fffaf0" stroke="#d4a017" stroke-width="2" transform="rotate(-12 607 274)"/></g>'; },
+    figs: [{e:'🐕',x:660,y:290,s:5.5,id:'host',flip:true},{e:'👧🏽',x:770,y:292,s:5.5},{e:'👦🏻',x:810,y:294,s:5.5},{e:'🧒🏽',x:730,y:296,s:5}],
+    bubble: [650,170]
+  },
+  fuente: { svg: () => {
+    let tiles=''; for(let x=0;x<1000;x+=40) for(let y=150;y<210;y+=20) tiles+='<rect x="'+x+'" y="'+y+'" width="40" height="20" fill="'+(((x/40+y/20)%2)?'#f2f2ee':'#d6e9e4')+'" stroke="#c8d4d0" stroke-width="1"/>';
+    return '<rect width="1000" height="300" fill="#f7e1b5"/>'+tiles+
+    '<rect x="40" y="26" width="300" height="118" rx="6" fill="#20402f" stroke="#5a3a1a" stroke-width="6"/><text x="190" y="54" text-anchor="middle" font-family="Georgia" font-weight="bold" font-size="18" fill="#fff">MENÚ</text>'+
+    '<text x="60" y="80" font-family="Courier New" font-size="15" fill="#f0f0e0">Completo Italiano ... $3.500</text><text x="60" y="102" font-family="Courier New" font-size="15" fill="#f0f0e0">Churrasco ......... $5.200</text><text x="60" y="126" font-family="Courier New" font-size="15" fill="#ffd86b">SUPER-COMPLETO ....... ???</text>'+
+    '<rect x="660" y="30" width="290" height="110" fill="#7cc6f2" stroke="#7a4a1c" stroke-width="6"/><rect x="660" y="100" width="290" height="40" fill="#2e86c1"/><line x1="805" y1="30" x2="805" y2="140" stroke="#7a4a1c" stroke-width="5"/>'+
+    '<rect x="0" y="210" width="1000" height="90" fill="#8e5b33"/><rect x="0" y="206" width="1000" height="10" fill="#5a3518"/>'+
+    '<ellipse cx="500" cy="196" rx="150" ry="16" fill="#fff" stroke="#bbb" stroke-width="3"/>'+flags(8,360,640); },
+    figs: [{e:'👩🏽‍🍳',x:740,y:212,s:9,id:'host'},{e:'👧🏽',x:150,y:290,s:5.5},{e:'👦🏻',x:200,y:292,s:5.5},{e:'🧒🏽',x:100,y:294,s:5}],
+    bubble: [580,26]
+  }
+};
+
+/* =====================================================================
+   SPIELABLAUF
+   ===================================================================== */
+function newGame(level, challenge){
+  state = { v:1, level, challenge:!!challenge, sig:signature(level), mode:startSel.mode,
+    names: startSel.mode==='paar' ? startSel.names.map(n=>n.trim().replace(/\s+/g,' ')) : [startSel.names[0].trim().replace(/\s+/g,' ')],
+    station:0, phase:'intro', done:{}, tries:{}, tips:{}, wrong:[], zutaten:[], plays:{}, checked:{},
+    elapsed:0, started:new Date().toISOString(), finished:null, timeout:false };
+  ui={}; save();
+}
+function loadSaved(){
+  let s=null; try{ s=JSON.parse(lsGet(LS_GAME)||'null'); }catch(e){ s=null; }
+  if(!s || s.v!==1 || !SPIEL[s.level]) return null;
+  try { if(s.sig!==signature(s.level)) return null; } catch(e){ return null; }
+  return s;
+}
+function limitMs(){ return (E.challengeMinuten[state.level]||25)*60000; }
+function stats(){
+  const all=allTasks(state.level); let score=0, ok=0;
+  all.forEach(t=>{ const r=state.done[t.id]; if(r){ score+=r.pts; if(r.ok) ok++; } });
+  const max=all.length*E.punkteErsterVersuch;
+  return { score, max, pct: max? Math.round(score/max*100) : 0, total:all.length, ok, open: all.filter(t=>!state.done[t.id]).length };
+}
+function globalIndex(t){ return allTasks(state.level).findIndex(x=>x.id===t.id); }
+
+/* Versuch auswerten: 'ok' | 'retry' | 'fail' */
+function attempt(t, ok, given){
+  const tries=state.tries[t.id]||0;
+  if(ok){
+    let pts = tries===0 ? E.punkteErsterVersuch : E.punkteZweiterVersuch;
+    if(state.tips[t.id]) pts=Math.max(0, pts-E.tippKosten);
+    state.done[t.id]={ ok:true, pts }; sound('ok'); save(); return 'ok';
+  }
+  state.tries[t.id]=tries+1;
+  if(tries+1>=2){
+    state.done[t.id]={ ok:false, pts:0 };
+    state.wrong.push({ station:D()[t.si].st.name, aufgabe:taskLabel(t), deine:given, loesung:solutionText(t) });
+    sound('bad'); save(); return 'fail';
+  }
+  sound('bad'); save(); return 'retry';
+}
+
+/* ---------- Kopfzeile ---------- */
+function renderHud(){
+  const hud=$('#hud');
+  if(!state || view!=='game' || location.hash==='#lehrer'){ hud.innerHTML=''; return; }
+  const s=stats(), stn=D().length;
+  let h='<span class="pill">'+esc(state.level)+'</span><span class="pill">📍 '+Math.min(state.station+1,stn)+'/'+stn+'</span><span class="pill">⭐ '+s.score+'</span>';
+  h+='<span class="pill" id="clock">'+clockText()+'</span>';
+  h+='<span class="pill" title="Gesammelte Zutaten">'+ORDER.map(k=>'<span style="opacity:'+(state.zutaten.includes(k)?1:.25)+'">'+ZUTATEN[k].emoji+'</span>').join('')+'</span>';
+  hud.innerHTML=h;
+}
+function clockText(){ if(!state) return ''; return state.challenge ? '⏳ '+fmtTime(limitMs()-state.elapsed) : '⏱ '+fmtTime(state.elapsed); }
+
+/* ---------- Haupt-Render ---------- */
+let busInt=null;
+function stopTimers(){ if(busInt){ clearInterval(busInt); busInt=null; } }
+function render(){
+  stopTimers();
+  if(location.hash==='#lehrer'){ stopAudio(); renderTeacher(); renderHud(); return; }
+  if(view==='start' || !state){ stopAudio(); renderStart(); }
+  else if(state.finished){ stopAudio(); renderResult(); }
+  else renderGame();
+  renderHud();
+}
+
+/* ---------- Start ---------- */
+function renderStart(){
+  const saved=loadSaved(), warn=dataWarnings();
+  let h='<section class="card narrow hero"><div class="herorow"><div><h1>🌭 Das Geheimnis des Super-Completo</h1>'+
+    '<p>Tía Carmens Rezept ist weg! Reise mit Sofía, Matías und Benja durch Chile, bau richtige Sätze und sammle die Zutaten für den Super-Completo.</p>'+
+    '<p class="small muted">🇨🇱 Un escape room para practicar el orden de las palabras: arma oraciones correctas y junta los ingredientes del Super-Completo.</p></div>'+
+    '<div class="herocomp">'+completoSVG(ORDER,'h')+'</div></div>'+
+    '<p class="merk">🥖 <strong>Merksatz:</strong> Das Verb ist das Brot – oben und unten. Der Rest ist Belag!</p></section>';
+  if(warn.length) h+='<div class="warnbox narrow"><strong>⚠️ Hinweis für Lehrkräfte – in den Daten stimmt etwas nicht:</strong><ul>'+warn.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+  if(saved && !saved.finished){
+    const st=SPIEL[saved.level].stationen[saved.station];
+    h+='<section class="card narrow"><h2>▶ Weiterspielen</h2><p>'+esc(saved.names.join(' & '))+' · Niveau <strong>'+esc(saved.level)+'</strong> · Station '+(saved.station+1)+': '+esc(st?st.name:'')+'</p>'+
+      '<div class="row"><button type="button" class="primary" id="btnCont">Weiterspielen ➜</button><button type="button" id="btnDiscard">Neu beginnen</button></div></section>';
+  } else if(saved && saved.finished){
+    h+='<section class="card narrow"><p>Du hast ein fertiges Spiel gespeichert.</p><div class="row"><button type="button" class="primary" id="btnCont">🏆 Ergebnis ansehen</button><button type="button" id="btnDiscard">Neues Spiel</button></div></section>';
+  }
+  if(!saved){
+    h+='<section class="card narrow"><h2>1 · Wie spielst du?</h2><div class="modes">'+
+      '<button type="button" data-mode="allein" aria-pressed="'+(startSel.mode==='allein')+'">👤 Ich spiele allein</button>'+
+      '<button type="button" data-mode="paar" aria-pressed="'+(startSel.mode==='paar')+'">👥 Wir spielen zu zweit</button></div>'+
+      '<div class="names"><label>'+(startSel.mode==='paar'?'Name 1':'Dein Name')+'<input '+INPUT_ATTR+' id="n0" value="'+esc(startSel.names[0])+'"></label>'+
+      (startSel.mode==='paar'?'<label>Name 2<input '+INPUT_ATTR+' id="n1" value="'+esc(startSel.names[1])+'"></label>':'')+'</div>'+
+      (startSel.mode==='paar'?'<p class="small muted">Zu zweit wechselt ihr euch ab: Eine Person baut den Satz 👩‍🍳, die andere kontrolliert 🧐. Sprecht vor jedem Klick kurz miteinander!</p>':'')+
+      '<div id="nameFb" role="status"></div></section>';
+    h+='<section class="card narrow"><h2>2 · Wähle dein Niveau</h2><div class="levels">'+LEVELS.map(lv=>{ const S=SPIEL[lv];
+      return S ? '<button type="button" class="level" data-l="'+lv+'"><span class="lv">'+lv+'</span><span class="lt">'+esc(S.titel)+'</span><span class="lo">'+esc(S.klasse||'')+'</span><span class="lo">'+esc(S.schwerpunkt||'')+'</span></button>'
+               : '<button type="button" class="level" disabled><span class="lv">'+lv+'</span><span class="lt">🔒 kommt bald</span></button>'; }).join('')+'</div>'+
+      '<label class="check" style="margin-top:.6em"><input type="checkbox" id="chkChallenge"> ⏳ Challenge-Modus: mit Zeitlimit</label></section>';
+  }
+  h+='<p class="small center"><a href="#lehrer">Für Lehrkräfte: Prüfcode kontrollieren · Audio-Dateien prüfen</a></p>';
+  app.innerHTML=h;
+  if($('#btnCont')) $('#btnCont').addEventListener('click',()=>{ state=saved; view='game'; ui={}; render(); });
+  if($('#btnDiscard')) $('#btnDiscard').addEventListener('click',()=>{ if(!window.confirm('Das gespeicherte Spiel wird gelöscht. Wirklich neu beginnen?')) return; lsDel(LS_GAME); state=null; render(); });
+  $$('[data-mode]').forEach(b=>b.addEventListener('click',()=>{ readNames(); startSel.mode=b.dataset.mode; render(); }));
+  $$('.level[data-l]').forEach(b=>b.addEventListener('click',()=>{
+    readNames();
+    const need = startSel.mode==='paar' ? [0,1] : [0];
+    if(need.some(i=>normName(startSel.names[i]).length<2)){ $('#nameFb').innerHTML='<p class="badline">Bitte schreib '+(startSel.mode==='paar'?'beide Namen':'deinen Namen')+'.</p>'; focusEl('#n0'); return; }
+    newGame(b.dataset.l, $('#chkChallenge').checked); view='game'; render(); window.scrollTo(0,0);
+  }));
+}
+function readNames(){ if($('#n0')) startSel.names[0]=$('#n0').value; if($('#n1')) startSel.names[1]=$('#n1').value; }
+
+/* ---------- Spiel ---------- */
+function curStation(){ return D()[state.station]; }
+function renderGame(){
+  const { st } = curStation();
+  if(!(st.art==='hoeren' && state.phase==='play')) stopAudio();
+  app.innerHTML='<div class="stage'+(state.phase==='play'?' compact':'')+'" id="stage"></div><section class="card" id="panel"></section>';
+  renderStage();
+  refreshPanel();
+}
+function renderStage(){
+  const { st, tasks } = curStation(), S=SCENES[st.szene]||SCENES.valpo;
+  const doneN = tasks.filter(t=>state.done[t.id]).length;
+  let h='<svg class="bg" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">'+S.svg(st, tasks.length)+'</svg>';
+  (S.figs||[]).forEach(f=>{ h+='<div class="fig'+(f.flip?' flip':'')+'" style="left:'+(f.x/10)+'%;top:'+(f.y/3)+'%;--s:'+f.s+'">'+f.e+'</div>'; });
+  if(st.art==='bus'){
+    const H=asList(st.haltestellen), x=60+doneN*(880/Math.max(1,H.length-1));
+    h+='<div class="busfig" id="busfig" style="left:'+(x/10)+'%">'+busSVG()+'</div>';
+  }
+  if(st.art==='tore'){ const [x,y]=pathPoint(VPATH, doneN/(tasks.length+1) + (doneN===tasks.length? 1/(tasks.length+1):0)); h+='<div class="climber" id="climber" style="left:'+(x/10)+'%;top:'+(y/3)+'%">🧒🏽</div>'; }
+  if(st.art==='finale'){ const fin=state.phase==='final'; h+='<div class="bigcomp" id="bigcomp" style="'+(fin?'':'width:26cqw;top:52%')+'">'+completoSVG(fin?ORDER:state.zutaten, fin?'lay':'c')+'</div>'; }
+  if(state.phase==='intro' && st.ruf && S.bubble) h+='<div class="bubble" style="left:'+(S.bubble[0]/10)+'%;top:'+(S.bubble[1]/3)+'%">'+fmt(st.ruf)+'</div>';
+  $('#stage').innerHTML=h;
+  if(st.art==='finale' && state.phase==='final') $$('#bigcomp g').forEach((g,i)=>{ g.classList.add('lay'); g.style.animationDelay=(i*.35)+'s'; });
+}
+function busSVG(){
+  return '<svg viewBox="0 0 160 70" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="6" width="150" height="50" rx="10" fill="#1f6fb2" stroke="#0d2f4d" stroke-width="3"/><rect x="4" y="40" width="150" height="6" fill="#ffc94a"/>'+
+    [14,40,66,92].map(x=>'<rect x="'+x+'" y="13" width="22" height="18" rx="3" fill="#cfe8f5" stroke="#0d2f4d" stroke-width="2"/>').join('')+
+    '<rect x="122" y="13" width="26" height="24" rx="3" fill="#cfe8f5" stroke="#0d2f4d" stroke-width="2"/><text x="25" y="29" text-anchor="middle" font-size="13">👧🏽</text><text x="51" y="29" text-anchor="middle" font-size="13">👦🏻</text><text x="77" y="29" text-anchor="middle" font-size="13">🧒🏽</text><text x="103" y="29" text-anchor="middle" font-size="13">👵🏽</text>'+
+    '<circle cx="36" cy="58" r="10" fill="#222" stroke="#999" stroke-width="3"/><circle cx="124" cy="58" r="10" fill="#222" stroke="#999" stroke-width="3"/></svg>';
+}
+function updateStageProgress(){
+  const { st, tasks } = curStation(), doneN=tasks.filter(t=>state.done[t.id]).length;
+  if(st.art==='bus' && $('#busfig')){ const H=asList(st.haltestellen), x=60+doneN*(880/Math.max(1,H.length-1)); const b=$('#busfig'); b.classList.add('go'); b.style.left=(x/10)+'%'; setTimeout(()=>b.classList.remove('go'),1900); }
+  if(st.art==='tore' && $('#climber')){ const [x,y]=pathPoint(VPATH, doneN/(tasks.length+1)); const c=$('#climber'); c.style.left=(x/10)+'%'; c.style.top=(y/3)+'%'; }
+}
+function lavaFlash(){ const s=$('#stage'); if(!s) return; const d=document.createElement('div'); d.className='lavaflash'; s.appendChild(d); setTimeout(()=>d.remove(),1000); }
+
+function refreshPanel(){
+  stopTimers();
+  const P=$('#panel'); if(!P) return;
+  const { st } = curStation();
+  if(state.phase==='intro') return renderIntro(st,P);
+  if(state.phase==='done') return renderDone(st,P);
+  if(state.phase==='final') return renderFinal(st,P);
+  if(st.art==='hoeren') return renderHoeren(P);
+  if(st.art==='detektiv') return renderDetektiv(P);
+  renderSequence(P);
+}
+function stationHead(st){ return '<div class="panelhead"><span class="chip">Station '+(state.station+1)+' von '+D().length+'</span><span class="chip">📍 '+esc(st.ort||'')+'</span>'+(st.thema?'<span class="chip">🎯 '+esc(st.thema)+'</span>':'')+'</div>'; }
+
+function renderIntro(st,P){
+  P.innerHTML=stationHead(st)+'<h2>'+esc(st.name)+'</h2>'+paras(st.geschichte)+
+    (state.station===0 && state.mode==='paar' ? '<p class="pair">👥 Ihr spielt zu zweit: <strong>'+esc(state.names[0])+'</strong> und <strong>'+esc(state.names[1])+'</strong> wechseln sich ab. Das Spiel sagt euch immer, wer dran ist.</p>' : '')+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnGo">Los geht’s ➜</button></div>';
+  $('#btnGo').addEventListener('click',()=>{ state.phase='play'; save(); renderGame(); });
+  focusEl('#btnGo');
+}
+function completeStation(){
+  const { st } = curStation();
+  if(st.zutat && !state.zutaten.includes(st.zutat)) state.zutaten.push(st.zutat);
+  state.phase = st.art==='finale' ? 'final' : 'done'; ui={}; save();
+  sound(st.art==='finale'?'fanfare':'piece'); renderGame(); renderHud();
+}
+function renderDone(st,P){
+  const z=ZUTATEN[st.zutat], next=D()[state.station+1];
+  P.innerHTML='<div class="center">'+(z?'<div class="ingpop">'+z.emoji+'</div>':'')+'<h2>Station geschafft!</h2></div>'+paras(st.geschafft)+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnNext">Weiter ➜</button></div>';
+  $('#btnNext').addEventListener('click',()=>{
+    if(!next){ state.phase='final'; save(); renderGame(); return; }
+    travel(next.st.anreise||'Weiter …', ()=>{ state.station++; state.phase='intro'; ui={}; save(); render(); window.scrollTo(0,0); });
+  });
+  focusEl('#btnNext');
+}
+function travel(text, cb){
+  const t=$('#travel'); $('#travelTxt').textContent=text;
+  const m=String(text).match(/^\p{Extended_Pictographic}/u); $('#travelVeh').textContent=m?m[0]:'🚌';
+  const v=$('#travelVeh'); v.style.animation='none'; void v.offsetWidth; v.style.animation='';
+  t.hidden=false; sound('bus');
+  setTimeout(()=>{ t.hidden=true; cb(); }, 1900);
+}
+function renderFinal(st,P){
+  P.innerHTML='<div class="center"><h2>🎉 Der Super-Completo ist fertig!</h2></div>'+paras(L().schluss)+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnRes">🏆 Zum Ergebnis</button></div>';
+  $('#btnRes').addEventListener('click',()=>{ state.finished=new Date().toISOString(); save(); render(); window.scrollTo(0,0); });
+  focusEl('#btnRes');
+}
+
+/* ---------- gemeinsame Bausteine ---------- */
+function pairLine(t, verb){
+  if(state.mode!=='paar') return '';
+  const gi=globalIndex(t), a=state.names[gi%2], b=state.names[(gi+1)%2];
+  const R=t.regel && REGELN[t.regel];
+  return '<div class="pair">👩‍🍳 <strong>'+esc(a)+'</strong> '+(verb||'baut den Satz')+' · 🧐 <strong>'+esc(b)+'</strong> kontrolliert'+(R?'<br>🗣️ '+esc(b)+' fragt: „'+esc(R.frage)+'“':'')+'</div>';
+}
+function ruleBox(t, withEs){
+  const R=t.regel && REGELN[t.regel]; let h='';
+  if(R) h+='<div class="tipbox"><p><strong>💡 '+esc(R.name)+'</strong></p><p>'+fmt(R.de)+'</p>'+(t.tipp?'<p>👉 '+fmt(t.tipp)+'</p>':'')+'</div>';
+  else if(t.tipp) h+='<div class="tipbox"><p>👉 '+fmt(t.tipp)+'</p></div>';
+  if(withEs && spanish() && R && R.es) h+='<div class="tipbox es"><p>🇨🇱 <strong>Ayuda:</strong> '+fmt(R.es)+'</p></div>';
+  return h;
+}
+function tipButton(t){
+  const res=state.done[t.id];
+  if(res || ui.tipShown) return '';
+  return '<button type="button" id="btnTip">💡 Tipp ('+(state.tips[t.id]?'frei':'−'+E.tippKosten)+')</button>';
+}
+function bindTip(t, rerender){
+  const b=$('#btnTip'); if(!b) return;
+  b.addEventListener('click',()=>{ state.tips[t.id]=true; ui.tipShown=true; save(); rerender(); });
+}
+function revealFeedback(el){ const f=$('.tipbox.bad, .tipbox.ok, #btnNextTask', el); if(f) setTimeout(()=>f.scrollIntoView({block:'nearest',behavior:'smooth'}),30); }
+function feedbackHTML(t){
+  const f=ui.fb; if(!f) return '';
+  if(f.type==='ok') return '<div class="tipbox ok"><p><strong>✓ Richtig!</strong> '+(f.msg?fmt(f.msg):'')+'</p>'+(f.pts!=null?'<p class="small">+'+f.pts+' Punkte</p>':'')+'</div>';
+  if(f.type==='retry') return '<div class="tipbox bad"><p><strong>✗ Noch nicht.</strong> '+fmt(f.msg||'')+'</p><p class="small">Du hast noch einen Versuch.</p></div>'+ruleBox(t,true);
+  return '<div class="tipbox bad"><p><strong>✗ Leider falsch.</strong> Richtig ist:</p><p><strong>'+esc(solutionText(t))+'</strong></p></div>'+ruleBox(t,true);
+}
+
+/* ---------- Aufgaben nacheinander (bauen, bus, tore, finale) ---------- */
+function renderSequence(P){
+  const { st, tasks } = curStation();
+  let t = ui.resolved ? tasks.find(x=>x.id===ui.resolved) : tasks.find(x=>!state.done[x.id]);
+  if(!t){ completeStation(); return; }
+  if(ui.id!==t.id) ui={ id:t.id, resolved:ui.resolved };
+  const dots='<div class="dots" aria-label="Fortschritt">'+tasks.map(x=>{ const r=state.done[x.id]; return '<span class="'+(r?(r.ok?'ok':'bad'):(x.id===t.id?'cur':''))+'"></span>'; }).join('')+'</div>';
+  let h=stationHead(st)+'<div class="panelhead"><strong>Aufgabe '+(t.ti+1)+' von '+tasks.length+'</strong>'+dots+'</div>';
+  h+='<div id="task"></div>';
+  P.innerHTML=h;
+  renderTask(t, $('#task'), ()=>{ ui.resolved=null; ui.id=null; refreshPanel(); });
+}
+function renderTask(t, el, onNext, nextLabel){
+  if(t.kind==='bauen') renderBauen(t, el, onNext, nextLabel);
+  else if(t.kind==='luecke') renderLuecke(t, el, onNext);
+  else if(t.kind==='tor') renderTor(t, el, onNext);
+}
+function nextButton(label){ return '<div class="row" style="margin-top:.6em"><span class="spacer"></span><button type="button" class="primary" id="btnNextTask">'+(label||'Weiter ➜')+'</button></div>'; }
+function resolveCommon(t, out){
+  if(out==='ok'||out==='fail'){ ui.resolved=t.id; updateStageProgress(); renderHud(); }
+}
+
+/* Satzbaustelle */
+function renderBauen(t, el, onNext, nextLabel){
+  const n=t.tiles.length;
+  if(!ui.order){ let o; let k=0; do { o=shuffle(range(n)); k++; } while(k<20 && n>1 && o.every((v,i)=>v===i)); ui.order=o; ui.placed=[]; }
+  const res=state.done[t.id];
+  const placed = res && (!res.ok || ui.placed.length!==n) ? range(n) : ui.placed;
+  const colorOf = i => { let s=0; const x=t.tiles[i].text; for(let c=0;c<x.length;c++) s+=x.charCodeAt(c); return 't'+(s%5); };
+  const tileHTML=(i,where)=>'<button type="button" class="tile '+(t.tiles[i].verb?'v':colorOf(i))+((ui.badTiles||[]).includes(i)&&where==='a'?' wrongpos':'')+'" data-'+where+'="'+i+'"'+(res?' disabled':'')+'>'+esc(t.tiles[i].text)+'</button>';
+  let h=pairLine(t);
+  h+='<p class="auftrag">'+fmt(t.falsch?'Bau den Satz richtig:':(t.auftrag||'Bau den Satz.'))+'</p>';
+  if(t.falsch) h+='<p class="muted">Im Zettel steht: <s>'+esc(t.falsch)+'</s></p>';
+  if(t.es && spanish() && !t.falsch) h+='<p class="esline">🇨🇱 '+esc(t.es)+'</p>';
+  h+='<div class="answer'+(res?(res.ok?' ok':''):(ui.fb&&ui.fb.type==='retry'?' bad':''))+'" id="answer" aria-label="Dein Satz">'+(t.vorgabe?'<span class="fixed">'+esc(t.vorgabe)+'</span>':'')+
+     (placed.length? placed.map(i=>tileHTML(i,'a')).join('') : '<span class="lbl">Klick unten auf die Satzteile …</span>')+'<span class="fixed">'+esc(t.ende||'.')+'</span></div>';
+  if(!res){
+    if(ui.placed.length<n) h+='<div class="pool" id="pool">'+ui.order.filter(i=>!ui.placed.includes(i)).map(i=>tileHTML(i,'p')).join('')+'</div>';
+    h+='<div class="row"><button type="button" class="primary" id="btnCheck"'+(ui.placed.length===n?'':' disabled')+'>✓ Prüfen</button><button type="button" id="btnReset"'+(ui.placed.length?'':' disabled')+'>↺ Zurücksetzen</button>'+tipButton(t)+'</div>';
+    h+='<div class="legend"><span class="tile v">Verb</span> = das Brot 🥖 · Klick auf einen Teil in deinem Satz, um ihn zurückzulegen.</div>';
+  }
+  if(ui.tipShown && !res && !(ui.fb&&ui.fb.type==='retry')) h+=ruleBox(t,true);
+  h+=feedbackHTML(t);
+  if(res) h+=nextButton(nextLabel);
+  el.innerHTML=h;
+  const rerender=()=>renderBauen(t, el, onNext, nextLabel);
+  $$('[data-p]',el).forEach(b=>b.addEventListener('click',()=>{ ui.placed.push(+b.dataset.p); ui.badTiles=[]; rerender(); const nb=$('#pool [data-p]',el); if(nb) nb.focus(); else if($('#btnCheck',el)) $('#btnCheck',el).focus(); }));
+  $$('[data-a]',el).forEach(b=>b.addEventListener('click',()=>{ if(res) return; const i=+b.dataset.a; ui.placed=ui.placed.filter(x=>x!==i); ui.badTiles=[]; rerender(); }));
+  if($('#btnReset',el)) $('#btnReset',el).addEventListener('click',()=>{ ui.placed=[]; ui.badTiles=[]; rerender(); });
+  bindTip(t, rerender);
+  if($('#btnCheck',el)) $('#btnCheck',el).addEventListener('click',()=>{
+    const words=ui.placed.map(i=>t.tiles[i].text), text=joinWords(words);
+    const sols=[joinWords(t.tiles.map(x=>x.text))].concat(asList(t.auch));
+    const ok=sols.some(s=>canon(s)===canon(text));
+    const out=attempt(t, ok, (t.vorgabe?t.vorgabe+' ':'')+text+(t.ende||'.'));
+    if(ok){ ui.fb={type:'ok', pts:state.done[t.id].pts}; }
+    else {
+      const bad=ui.placed.filter((i,pos)=>t.tiles[i].verb && i!==pos);
+      ui.badTiles = bad;
+      const msg = bad.length ? '🥖 **Das Brot liegt falsch!** Schau, wo das Verb „'+t.tiles[bad[0]].text.replace(/,$/,'')+'“ steht.' : '🥖 Das Brot liegt richtig – aber der **Belag** ist noch durcheinander.';
+      ui.fb={ type: out==='retry'?'retry':'fail', msg };
+    }
+    resolveCommon(t,out); rerender(); revealFeedback(el);
+    if(out!=='retry'){ const nb=$('#btnNextTask',el); if(nb) nb.focus({preventScroll:true}); }
+  });
+  if($('#btnNextTask',el)) $('#btnNextTask',el).addEventListener('click',onNext);
+}
+
+/* Verb-Wächter (Bus) */
+function renderLuecke(t, el, onNext){
+  stopTimers();
+  const res=state.done[t.id], tries=state.tries[t.id]||0;
+  const chosen = ui.chosen;
+  let h=pairLine(t,'sucht die Lücke');
+  h+='<p class="auftrag">Wo fehlt das Verb? Klick auf die richtige Lücke.</p>';
+  h+='<div class="verbcard">🥖 '+esc(t.verbText)+'</div>';
+  if(!res && tries===0) h+='<div class="timer" aria-hidden="true"><div id="tbar"></div></div>';
+  const showAt = res ? t.gap : (ui.fb && ui.fb.type==='retry' ? null : null);
+  let s='<div class="lsent" id="lsent">';
+  for(let g=0; g<=t.tokens.length; g++){
+    if(showAt===g) s+='<button type="button" class="gap filled" disabled>'+esc(t.verbText)+'</button>';
+    else if(!res) s+='<button type="button" class="gap'+(ui.wrongGap===g?' filled badv':'')+'" data-g="'+g+'" aria-label="Lücke '+(g+1)+'"'+(ui.wrongGap===g?' disabled':'')+'>'+(ui.wrongGap===g?esc(t.verbText):'＋')+'</button>';
+    if(g<t.tokens.length) s+='<span class="tok">'+esc(t.tokens[g])+'</span>';
+  }
+  s+='<span class="tok end">'+esc(t.end)+'</span></div>';
+  h+=s;
+  if(t.es && spanish()) h+='<p class="esline">🇨🇱 '+esc(t.es)+'</p>';
+  if(!res) h+='<div class="row">'+tipButton(t)+'</div>';
+  if(ui.tipShown && !res && !(ui.fb&&ui.fb.type==='retry')) h+=ruleBox(t,true);
+  h+=feedbackHTML(t);
+  if(res) h+=nextButton(t.ti+1<curStation().tasks.length?'🚌 Weiterfahren ➜':'🚌 Nach Pucón ➜');
+  el.innerHTML=h;
+  const rerender=()=>renderLuecke(t, el, onNext);
+  bindTip(t, rerender);
+  const answer=(g, timeout)=>{
+    stopTimers();
+    const ok = g===t.gap;
+    const out=attempt(t, ok, timeout ? '(Zeit abgelaufen)' : lueckeText(t,g));
+    if(ok) ui.fb={type:'ok', pts:state.done[t.id].pts};
+    else { ui.wrongGap = timeout ? null : g; ui.fb={ type:out==='retry'?'retry':'fail', msg: timeout ? '🚌💨 **Der Bus ist losgefahren!** Zum Glück hält er noch einmal an. Jetzt hast du Zeit.' : 'Hier passt das Verb nicht hin: „'+lueckeText(t,g)+'“' }; }
+    resolveCommon(t,out); rerender(); revealFeedback(el);
+    if(out!=='retry'){ const nb=$('#btnNextTask',el); if(nb) nb.focus({preventScroll:true}); }
+  };
+  $$('[data-g]',el).forEach(b=>b.addEventListener('click',()=>answer(+b.dataset.g,false)));
+  if($('#btnNextTask',el)) $('#btnNextTask',el).addEventListener('click',onNext);
+  if(!res && tries===0){
+    const sec=(E.busSekunden[state.level]||20)*1000;
+    if(!ui.timerEnd) ui.timerEnd=Date.now()+sec;
+    const bar=$('#tbar',el);
+    busInt=setInterval(()=>{ const left=ui.timerEnd-Date.now(); if(bar) bar.style.width=Math.max(0,left/sec*100)+'%'; if(left<=0){ answer(-1,true); } },100);
+  }
+}
+
+/* Konnektor-Tore */
+function renderTor(t, el, onNext){
+  const res=state.done[t.id];
+  if(!mcOrder[t.id]) mcOrder[t.id]=shuffle(range(asList(t.optionen).length));
+  ui.burnt=ui.burnt||[];
+  let h=pairLine(t,'wählt das Tor');
+  h+='<p class="auftrag">Welcher Satz öffnet das Tor?</p><p class="vorgabe">'+esc(t.vorgabe)+' …</p><div class="gates">';
+  mcOrder[t.id].forEach(i=>{ const o=t.optionen[i], right=o===t.loesung; const burn=ui.burnt.includes(i);
+    h+='<button type="button" class="gate'+(burn?' burn':'')+(res&&right?' open':'')+'" data-o="'+i+'"'+(res||burn?' disabled':'')+'>'+esc(o)+'</button>'; });
+  h+='</div><div class="row" style="margin-top:.5em">'+(res?'':tipButton(t))+'</div>';
+  if(ui.tipShown && !res && !(ui.fb&&ui.fb.type==='retry')) h+=ruleBox(t,true);
+  h+=feedbackHTML(t);
+  if(res) h+=nextButton(t.ti+1<curStation().tasks.length?'🥾 Weiter nach oben ➜':'🛖 Zur Hütte ➜');
+  el.innerHTML=h;
+  const rerender=()=>renderTor(t, el, onNext);
+  bindTip(t, rerender);
+  $$('[data-o]',el).forEach(b=>b.addEventListener('click',()=>{
+    const i=+b.dataset.o, o=t.optionen[i], ok=o===t.loesung;
+    const out=attempt(t, ok, t.vorgabe+' '+o);
+    if(ok) ui.fb={type:'ok', pts:state.done[t.id].pts, msg:'Das Tor geht auf!'};
+    else { ui.burnt.push(i); lavaFlash(); ui.fb={ type:out==='retry'?'retry':'fail', msg:'🌋 Lava! Dieses Tor war falsch.' }; }
+    resolveCommon(t,out); rerender(); revealFeedback(el);
+    if(out!=='retry'){ const nb=$('#btnNextTask',el); if(nb) nb.focus({preventScroll:true}); }
+  }));
+  if($('#btnNextTask',el)) $('#btnNextTask',el).addEventListener('click',onNext);
+}
+
+/* ---------- Hören ---------- */
+let audio=null, audioOk=null, tts=false, playing=false, audioLevel=null;
+function audioSrc(){ return E.audioOrdner + curStation().st.hoertext.datei; }
+function prepareAudio(){
+  if(audio && audioLevel===state.level) return;
+  stopAudio(); audioLevel=state.level; audioOk=null;
+  audio=new Audio(); audio.preload='auto';
+  audio.addEventListener('canplaythrough',()=>{ if(audioOk===null){ audioOk=true; updatePlayer(); } });
+  audio.addEventListener('error',()=>{ audioOk=false; updatePlayer(); });
+  audio.addEventListener('timeupdate',()=>{ const b=$('#aprog'); if(b && audio.duration) b.style.width=(audio.currentTime/audio.duration*100)+'%'; });
+  audio.addEventListener('ended',()=>{ playing=false; updatePlayer(); });
+  audio.src=audioSrc();
+}
+function stopAudio(){
+  try{ if(audio){ audio.pause(); } }catch(e){}
+  try{ if(tts && window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){}
+  playing=false;
+}
+function playsLeft(){ return E.hoerenWiederholungen - (state.plays[state.station]||0); }
+function hvPlay(){
+  if(playing){ // Pause / Weiter
+    if(audioOk){ if(audio.paused) audio.play(); else audio.pause(); }
+    else if(window.speechSynthesis){ if(speechSynthesis.paused) speechSynthesis.resume(); else speechSynthesis.pause(); }
+    updatePlayer(); return;
+  }
+  if(playsLeft()<=0) return;
+  state.plays[state.station]=(state.plays[state.station]||0)+1; save();
+  playing=true;
+  if(audioOk!==false){ tts=false; try{ audio.currentTime=0; }catch(e){} audio.play().then(()=>{ audioOk=true; updatePlayer(); }).catch(()=>{ audioOk=false; speak(); }); }
+  else speak();
+  updatePlayer();
+}
+function speak(){
+  tts=true;
+  try{
+    const u=new SpeechSynthesisUtterance(curStation().st.hoertext.skript.replace(/\n+/g,' '));
+    u.lang='de-DE'; u.rate=E.computerstimmeTempo[state.level]||1;
+    const v=(speechSynthesis.getVoices()||[]).find(v=>/^de/i.test(v.lang)); if(v) u.voice=v;
+    u.onend=()=>{ playing=false; updatePlayer(); };
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }catch(e){ playing=false; toast('Die Computerstimme funktioniert hier leider nicht. Frag deine Lehrkraft.'); }
+  updatePlayer();
+}
+function updatePlayer(){
+  const b=$('#btnPlay'); if(!b) return;
+  const left=playsLeft();
+  let paused = playing && ((audioOk && audio.paused) || (!audioOk && window.speechSynthesis && speechSynthesis.paused));
+  b.textContent = playing ? (paused?'▶ Weiter':'⏸ Pause') : (left>0 ? '▶ Anhören (noch '+left+'×)' : '🔇 Nicht mehr hörbar');
+  b.disabled = !playing && left<=0;
+  const n=$('#anote'); if(n) n.textContent = audioOk===false ? 'Die Aufnahme fehlt noch – die Computerstimme liest vor.' : (playing&&!audioOk&&tts ? '🗣️ Die Computerstimme spricht …' : '');
+}
+function renderHoeren(P){
+  const { st, tasks } = curStation();
+  prepareAudio();
+  const allDone=tasks.every(t=>state.done[t.id]);
+  let h=stationHead(st)+'<h2>🎧 Hör Tía Carmen zu</h2>';
+  if(state.mode==='paar') h+='<p class="pair">👥 Hört gemeinsam zu. Danach antwortet ihr abwechselnd: '+tasks.map((t,i)=>'Frage '+(i+1)+' – <strong>'+esc(state.names[globalIndex(t)%2])+'</strong>').join(', ')+'. Die andere Person sagt vorher: „Ich glaube auch …“ oder „Nein, ich habe gehört …“</p>';
+  h+='<div class="player"><button type="button" class="primary big" id="btnPlay"></button><div class="progress"><div id="aprog"></div></div><span class="small muted" id="anote"></span></div>';
+  tasks.forEach((t,i)=>{ h+='<div class="mc" id="mc'+i+'"></div>'; });
+  if(allDone) h+='<div class="row"><button type="button" id="btnTr">📄 Hörtext anzeigen</button><span class="spacer"></span><button type="button" class="primary" id="btnDoneSt">Weiter ➜</button></div><div id="tr"></div>';
+  P.innerHTML=h;
+  updatePlayer();
+  $('#btnPlay').addEventListener('click',hvPlay);
+  tasks.forEach((t,i)=>renderMC(t, $('#mc'+i), i+1, ()=>renderHoeren(P)));
+  if(allDone){
+    $('#btnDoneSt').addEventListener('click',()=>{ stopAudio(); completeStation(); });
+    $('#btnTr').addEventListener('click',()=>{ $('#tr').innerHTML='<div class="transcript">'+paras(st.hoertext.skript)+'</div>'; });
+  }
+}
+function renderMC(t, el, num, rerenderAll){
+  const res=state.done[t.id];
+  if(!mcOrder[t.id]) mcOrder[t.id]=shuffle(range(t.optionen.length));
+  const st=ui.mc||(ui.mc={}); const wrong=st[t.id]||[];
+  let h='<h3>'+num+'. '+fmt(t.frage)+'</h3><div class="opts">';
+  mcOrder[t.id].forEach(i=>{ const o=t.optionen[i], right=o===t.loesung, w=wrong.includes(i);
+    h+='<button type="button" class="opt'+(res&&right?' right':'')+(w?' wrong':'')+'" data-o="'+i+'"'+(res||w?' disabled':'')+'>'+esc(o)+'</button>'; });
+  h+='</div>';
+  if(res){ h+='<div class="tipbox '+(res.ok?'ok':'bad')+'"><p>'+(res.ok?'✓ Richtig! ':'✗ Richtig ist: <strong>'+esc(t.loesung)+'</strong>. ')+fmt(t.erklaerung_de||'')+'</p>'+(spanish()&&t.erklaerung_es?'<p class="small">🇨🇱 '+fmt(t.erklaerung_es)+'</p>':'')+'</div>'; }
+  else if(wrong.length) h+='<div class="tipbox bad"><p>✗ Noch nicht. Hör noch einmal genau hin – du hast noch einen Versuch.</p></div>';
+  el.innerHTML=h;
+  $$('[data-o]',el).forEach(b=>b.addEventListener('click',()=>{
+    const i=+b.dataset.o, ok=t.optionen[i]===t.loesung;
+    const out=attempt(t, ok, t.optionen[i]);
+    if(!ok) st[t.id]=wrong.concat([i]);
+    renderHud();
+    if(out==='retry') renderMC(t, el, num, rerenderAll); else rerenderAll();
+  }));
+}
+
+/* ---------- Detektiv ---------- */
+function renderDetektiv(P){
+  const { st, tasks } = curStation();
+  const fixTasks=tasks.filter(t=>t.kind==='bauen'), werT=tasks.find(t=>t.kind==='wer');
+  const fixedN=fixTasks.filter(t=>state.done[t.id]).length;
+  const Z=st.zettel;
+  let h=stationHead(st);
+  if(ui.sel){
+    const t=tasks.find(x=>x.id===ui.sel);
+    h+='<h2>🔧 Satz reparieren</h2><div id="task"></div>'; P.innerHTML=h;
+    renderBauen(t, $('#task'), ()=>{ ui={}; renderDetektiv(P); }, '📄 Zurück zum Zettel');
+    return;
+  }
+  h+='<div class="row"><h2 style="margin:0">🔎 '+esc(Z.titel||'Der Zettel')+'</h2><span class="spacer"></span><span class="pill">Fehler gefunden: '+fixedN+' / '+fixTasks.length+'</span></div>';
+  h+='<div class="paper">'+(Z.anrede?'<p>'+esc(Z.anrede)+'</p>':'');
+  Z.saetze.forEach((s,zi)=>{
+    if(typeof s==='string'){ const c=state.checked[state.station+':'+zi];
+      h+='<button type="button" class="zs'+(c?' checked':'')+'" data-z="'+zi+'"'+(c?' disabled':'')+'>'+esc(s)+(c?' ✓':'')+'</button>'; }
+    else { const t=fixTasks.find(x=>x.zi===zi), r=state.done[t.id];
+      if(r) h+='<button type="button" class="zs '+(r.ok?'fixed':'failed')+'" disabled>✏️ '+esc(solutionText(t))+'</button>';
+      else h+='<button type="button" class="zs" data-f="'+t.id+'">'+esc(s.falsch)+'</button>'; }
+  });
+  h+=(Z.gruss?'<p>'+fmt(Z.gruss)+'</p>':'')+'</div>';
+  if(fixedN<fixTasks.length) h+='<p class="muted center">Klick auf einen Satz, den du für <strong>falsch</strong> hältst.</p>'+(state.mode==='paar'?'<p class="pair">👥 Lest den Zettel zusammen laut vor. Wer einen Fehler hört, sagt „Stopp!“ und erklärt ihn.</p>':'');
+  else if(werT) h+='<div id="wer"></div>';
+  P.innerHTML=h;
+  $$('[data-z]',P).forEach(b=>b.addEventListener('click',()=>{ state.checked[state.station+':'+b.dataset.z]=true; save(); toast('✓ Dieser Satz ist **richtig**. Such weiter!'); renderDetektiv(P); }));
+  $$('[data-f]',P).forEach(b=>b.addEventListener('click',()=>{ ui={ sel:b.dataset.f, id:b.dataset.f }; renderDetektiv(P); window.scrollTo({top:$('#panel').offsetTop-70,behavior:'smooth'}); }));
+  if(fixedN===fixTasks.length && werT) renderWer(werT, $('#wer'), P);
+}
+function renderWer(t, el, P){
+  const res=state.done[t.id]; const wrong=(ui.werWrong=ui.werWrong||[]);
+  let h='<h2>🕵️ Wer ist der Dieb?</h2>'+pairLine(t,'entscheidet')+'<p>'+fmt(t.frage)+'</p><div class="suspects">';
+  t.verdaechtige.forEach((v,i)=>{ const right=v.name===t.loesung, w=wrong.includes(i);
+    h+='<button type="button" class="suspect opt'+(res&&right?' right':'')+(w?' wrong':'')+'" data-v="'+i+'"'+(res||w?' disabled':'')+'><span class="face">'+v.bild+'</span><strong>'+esc(v.name)+'</strong><ul>'+v.fakten.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul></button>'; });
+  h+='</div>';
+  if(res){ h+='<div class="tipbox '+(res.ok?'ok':'bad')+'"><p>'+(res.ok?'✓ Richtig! ':'✗ Es war <strong>'+esc(t.loesung)+'</strong>. ')+fmt(t.erklaerung_de||'')+'</p>'+(spanish()&&t.erklaerung_es?'<p class="small">🇨🇱 '+fmt(t.erklaerung_es)+'</p>':'')+'</div>'+nextButton(); }
+  else if(wrong.length) h+='<div class="tipbox bad"><p>✗ Das passt nicht. Lies den Zettel noch einmal: Wo arbeitet der Dieb? Hat er ein Tier? Welcher Fußballverein?</p></div>';
+  el.innerHTML=h;
+  $$('[data-v]',el).forEach(b=>b.addEventListener('click',()=>{
+    const i=+b.dataset.v, ok=t.verdaechtige[i].name===t.loesung;
+    attempt(t, ok, t.verdaechtige[i].name); if(!ok) wrong.push(i);
+    renderHud(); renderWer(t, el, P);
+  }));
+  if($('#btnNextTask',el)) $('#btnNextTask',el).addEventListener('click',()=>completeStation());
+}
+
+/* ---------- Ergebnis ---------- */
+function renderResult(){
+  const s=stats(), d=new Date(state.finished), name=playerName(), code=makeCode(state.level,state.challenge,s.pct,d,name);
+  const rows=[['Name',name],['Niveau',state.level+' – '+L().titel],['Modus',(state.mode==='paar'?'zu zweit':'allein')+(state.challenge?' · Challenge (mit Zeitlimit)':'')],['Punkte',s.score+' von '+s.max],['Prozent',s.pct+' %'],
+    ['Zeit',fmtTime(state.elapsed)+' min'],['Datum',fmtDate(d)],['Richtig',s.ok+' von '+s.total+' Aufgaben'],['Zutaten',state.zutaten.map(k=>ZUTATEN[k].emoji).join(' ')||'–']];
+  if(s.open) rows.push(['Nicht bearbeitet', s.open+' Aufgaben']);
+  let h='<section class="card narrow"><div class="row"><h1 style="margin:0">🏆 '+(state.mode==='paar'?'Euer':'Dein')+' Ergebnis</h1><span class="spacer"></span><div style="width:180px">'+completoSVG(state.timeout?state.zutaten:ORDER,'r')+'</div></div>'+(state.timeout?'<p class="tipbox">⏳ Die Zeit ist abgelaufen.</p>':'')+
+    '<table class="restable">'+rows.map(r=>'<tr><th scope="row">'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table>'+
+    '<p style="margin-bottom:0">Prüfcode:</p><div class="bigcode" id="pcode">'+esc(code)+'</div><p class="small muted">Mach einen Screenshot oder kopiere das Ergebnis und gib es in Google Classroom ab.</p>'+
+    '<div class="row"><button type="button" class="primary" id="btnCopy">📋 Ergebnis kopieren</button><button type="button" id="btnNew">↺ Neues Spiel</button><span id="copyFb" role="status" class="okline"></span></div>'+
+    '<p class="merk" style="margin-top:1em">🥖 <strong>Merksatz:</strong> Das Verb ist das Brot – oben und unten. Der Rest ist Belag!</p>'+
+    '<h2 style="margin-top:1em">Falsch beantwortete Aufgaben ('+state.wrong.length+')</h2>';
+  h += state.wrong.length ? '<ol class="wronglist">'+state.wrong.map(w=>'<li><span class="muted small">'+esc(w.station)+'</span><br>'+esc(w.aufgabe)+'<br><span class="badline">✗ Deine Antwort: '+esc(w.deine)+'</span><br><span class="okline">✓ Richtig: '+esc(w.loesung)+'</span></li>').join('')+'</ol>' : '<p class="okline">✓ Keine Fehler – ¡bacán!</p>';
+  app.innerHTML=h+'</section>';
+  $('#btnCopy').addEventListener('click',()=>copyText(resultText(code,s,d,name)));
+  $('#btnNew').addEventListener('click',()=>{ if(!window.confirm('Neues Spiel starten? Dieses Ergebnis wird gelöscht. Hast du schon einen Screenshot gemacht?')) return; lsDel(LS_GAME); state=null; view='start'; render(); });
+  focusEl('#btnCopy');
+}
+function resultText(code,s,d,name){
+  let t='Das Geheimnis des Super-Completo – Satzbau-Escape-Room\nName: '+name+'\nNiveau: '+state.level+' – '+L().titel+'\nModus: '+(state.mode==='paar'?'zu zweit':'allein')+(state.challenge?', Challenge':'')+
+    '\nPunkte: '+s.score+' / '+s.max+' ('+s.pct+' %)\nZeit: '+fmtTime(state.elapsed)+' min\nDatum: '+fmtDate(d)+(s.open?'\nNicht bearbeitet: '+s.open:'')+'\nPrüfcode: '+code+'\n';
+  t+='\nFalsch beantwortet ('+state.wrong.length+'):\n'+(state.wrong.length?state.wrong.map((w,i)=>(i+1)+'. '+w.aufgabe+'\n   Meine Antwort: '+w.deine+'\n   Richtig: '+w.loesung).join('\n'):'–');
+  return t;
+}
+function copyText(t){
+  const done=()=>{ $('#copyFb').textContent='✓ Kopiert! Jetzt in Google Classroom einfügen (Strg + V).'; };
+  const fallback=()=>{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){ $('#copyFb').textContent='Kopieren hat nicht geklappt – bitte Screenshot machen.'; } ta.remove(); };
+  let settled=false; const once=f=>()=>{ if(!settled){ settled=true; f(); } };
+  try{ if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(t).then(once(done),once(fallback)); setTimeout(once(fallback),800); } else once(fallback)(); }catch(e){ once(fallback)(); }
+}
+
+/* ---------- Lehrkraft ---------- */
+function backToGame(){ history.replaceState(null,'',location.pathname+location.search); view = state ? view : 'start'; render(); }
+function renderTeacher(){
+  const files=[]; LEVELS.forEach(lv=>{ const S=SPIEL[lv]; if(!S) return; S.stationen.forEach(st=>{ if(st.art==='hoeren' && st.hoertext) files.push([lv, E.audioOrdner+st.hoertext.datei]); }); });
+  app.innerHTML='<section class="card narrow"><h1>🔎 Prüfcode kontrollieren</h1><p class="muted">Für Lehrkräfte. Name so eingeben, wie er im Ergebnis steht (bei Paaren z. B. „Ana & Luis“). Groß-/Kleinschreibung, Akzente und Leerzeichen sind egal.</p>'+
+    '<p><label for="tName">Name</label><br><input '+INPUT_ATTR+' id="tName" class="fullin"></p><p><label for="tCode">Prüfcode</label><br><input '+INPUT_ATTR+' id="tCode" class="fullin" placeholder="z. B. A2-75-081026-K7QFM"></p>'+
+    '<div class="row"><button type="button" class="primary" id="tCheck">Prüfen</button><span class="spacer"></span><button type="button" id="tBack">← Zurück zum Spiel</button></div><div id="tRes" role="status" aria-live="polite" style="margin-top:.8em"></div></section>'+
+    '<section class="card narrow"><h2>🎧 Audio-Dateien</h2><p class="small muted">Fehlt eine Datei, liest die Computerstimme vor. Dateien in den Ordner „'+esc(E.audioOrdner)+'“ hochladen.</p><ul id="aList">'+files.map((f,i)=>'<li>'+esc(f[0])+': <code>'+esc(f[1])+'</code> <span id="af'+i+'">… wird geprüft</span></li>').join('')+'</ul></section>';
+  files.forEach((f,i)=>{ const a=new Audio(); a.preload='metadata';
+    a.addEventListener('loadedmetadata',()=>{ const s=$('#af'+i); if(s) s.innerHTML='<span class="okline">✓ gefunden ('+Math.round(a.duration)+' s)</span>'; });
+    a.addEventListener('error',()=>{ const s=$('#af'+i); if(s) s.innerHTML='<span class="badline">✗ fehlt – Computerstimme</span>'; }); a.src=f[1]; });
+  const go=()=>{ const r=verifyCode($('#tCode').value,$('#tName').value);
+    $('#tRes').innerHTML = r.valid ? '<p class="tipbox ok"><strong>✓ Der Code ist gültig.</strong><br>Niveau <strong>'+r.level+'</strong>'+(r.challenge?' (Challenge)':'')+' · <strong>'+r.pct+' %</strong> · '+r.date+'</p>'
+      : '<p class="tipbox bad"><strong>✗ Der Code ist nicht gültig.</strong><br>'+esc(r.reason||'Name oder Code passen nicht zusammen.')+'</p>'; };
+  $('#tCheck').addEventListener('click',go); ['#tName','#tCode'].forEach(s=>$(s).addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }));
+  $('#tBack').addEventListener('click',backToGame); focusEl('#tName');
+}
+
+/* ---------- Uhr ---------- */
+setInterval(()=>{
+  if(!state || view!=='game' || state.finished || document.hidden || location.hash==='#lehrer') return;
+  if(state.phase==='intro' && state.station===0) return;
+  state.elapsed+=1000;
+  if(state.challenge && state.elapsed>=limitMs()){ state.timeout=true; state.finished=new Date().toISOString(); save(); render(); return; }
+  const c=$('#clock'); if(c) c.textContent=clockText();
+  if(state.elapsed%5000===0) save();
+},1000);
+
+/* ---------- Start ---------- */
+(function init(){
+  try{ const s=JSON.parse(lsGet(LS_SET)||'{}'); if(s.sound) settings.sound=true; }catch(e){}
+  const sb=$('#btnSound');
+  const upd=()=>{ sb.textContent=settings.sound?'🔊 Ton an':'🔇 Ton aus'; sb.setAttribute('aria-pressed',String(settings.sound)); };
+  upd(); sb.addEventListener('click',()=>{ settings.sound=!settings.sound; lsSet(LS_SET,JSON.stringify(settings)); upd(); sound('ok'); });
+  $('#btnMenu').addEventListener('click',()=>{ if(location.hash==='#lehrer') history.replaceState(null,'',location.pathname+location.search); view='start'; state=null; ui={}; render(); });
+  window.addEventListener('hashchange',render);
+  render();
+})();
+</script>
+</body>
+</html>
