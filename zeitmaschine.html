@@ -1,0 +1,2213 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Die Zeitmaschine von Frutillar – Verben-Escape-Room</title>
+<script>
+/* =====================================================================
+   DIE ZEITMASCHINE VON FRUTILLAR · Verben-Escape-Room
+   =====================================================================
+
+   ANLEITUNG FÜR LEHRKRÄFTE
+   ---------------------------------------------------------------------
+   Alles, was Sie ändern können, steht in diesem ersten Abschnitt
+   (EINSTELLUNGEN, VERBEN, SPIEL). Die Spiel-Logik weiter unten müssen
+   Sie nicht anfassen.
+
+   AUFBAU
+   SPIEL → Niveau (A2, B1 …) → raeume → gegenstaende → aufgaben
+   Jeder Raum ist eine Epoche. Jede richtige Verbform gibt der
+   Zeitmaschine Energie. Ist ein Gegenstand gelöst, zeigt er eine Ziffer.
+   Mit den Ziffern öffnet man das Zeitschloss und zieht den Hebel.
+
+   FELDER EINES NIVEAUS
+     titel, schwerpunkt : Text auf der Startseite
+     schluss            : Text nach dem letzten Raum
+     raeume             : Liste der Räume (Epochen)
+     bonus              : Bonusraum (öffnet sich, wenn alle Zeitfehler
+                          des Niveaus gefunden wurden; Extrapunkte, die
+                          den Prozentwert nicht senken)
+
+   FELDER EINES RAUMS
+     name       : Name des Raums
+     szene      : Raumbild: "dachboden" | "rapanui" | "llanquihue" |
+                  "oficina" | "station" | "frutillar" | "steinzeit"
+     jahr       : Anzeige bei der Zeitreise, z. B. "um 1852", "heute",
+                  "Zeit der Moai" (keine unsicheren Jahreszahlen!)
+     thema      : „Das trainierst du hier“
+     geschichte : Text beim Betreten (\n\n = neuer Absatz)
+     anleitung  : (optional) Bedienung, nur im ersten Raum
+     geschafft  : Text vor der Abfahrt
+     handy      : Was Benjas Handy in dieser Epoche anzeigt
+     kostuem    : (optional) Hüte für Sofía, Matías, Benja: ["👒","🎩","🎩"]
+     gegenstaende : siehe unten
+
+   FELDER EINES GEGENSTANDS
+     id      : kurzer Name ohne Leerzeichen, im Raum eindeutig ("koffer")
+     art     : "aufgabe"    – enthält Aufgaben, zeigt danach eine Ziffer
+               "zeitfehler" – ein Ding, das nicht in diese Zeit passt
+                              (Easter-Egg, Zähler 🕰️, keine Punkte)
+               "gag"        – ein Witz oder eine Entdeckung (keine Punkte)
+               "info"       – eine Information (keine Punkte)
+     name    : erscheint beim Darüberfahren („ein alter Koffer“)
+     symbol  : Emoji des Gegenstands; leer lassen (""), wenn er schon im
+               Raumbild gezeichnet ist
+     ort     : [x, y, Breite, Höhe] im Raumbild (Raumbild = 1000 × 560)
+               → Am einfachsten mit dem BEARBEITUNGSMODUS bestimmen:
+                 Spieladresse + #editor (…/zeitmaschine.html#editor)
+     ziffer  : (nur "aufgabe") Ziffer 0–9 für das Zeitschloss
+     schloss : (optional) Emoji für das Zeitschloss, wenn symbol leer ist
+     titel   : Überschrift in der Nahansicht
+     text    : Text in der Nahansicht
+     aufgaben: (nur "aufgabe") Liste von Aufgaben
+
+   FELDER, DIE JEDE AUFGABE HAT
+     typ           : siehe AUFGABENTYPEN
+     thema         : Denkhilfe nach dem 1. Fehlversuch
+     tipp          : Tipp von Sofía (kostet Punkte, verrät nicht die Lösung)
+     erklaerung_de : Erklärung nach der Antwort
+     erklaerung_es : „Ayuda en español“ – nur A2 und B1
+     Jede Aufgabe hat 2 Versuche: 10 Punkte beim 1., 5 beim 2. Versuch.
+
+   AUFGABENTYPEN
+     zahnrad – Kryptex: Ringe drehen (Person | Verbstamm | Endung).
+               satz    : Satz mit ___
+               ringe   : Liste der Ringe. "PERSON" = ich, du, er/sie/es,
+                         wir, ihr, sie/Sie. "–" = keine Endung.
+               loesung : ein Wert pro Ring
+               Beispiel: { typ:"zahnrad", satz:"Benja ___ nach Hause.",
+                 ringe:["PERSON", ["fahr","fähr"], ["e","st","t","en"]],
+                 loesung:["er/sie/es","fähr","t"], … }
+     tabelle – Konjugationstabelle mit Lücken. "?" = Lücke.
+               verb, zeit : Überschrift ("fahren", "Präsens")
+               zellen  : { "ich":"fahre", "du":"?", … }
+               loesung : { "du":"fährst", … } (mehrere Varianten als Liste)
+     zelle   – Energiezelle in die Maschine ziehen (oder anklicken).
+               satz    : Satz mit ___
+               optionen: (optional) Zellen, sonst ["haben","sein"]
+               loesung : die richtige Zelle ("sein")
+               form    : die Form im Satz ("sind")
+     schmieden – Am Amboss ein Verb schmieden. Bausteine in [ ] sind
+               „heiß“: Ein Hammerschlag wechselt zur nächsten Form.
+               verb    : Infinitiv (muss in VERBEN stehen)
+               form    : "Partizip II" | "Präteritum"
+               bausteine: z. B. [["","ge"], "s", ["i","a","u"], "ng", ["en","t"]]
+               loesung : "gesungen"
+               Ist das Verb unregelmäßig, kommt eine Sammelkarte ins Album.
+     umschreiben – (ab B1) einen Satz umformen, Texteingabe.
+               von, nach: z. B. "Perfekt", "Präteritum"
+               satz    : Ausgangssatz
+               loesung : ALLE richtigen Varianten als Liste
+     auswahl – Multiple Choice: satz (mit ___), optionen, loesung
+     luecke  – Lücke mit Texteingabe: satz (mit ___), hinweis (optional,
+               steht in Klammern dahinter), loesung (Liste der Varianten)
+     satz    – ganzen Satz schreiben: auftrag, woerter (optional),
+               loesung (Liste der Varianten)
+
+   VERBEN
+     Liste aller Verben für das Verbalbum:
+     { inf, praet, part, hilfs ("haben" | "sein" | "haben/sein"),
+       art ("unregelmäßig" | "gemischt" | "regelmäßig"), beispiel, niveau }
+     Ins Album kommen nur unregelmäßige und gemischte Verben.
+
+   REGELN
+     · Texte immer in "Anführungszeichen"; im Text selbst „…“ verwenden.
+     · Nach jedem Feld und jeder } ein Komma.
+     · **Wort** = fett.
+     · ae, oe, ue, ss werden als ä, ö, ü, ß akzeptiert.
+     · Fehler in den Daten zeigt die Startseite als gelben Hinweis an.
+     · Wenn Sie die Zahl der Aufgaben ändern, beginnen gespeicherte
+       Spiele dieses Niveaus von vorn. Das Album bleibt erhalten.
+   ===================================================================== */
+
+const EINSTELLUNGEN = {
+  geheimwort: "Frutillar-Zahnrad-1852",   // für den Prüfcode – bitte geheim halten
+  punkteErsterVersuch: 10,
+  punkteZweiterVersuch: 5,
+  tippKosten: 3,
+  tippsProRaum: 3,
+  schmiedeKarten: 10,                      // Karten pro Runde in der Schmiede
+  spanischeHilfe: { A2:true, B1:true, B2:false, C1:false },
+};
+
+/* ---------------------------------------------------------------------
+   VERBEN – für Album und Schmiede
+   --------------------------------------------------------------------- */
+const VERBEN = [
+  { inf:"trinken",    praet:"trank",      part:"getrunken",   hilfs:"haben", art:"unregelmäßig", beispiel:"Die Siedler haben heißen Tee getrunken.", niveau:"A2" },
+  { inf:"schreiben",  praet:"schrieb",    part:"geschrieben", hilfs:"haben", art:"unregelmäßig", beispiel:"Matías hat alles in sein Logbuch geschrieben.", niveau:"A2" },
+  { inf:"kommen",     praet:"kam",        part:"gekommen",    hilfs:"sein",  art:"unregelmäßig", beispiel:"Die Siedler sind mit dem Schiff gekommen.", niveau:"A2" },
+  { inf:"ankommen",   praet:"kam an",     part:"angekommen",  hilfs:"sein",  art:"unregelmäßig", beispiel:"Der Zug ist pünktlich in der Oficina angekommen.", niveau:"A2" },
+  { inf:"verstehen",  praet:"verstand",   part:"verstanden",  hilfs:"haben", art:"unregelmäßig", beispiel:"Sofía hat den Bauplan sofort verstanden.", niveau:"A2" },
+  { inf:"helfen",     praet:"half",       part:"geholfen",    hilfs:"haben", art:"unregelmäßig", beispiel:"Der Roboter hat uns geholfen.", niveau:"A2" },
+  { inf:"nehmen",     praet:"nahm",       part:"genommen",    hilfs:"haben", art:"unregelmäßig", beispiel:"Benja hat den Hammer genommen.", niveau:"A2" },
+  { inf:"gehen",      praet:"ging",       part:"gegangen",    hilfs:"sein",  art:"unregelmäßig", beispiel:"Wir sind zum See gegangen.", niveau:"A2" },
+  { inf:"sehen",      praet:"sah",        part:"gesehen",     hilfs:"haben", art:"unregelmäßig", beispiel:"Hast du das Mammut gesehen?", niveau:"A2" },
+  { inf:"essen",      praet:"aß",         part:"gegessen",    hilfs:"haben", art:"unregelmäßig", beispiel:"Benja hat drei Stück Kuchen gegessen.", niveau:"A2" },
+  { inf:"finden",     praet:"fand",       part:"gefunden",    hilfs:"haben", art:"unregelmäßig", beispiel:"Matías hat einen Fußball gefunden.", niveau:"A2" },
+  { inf:"schlafen",   praet:"schlief",    part:"geschlafen",  hilfs:"haben", art:"unregelmäßig", beispiel:"In der Steinzeit haben wir in einer Höhle geschlafen.", niveau:"A2" },
+  { inf:"laufen",     praet:"lief",       part:"gelaufen",    hilfs:"sein",  art:"unregelmäßig", beispiel:"Die Kinder sind zum See gelaufen.", niveau:"A2" },
+  { inf:"fahren",     praet:"fuhr",       part:"gefahren",    hilfs:"sein",  art:"unregelmäßig", beispiel:"Wir sind mit der Zeitmaschine gefahren.", niveau:"A2" },
+  { inf:"reparieren", praet:"reparierte", part:"repariert",   hilfs:"haben", art:"regelmäßig",   beispiel:"Sofía hat die Maschine repariert.", niveau:"A2" },
+  { inf:"holen",      praet:"holte",      part:"geholt",      hilfs:"haben", art:"regelmäßig",   beispiel:"Die Siedler haben Holz geholt.", niveau:"A2" },
+];
+
+/* ---------------------------------------------------------------------
+   SPIEL
+   --------------------------------------------------------------------- */
+const SPIEL = {
+
+/* =========================== NIVEAU A2 =========================== */
+A2: {
+  titel: "Präsens und Perfekt",
+  schwerpunkt: "Präsens (auch Vokalwechsel, trennbare Verben, Modalverben, Imperativ), Perfekt mit haben/sein, Partizip II, Verben mit Dativ",
+  schluss: "Die Zeitmaschine steht wieder ruhig auf dem Dachboden. Benja legt eine Decke über sie. „Morgen“, sagt er, „morgen fahren wir in die Zukunft und holen den Roboter ab.“\n\nSofía lacht. „Zuerst lernst du die Verben, Benja.“",
+  raeume: [
+
+  /* ---------- Raum 0: Dachboden (Tutorial) ---------- */
+  {
+    name: "Der Dachboden in Frutillar",
+    szene: "dachboden",
+    jahr: "heute",
+    thema: "Präsens: regelmäßige Verben, sein und haben",
+    geschichte: "Es regnet in Frutillar. Sofía, Matías und Benja sind auf dem Dachboden von Sofías Oma. Das Haus ist sehr alt. Deutsche Siedler haben es vor langer Zeit gebaut.\n\nUnter einer Decke steht eine Maschine aus Messing und Holz. Sie hat viele Zahnräder und eine große Uhr. Auf einem Schild steht: **ZEITMASCHINE – läuft nur mit richtigen Verbformen.**\n\nBenja drückt auf einen roten Knopf. Die Maschine brummt … und geht wieder aus. „Sie braucht Energie!“, sagt Sofía.",
+    anleitung: "🔍 Klick auf die Gegenstände im Raum. Dort warten Aufgaben.\n⚡ Jede richtige Verbform gibt der Maschine Energie.\n🔢 Ist ein Gegenstand gelöst, zeigt er eine Ziffer.\n🔒 Klick auf die Maschine: Stell die Ziffern am Zeitschloss ein und zieh den Hebel.\n🕰️ In jeder Zeit versteckt sich ein Zeitfehler: etwas, das nicht in diese Zeit passt. Findest du alle?",
+    geschafft: "Die Maschine leuchtet, die Zahnräder drehen sich. Benja legt die Hand auf den Hebel. „Nur ein kleiner Test …“",
+    handy: "4G, Akku 85 %. Alles normal. Noch …",
+    gegenstaende: [
+      { id:"koffer", art:"aufgabe", name:"ein alter Koffer", symbol:"🧳", ort:[60, 360, 130, 110], ziffer:7,
+        titel:"Der alte Koffer",
+        text:"Am Koffer ist ein Schloss mit drei Ringen: **Person – Verbstamm – Endung**. Dreh die Ringe, bis die Verbform passt.",
+        aufgaben: [
+          { typ:"zahnrad", satz:"Wir ___ im Koffer eine Taschenlampe.",
+            ringe:["PERSON", ["such","koch","spiel"], ["e","st","t","en"]], loesung:["wir","such","en"],
+            thema:"Präsens: regelmäßige Verben (wir)",
+            tipp:"Wer ist „wir“? Bei „wir“ sieht das Verb aus wie der Infinitiv.",
+            erklaerung_de:"**Wir suchen** – bei **wir** und **sie/Sie** ist die Präsensform gleich wie der Infinitiv: such**en**.",
+            erklaerung_es:"Como en español (nosotros busca**mos**), la terminación depende de la persona. Con **wir** la forma es igual al infinitivo: such**en**." },
+          { typ:"zahnrad", satz:"Du ___ in Frutillar, oder?",
+            ringe:["PERSON", ["wohn","koch","mach"], ["e","st","t","en"]], loesung:["du","wohn","st"],
+            thema:"Präsens: regelmäßige Verben (du)",
+            tipp:"Wo ist man zu Hause? Und welche Endung hat „du“?",
+            erklaerung_de:"**Du wohnst** – bei **du** ist die Endung **-st**.",
+            erklaerung_es:"„du“ = tú. La terminación es **-st**: tú viv**es** → du wohn**st**. ¡La -s también aparece en español!" },
+          { typ:"zahnrad", satz:"Matías ___ ein altes Foto.",
+            ringe:["PERSON", ["find","koch","wohn"], ["e","st","est","t","et","en"]], loesung:["er/sie/es","find","et"],
+            thema:"Präsens: Stamm auf -d oder -t",
+            tipp:"„Matías“ ist er. Sprich die Form laut: „findt“ kann man schlecht sagen …",
+            erklaerung_de:"**Matías findet** – endet der Stamm auf **-d** oder **-t**, kommt ein **e** dazu: er find**et**, du find**est**, ihr arbeit**et**.",
+            erklaerung_es:"Si la raíz termina en **-d** o **-t**, se agrega una **e** para poder pronunciar: er find**et** (no „findt“)." },
+        ] },
+      { id:"bauplan", art:"aufgabe", name:"ein Bauplan an der Wand", symbol:"📜", ort:[300, 120, 120, 120], ziffer:3,
+        titel:"Der Bauplan der Zeitmaschine",
+        text:"Auf dem Bauplan stehen zwei Tabellen. Ein paar Formen fehlen. Füll die Lücken aus. Jede richtige Form leuchtet.",
+        aufgaben: [
+          { typ:"tabelle", verb:"sein", zeit:"Präsens",
+            zellen:{ "ich":"bin", "du":"?", "er/sie/es":"ist", "wir":"?", "ihr":"?", "sie/Sie":"sind" },
+            loesung:{ "du":"bist", "wir":"sind", "ihr":"seid" },
+            thema:"Präsens: sein",
+            tipp:"„sein“ ist ganz unregelmäßig. Denk an: „Wir ___ Freunde.“ Und bei „ihr“ kommt am Ende ein d.",
+            erklaerung_de:"**sein:** ich bin, du **bist**, er ist, wir **sind**, ihr **seid**, sie sind. Vorsicht: **ihr seid** schreibt man mit **d** – „seit“ bedeutet etwas anderes.",
+            erklaerung_es:"„sein“ = **ser y estar**. En alemán hay un solo verbo: Ich bin Chilene. (soy) – Ich bin müde. (estoy). Ojo: ihr **seid** (con d); „seit“ significa „desde“." },
+          { typ:"tabelle", verb:"haben", zeit:"Präsens",
+            zellen:{ "ich":"habe", "du":"?", "er/sie/es":"?", "wir":"haben", "ihr":"?", "sie/Sie":"haben" },
+            loesung:{ "du":"hast", "er/sie/es":"hat", "ihr":"habt" },
+            thema:"Präsens: haben",
+            tipp:"Bei „du“ und „er/sie/es“ verschwindet ein Buchstabe aus „hab-“.",
+            erklaerung_de:"**haben:** du **hast**, er **hat** – hier fällt das **b** weg. Aber: ihr **habt**.",
+            erklaerung_es:"„haben“ = tener: Ich habe Hunger. (Tengo hambre.) Con du y er/sie/es desaparece la b: du hast, er hat." },
+        ] },
+      { id:"energiefach", art:"aufgabe", name:"das Energiefach der Maschine", symbol:"🔋", ort:[630, 420, 90, 80], ziffer:5,
+        titel:"Das Energiefach",
+        text:"Die Maschine braucht Energiezellen. Zieh die richtige Zelle in die Maschine – oder klick sie an: **haben** oder **sein**?",
+        aufgaben: [
+          { typ:"zelle", satz:"Benja ___ dreizehn Jahre alt.", loesung:"sein", form:"ist",
+            thema:"sein oder haben? Das Alter",
+            tipp:"Auf Spanisch sagt man es anders als auf Deutsch. Achtung, Falle!",
+            erklaerung_de:"Das Alter sagt man mit **sein**: Benja **ist** dreizehn (Jahre alt).",
+            erklaerung_es:"En español: Benja **tiene** trece años. En alemán se usa **sein**: Benja **ist** dreizehn Jahre alt." },
+          { typ:"zelle", satz:"Wir ___ keine Angst!", loesung:"haben", form:"haben",
+            thema:"sein oder haben? Gefühle",
+            tipp:"Hier ist es wie auf Spanisch.",
+            erklaerung_de:"**Angst haben**, **Hunger haben**, **Durst haben** – hier braucht man **haben**: Wir **haben** keine Angst.",
+            erklaerung_es:"Como en español: **tener** miedo → Angst **haben**; tener hambre → Hunger haben." },
+        ] },
+      { id:"zeitung", art:"zeitfehler", name:"eine Zeitung", symbol:"📰", ort:[280, 480, 60, 50],
+        titel:"Eine Zeitung?",
+        text:"**Frutillarer Tageblatt – 13. März 2126**\n„Erster Kuchen auf dem Mars gebacken. Er schmeckt ein bisschen nach Staub.“\n\nMoment … 2126? Eine Zeitung aus der Zukunft! Die passt nicht in diese Zeit." },
+      { id:"tonkrug", art:"gag", name:"ein Tonkrug", symbol:"🏺", ort:[210, 300, 60, 70],
+        titel:"Ein alter Tonkrug",
+        text:"Ein Krug aus Ton. Unten stehen zwei kleine Buchstaben: **M. L.**\n\nMatías: „Wer ist M. L.? Ein Zauberer?“\nSofía: „Quatsch. Zauberer gibt es nicht.“\nDer Krug sagt nichts. Natürlich nicht." },
+      { id:"foto", art:"gag", name:"ein altes Foto", symbol:"🖼️", ort:[460, 150, 70, 70],
+        titel:"Ein altes Foto",
+        text:"Eine Frau steht vor einem kleinen Imbiss in Valparaíso. Auf der Rückseite steht: „Für Carmen – viel Glück mit dem Super-Completo!“\n\nBenja: „Tía Carmen? Die kenne ich doch!“" },
+      { id:"spinne", art:"gag", name:"eine Spinne", symbol:"🕷️", ort:[140, 40, 50, 50],
+        titel:"Eine Spinne",
+        text:"Hier oben wohnt eine Spinne. Sie wohnt hier schon sehr lange. Sie bezahlt keine Miete." },
+    ],
+  },
+
+  /* ---------- Raum 1: Rapa Nui ---------- */
+  {
+    name: "Rapa Nui",
+    szene: "rapanui",
+    jahr: "Zeit der Moai",
+    thema: "Präsens: Vokalwechsel und trennbare Verben",
+    kostuem: ["👒","🧢","🧢"],
+    geschichte: "Ein Blitz – und die Maschine landet auf einer grünen Wiese. Vor euch liegt das Meer. Ihr seid auf Rapa Nui, vor vielen hundert Jahren!\n\nIn der Ferne stehen große Figuren aus Stein: die Moai. Sofía sagt leise: „Wir bleiben hier und gehen nicht näher. Das ist ein besonderer Ort.“\n\nAber oh nein: Die Maschine qualmt! Beim Landen sind Teile ins Gras gefallen.",
+    geschafft: "Alle Teile sind wieder in der Maschine. Ein Seevogel fliegt über das Meer. „Danke, Rapa Nui“, flüstert Benja.",
+    handy: "Kein Netz. Benja hält das Handy hoch in die Luft. Immer noch kein Netz. Ein Seevogel schaut ihn neugierig an.",
+    gegenstaende: [
+      { id:"logbuch", art:"aufgabe", name:"Matías’ Logbuch", symbol:"📓", ort:[70, 420, 90, 80], ziffer:2,
+        titel:"Matías’ Logbuch",
+        text:"Matías schreibt alles in sein Logbuch. Aber die Maschine hat die Verben durcheinandergebracht. Dreh die Ringe!",
+        aufgaben: [
+          { typ:"zahnrad", satz:"Sofía ___ einen großen Vogel am Himmel.",
+            ringe:["PERSON", ["seh","sieh"], ["e","st","t","en"]], loesung:["er/sie/es","sieh","t"],
+            thema:"Präsens mit Vokalwechsel: e → ie",
+            tipp:"„sehen“ ändert bei manchen Personen den Vokal. Ist „Sofía“ ich, du oder er/sie/es?",
+            erklaerung_de:"**sehen → sie sieht**: Bei manchen Verben ändert sich der Vokal – aber nur bei **du** und **er/sie/es** (e → ie).",
+            erklaerung_es:"Como en español pedir → p**i**do, la vocal cambia. Pero en alemán solo cambia con **du** y **er/sie/es**: ich sehe, du s**ie**hst, sie s**ie**ht, wir sehen." },
+          { typ:"zahnrad", satz:"Du ___ zu schnell, Benja!",
+            ringe:["PERSON", ["lauf","läuf"], ["e","st","t","en"]], loesung:["du","läuf","st"],
+            thema:"Präsens mit Vokalwechsel: au → äu",
+            tipp:"Achte auf die Person: Wer wird hier angesprochen? Und „laufen“ hat bei manchen Personen Punkte auf dem a.",
+            erklaerung_de:"**laufen → du läufst**: au → äu bei **du** und **er/sie/es** (er läuft).",
+            erklaerung_es:"„laufen“ (correr) cambia au → **äu** solo con du y er/sie/es: du l**äu**fst, er l**äu**ft." },
+          { typ:"zahnrad", satz:"Matías ___ den Bauplan noch einmal.",
+            ringe:["PERSON", ["les","lies"], ["e","st","t","en"]], loesung:["er/sie/es","lies","t"],
+            thema:"Präsens mit Vokalwechsel: e → ie",
+            tipp:"„lesen“ ist wie „sehen“. Und: Der Stamm endet schon auf -s.",
+            erklaerung_de:"**lesen → er liest** (e → ie). Der Stamm endet auf **s**, darum auch: du lies**t** – nicht „liesst“.",
+            erklaerung_es:"„lesen“ (leer): e → **ie** con du y er/sie/es. Como la raíz ya termina en -s: du liest, er liest." },
+        ] },
+      { id:"werkzeug", art:"aufgabe", name:"die Werkzeugkiste", symbol:"🧰", ort:[250, 430, 100, 80], ziffer:8,
+        titel:"Die Werkzeugkiste",
+        text:"In der Werkzeugkiste liegen zwei Tabellen. Ohne sie kann man die Maschine nicht reparieren.",
+        aufgaben: [
+          { typ:"tabelle", verb:"fahren", zeit:"Präsens",
+            zellen:{ "ich":"fahre", "du":"?", "er/sie/es":"?", "wir":"fahren", "ihr":"?", "sie/Sie":"fahren" },
+            loesung:{ "du":"fährst", "er/sie/es":"fährt", "ihr":"fahrt" },
+            thema:"Präsens mit Vokalwechsel: a → ä",
+            tipp:"Nur zwei Personen bekommen Punkte auf das a. Welche? „ihr“ gehört nicht dazu.",
+            erklaerung_de:"**fahren:** a → ä nur bei **du** und **er/sie/es**: du fährst, er fährt. Aber: **ihr fahrt** (ohne ä).",
+            erklaerung_es:"El cambio de vocal (a → ä) es solo para **du** y **er/sie/es**. Con ihr no hay cambio: ihr fahrt." },
+          { typ:"tabelle", verb:"nehmen", zeit:"Präsens",
+            zellen:{ "ich":"nehme", "du":"?", "er/sie/es":"?", "wir":"?", "ihr":"nehmt", "sie/Sie":"nehmen" },
+            loesung:{ "du":"nimmst", "er/sie/es":"nimmt", "wir":"nehmen" },
+            thema:"Präsens mit Vokalwechsel: e → i",
+            tipp:"Bei „nehmen“ ändern sich bei du und er/sie/es der Vokal UND ein Konsonant.",
+            erklaerung_de:"**nehmen** ist besonders: du **nimmst**, er **nimmt** (e → i und mm). Aber: wir **nehmen**.",
+            erklaerung_es:"Como pedir → pido, aquí e → i: du n**imm**st, er n**imm**t. ¡Ojo con la doble m! Con wir no cambia: wir nehmen." },
+        ] },
+      { id:"teile", art:"aufgabe", name:"Teile im Gras", symbol:"⚙️", ort:[470, 470, 80, 70], ziffer:4,
+        titel:"Teile im Gras",
+        text:"Hier liegen Zahnräder und Schrauben. Wer baut sie wieder ein? Hier helfen **trennbare Verben**.",
+        aufgaben: [
+          { typ:"auswahl", satz:"Benja baut das Zahnrad wieder ___.", optionen:["ein","an","aus"], loesung:"ein",
+            thema:"trennbare Verben: das Präfix am Satzende",
+            tipp:"Das Zahnrad soll IN die Maschine.",
+            erklaerung_de:"**einbauen** = etwas in eine Maschine bauen. Bei trennbaren Verben steht das Präfix am Satzende: Benja **baut** das Zahnrad wieder **ein**.",
+            erklaerung_es:"En español no existen verbos separables. „einbauen“ (instalar, montar) se separa: Benja **baut** … **ein**. El prefijo va al final." },
+          { typ:"satz", auftrag:"Schreib einen Satz im Präsens.", woerter:"Sofía / aufheben / die Schraube",
+            loesung:["Sofía hebt die Schraube auf."],
+            thema:"trennbare Verben: Verb auf Position 2, Präfix am Ende",
+            tipp:"„aufheben“ ist trennbar: Ein Teil kommt auf Position 2, der andere ganz ans Ende.",
+            erklaerung_de:"**aufheben:** Sofía **hebt** die Schraube **auf**. Das konjugierte Verb steht auf Position 2, **auf** am Satzende.",
+            erklaerung_es:"„aufheben“ (recoger) es separable: Sofía **hebt** die Schraube **auf**. El verbo conjugado va en la posición 2, el prefijo al final." },
+          { typ:"luecke", satz:"Die Reise ___ gleich wieder an.", hinweis:"anfangen", loesung:["fängt"],
+            thema:"trennbare Verben mit Vokalwechsel",
+            tipp:"Zwei Dinge auf einmal: „an“ steht schon am Ende. Und „fangen“ hat bei er/sie/es einen Vokalwechsel.",
+            erklaerung_de:"**anfangen:** a → ä bei er/sie/es: Die Reise **fängt** gleich wieder **an**.",
+            erklaerung_es:"Dos cosas a la vez: „anfangen“ (empezar) es separable (**an** al final) y cambia a → **ä**: die Reise f**ä**ngt … an." },
+        ] },
+      { id:"moai", art:"info", name:"die Moai in der Ferne", symbol:"", ort:[460, 170, 250, 125],
+        titel:"Die Moai",
+        text:"Die Moai sind große Figuren aus Stein. Die Menschen auf Rapa Nui haben sie selbst gemacht und aufgestellt. Sie erinnern an wichtige Vorfahren.\n\nSofía, Matías und Benja schauen nur aus der Ferne. Sie fassen nichts an." },
+      { id:"fussball", art:"zeitfehler", name:"etwas Rundes im Gras", symbol:"⚽", ort:[400, 370, 45, 45],
+        titel:"Ein Fußball?",
+        text:"Ein Fußball im Gras? Fußball spielt hier noch lange niemand!\n\nAch so – das ist der Colo-Colo-Ball von Matías. Er hat ihn mitgebracht. Schnell in den Rucksack damit!" },
+      { id:"krabbe", art:"gag", name:"eine Krabbe", symbol:"🦀", ort:[220, 500, 50, 45],
+        titel:"Eine Krabbe",
+        text:"Eine Krabbe läuft seitwärts zum Wasser. Benja läuft auch seitwärts. Die Krabbe ist schneller." },
+    ],
+  },
+
+  /* ---------- Raum 2: Llanquihue-See ---------- */
+  {
+    name: "Am Llanquihue-See",
+    szene: "llanquihue",
+    jahr: "um 1852",
+    thema: "Perfekt mit haben oder sein, Partizip II",
+    kostuem: ["👒","🎩","🎩"],
+    geschichte: "Die Maschine landet am Ufer von einem großen See. Hinter dem See steht ein Vulkan mit Schnee: der Osorno. Ihr seid am Llanquihue-See, um das Jahr 1852.\n\nHier kommen gerade deutsche Siedler an. Sie haben eine lange Reise gemacht: zuerst mit dem Schiff über das Meer, dann durch den Wald bis zum See. Jetzt bauen sie Häuser aus Holz.\n\nDie Maschine hat euch neue Kleidung gegeben – ihr seht aus wie Siedler! Jetzt braucht sie Energie aus dem **Perfekt**.",
+    geschafft: "Eine Siedlerin winkt. „Gute Reise!“ – „Danke für den Kuchen!“, ruft Benja.",
+    handy: "Kein Netz. Benja: „Vielleicht oben auf dem Vulkan?“ – Sofía: „Nein, Benja!“",
+    gegenstaende: [
+      { id:"amboss", art:"aufgabe", name:"der Amboss", symbol:"⚒️", ort:[80, 400, 100, 90], ziffer:6,
+        titel:"Der Amboss",
+        text:"Am Amboss schmiedest du Partizipien. Klick auf einen heißen Baustein: Der Hammer schlägt, und der Baustein ändert sich. Wenn das Wort stimmt: **Abkühlen!**",
+        aufgaben: [
+          { typ:"schmieden", verb:"trinken", form:"Partizip II",
+            bausteine:[["","ge"], "tr", ["i","a","u"], "nk", ["en","t"]], loesung:"getrunken",
+            thema:"Partizip II: unregelmäßige Verben (ge- … -en)",
+            tipp:"Unregelmäßige Verben enden im Partizip auf -en. Und der Vokal ändert sich – wie in „gesungen“.",
+            erklaerung_de:"**trinken – trank – getrunken:** unregelmäßig. Das Partizip II hat **ge-** und **-en**, und i → u.",
+            erklaerung_es:"Los verbos irregulares tienen el participio con **ge-** y **-en**: getrunk**en** (bebido). Además cambia la vocal: i → u." },
+          { typ:"schmieden", verb:"schreiben", form:"Partizip II",
+            bausteine:[["","ge"], "schr", ["ei","ie"], "b", ["en","t"]], loesung:"geschrieben",
+            thema:"Partizip II: unregelmäßige Verben (ei → ie)",
+            tipp:"Bei „schreiben“ tauschen e und i ihren Platz.",
+            erklaerung_de:"**schreiben – schrieb – geschrieben:** ei → ie, mit **ge-** und **-en**.",
+            erklaerung_es:"„schreiben“ (escribir): ei → **ie**: geschrieben. Truco: se pronuncia como una „i“ larga." },
+          { typ:"schmieden", verb:"kommen", form:"Partizip II",
+            bausteine:[["","ge"], "k", ["o","a"], "mm", ["en","t"]], loesung:"gekommen",
+            thema:"Partizip II: unregelmäßige Verben",
+            tipp:"Das Partizip von „kommen“ hat denselben Vokal wie der Infinitiv.",
+            erklaerung_de:"**kommen – kam – gekommen.** Achtung: Das Perfekt bildet man mit **sein**: Die Siedler **sind** gekommen.",
+            erklaerung_es:"„kommen“ (venir): gekommen. El perfecto se forma con **sein**: Sie **sind** gekommen. (Han venido.)" },
+        ] },
+      { id:"haus", art:"aufgabe", name:"das neue Holzhaus", symbol:"", schloss:"🏠", ort:[560, 180, 200, 200], ziffer:1,
+        titel:"Das neue Holzhaus",
+        text:"Das Holzhaus ist fast fertig. In der Wand ist ein Energiefach. Zieh die richtige Zelle hinein: **haben** oder **sein**?",
+        aufgaben: [
+          { typ:"zelle", satz:"Die Siedler ___ über das Meer gekommen.", loesung:"sein", form:"sind",
+            thema:"Perfekt: Bewegung von A nach B → sein",
+            tipp:"Die Siedler waren zuerst in Europa, dann in Chile. Was für ein Verb ist „kommen“?",
+            erklaerung_de:"**kommen** ist eine Bewegung von A nach B. Darum bildet man das Perfekt mit **sein**: Die Siedler **sind** gekommen.",
+            erklaerung_es:"En español siempre se usa „haber“: han venido. En alemán, los verbos de movimiento (de A a B) usan **sein**: sie **sind** gekommen." },
+          { typ:"zelle", satz:"Sie ___ ein Haus aus Holz gebaut.", loesung:"haben", form:"haben",
+            thema:"Perfekt: die meisten Verben → haben",
+            tipp:"Ist „bauen“ eine Bewegung von A nach B?",
+            erklaerung_de:"Die meisten Verben bilden das Perfekt mit **haben**: Sie **haben** ein Haus gebaut.",
+            erklaerung_es:"„haber“ + participio = **haben** + Partizip II, como en español: han construido → haben gebaut." },
+          { typ:"zelle", satz:"Oh nein! Benja ___ in den See gefallen!", loesung:"sein", form:"ist",
+            thema:"Perfekt: Bewegung / Veränderung → sein",
+            tipp:"Benja war zuerst am Ufer, dann im Wasser.",
+            erklaerung_de:"**fallen** = Bewegung nach unten → Perfekt mit **sein**: Benja **ist** in den See gefallen.",
+            erklaerung_es:"Se cayó → ist gefallen. „fallen“ (caer) es un movimiento, por eso se usa **sein**." },
+        ] },
+      { id:"tagebuch", art:"aufgabe", name:"das Tagebuch einer Siedlerin", symbol:"📔", ort:[330, 440, 80, 70], ziffer:9,
+        titel:"Das Tagebuch einer Siedlerin",
+        text:"Eine Siedlerin schreibt jeden Abend in ihr Tagebuch. Ein paar Wörter fehlen. Schreib das **Partizip II**.",
+        aufgaben: [
+          { typ:"luecke", satz:"Heute haben wir viel Holz ___.", hinweis:"holen", loesung:["geholt"],
+            thema:"Partizip II: regelmäßige Verben (ge- … -t)",
+            tipp:"„holen“ ist regelmäßig. Regelmäßige Verben haben im Partizip am Ende ein t.",
+            erklaerung_de:"Regelmäßige Verben: **ge-** + Stamm + **-t**: hol → **geholt**.",
+            erklaerung_es:"Verbos regulares: **ge-** + raíz + **-t** (parecido a -ado/-ido en español): geholt (traído)." },
+          { typ:"luecke", satz:"Die Kinder sind zum See ___.", hinweis:"laufen", loesung:["gelaufen"],
+            thema:"Partizip II: unregelmäßige Verben (ge- … -en)",
+            tipp:"„laufen“ ist unregelmäßig, aber der Vokal bleibt gleich.",
+            erklaerung_de:"**laufen – lief – gelaufen:** unregelmäßig, mit **-en**. Der Vokal bleibt: ge-lauf-en. Perfekt mit **sein**.",
+            erklaerung_es:"„laufen“ es irregular: gelauf**en**. Es un movimiento, por eso: sie **sind** gelaufen." },
+        ] },
+      { id:"schuessel", art:"zeitfehler", name:"etwas auf dem Dach", symbol:"📡", ort:[690, 140, 50, 50],
+        titel:"Eine Satellitenschüssel?",
+        text:"Eine Satellitenschüssel auf dem Holzhaus – im Jahr 1852?\n\nDas ist ein Zeitfehler! Schnell weg damit, bevor jemand fernsehen will." },
+      { id:"kuchen", art:"gag", name:"ein Kuchen auf dem Tisch", symbol:"🍰", ort:[440, 360, 55, 50],
+        titel:"Ein Kuchen!",
+        text:"Auf dem Tisch steht ein Apfelkuchen. Benja fragt die Siedlerin: „Wie heißt das auf Spanisch?“\n\nDie Siedlerin lacht. „Das weiß ich nicht. Aber hier heißt es Kuchen.“\n\nSofía grinst: Kuchen heißt in Chile auch Kuchen!" },
+      { id:"vogel", art:"gag", name:"ein kleiner Vogel", symbol:"🐦", ort:[200, 200, 50, 45],
+        titel:"Ein kleiner Vogel",
+        text:"Ein kleiner brauner Vogel ruft ganz laut aus dem Wald. Matías springt vor Schreck auf einen Baumstamm.\n\nDer Vogel lacht. Glaubt Matías." },
+    ],
+  },
+
+  /* ---------- Raum 3: Salpeter-Oficina ---------- */
+  {
+    name: "Eine Salpeter-Oficina in der Atacama",
+    szene: "oficina",
+    jahr: "um 1910",
+    thema: "Partizip II (trennbar, untrennbar, -ieren), Verben mit Dativ",
+    kostuem: ["⛑️","⛑️","⛑️"],
+    geschichte: "Heiß! Staubig! Die Maschine landet in der Atacama-Wüste, um das Jahr 1910. Hier ist eine Salpeter-Oficina: eine kleine Stadt für die Arbeiter, mitten in der Wüste. Aus dem Salpeter macht man Dünger. Schiffe bringen ihn in die ganze Welt.\n\nEs gibt eine Fabrik, einen Laden für die Arbeiter und sogar eine Zeitung. Die Arbeiter bekommen oft kein normales Geld, sondern Marken der Oficina.\n\nDie Maschine ist voll Staub. Sie braucht **Partizipien** und **Verben mit Dativ**.",
+    geschafft: "Der Staub ist weg, die Maschine glänzt wieder. Ein Arbeiter ruft: „Viel Glück!“",
+    handy: "Kein Netz. Benja: „Hier gibt es nur Sand, Sonne und einen Telegrafen.“",
+    gegenstaende: [
+      { id:"werkstatt", art:"aufgabe", name:"die Werkstatt", symbol:"🛠️", ort:[70, 390, 100, 90], ziffer:2,
+        titel:"Die Werkstatt",
+        text:"In der Werkstatt steht ein Amboss. Schmiede die Partizipien. Achtung: Nicht jedes Partizip hat **ge-**!",
+        aufgaben: [
+          { typ:"schmieden", verb:"ankommen", form:"Partizip II",
+            bausteine:["an", ["","ge"], "k", ["o","a"], "mm", ["en","t"]], loesung:"angekommen",
+            thema:"Partizip II: trennbare Verben",
+            tipp:"„ankommen“ ist trennbar. Wo steht dann das ge-?",
+            erklaerung_de:"**ankommen** ist trennbar: **ge** steht zwischen Präfix und Verb: an**ge**kommen.",
+            erklaerung_es:"Verbo separable: el **ge-** va en medio: an-**ge**-kommen. En español no existe algo así." },
+          { typ:"schmieden", verb:"verstehen", form:"Partizip II",
+            bausteine:[["","ge"], "verst", ["e","a"], "nd", ["en","t"]], loesung:"verstanden",
+            thema:"Partizip II: untrennbare Verben (be-, ver-, er- …)",
+            tipp:"Verben mit ver- bekommen kein ge-. Und der Vokal ändert sich wie bei „stand“.",
+            erklaerung_de:"**verstehen** ist untrennbar (**ver-**): **kein ge-** → verstanden.",
+            erklaerung_es:"Los verbos con **be-, ver-, er-, ent-, zer-, ge-** no llevan ge-: verstanden (no „geverstanden“)." },
+          { typ:"schmieden", verb:"reparieren", form:"Partizip II",
+            bausteine:[["","ge"], "reparier", ["t","en"]], loesung:"repariert",
+            thema:"Partizip II: Verben auf -ieren",
+            tipp:"Verben auf -ieren sind besonders: Sie mögen kein ge-.",
+            erklaerung_de:"Verben auf **-ieren** haben **kein ge-** und enden auf **-t**: repariert. (Regelmäßige Verben kommen nicht ins Album – die kannst du ja schon!)",
+            erklaerung_es:"Los verbos en **-ieren** (reparieren, telefonieren …) no llevan ge-: repariert (reparado)." },
+        ] },
+      { id:"laden", art:"aufgabe", name:"der Laden der Arbeiter", symbol:"🏪", ort:[300, 300, 110, 100], ziffer:5,
+        titel:"Der Laden der Arbeiter",
+        text:"Im Laden kaufen die Arbeiter Brot, Seife und Kerzen. Der Verkäufer redet viel. Wähl das richtige Wort.",
+        aufgaben: [
+          { typ:"auswahl", satz:"„Kannst du ___ bitte helfen?“, fragt der Verkäufer.", optionen:["mir","mich","ich"], loesung:"mir",
+            thema:"Verben mit Dativ: helfen",
+            tipp:"„helfen“ will immer den Dativ.",
+            erklaerung_de:"**helfen** + Dativ: jemandem helfen → Kannst du **mir** helfen?",
+            erklaerung_es:"En español: ayudar **a** alguien (¡ayúdame!). En alemán „helfen“ siempre va con **dativo**: mir, dir, ihm … (no „mich“). Ojo: con „fragen“ es al revés: preguntar **a** alguien → jemanden fragen (acusativo): Ich frage **dich**." },
+          { typ:"auswahl", satz:"Der Hut gehört ___ Arbeiter dort.", optionen:["dem","den","der"], loesung:"dem",
+            thema:"Verben mit Dativ: gehören",
+            tipp:"„gehören“ will den Dativ. Wie heißt „der Arbeiter“ im Dativ?",
+            erklaerung_de:"**gehören** + Dativ: Der Hut gehört **dem** Arbeiter (der → dem).",
+            erklaerung_es:"pertenecer **a** alguien → gehören + dativo: der Arbeiter → **dem** Arbeiter." },
+          { typ:"auswahl", satz:"Das Brot ist frisch. Es schmeckt ___ sehr gut!", optionen:["uns","wir","unser"], loesung:"uns",
+            thema:"Verben mit Dativ: schmecken",
+            tipp:"Wer isst das Brot? Diese Person steht im Dativ.",
+            erklaerung_de:"**schmecken** + Dativ: Das Brot schmeckt **uns** (wir → uns).",
+            erklaerung_es:"Como „nos gusta“: la persona va en dativo. Es schmeckt **uns** = nos sabe rico." },
+        ] },
+      { id:"redaktion", art:"aufgabe", name:"die Zeitungsredaktion", symbol:"📰", ort:[560, 260, 110, 100], ziffer:8,
+        titel:"Die Zeitungsredaktion",
+        text:"Morgen erscheint die Zeitung der Oficina. Aber in den Artikeln fehlen Wörter. Schreib das **Partizip II**.",
+        aufgaben: [
+          { typ:"luecke", satz:"Ein Ingenieur hat die Eisenbahn ___.", hinweis:"kontrollieren", loesung:["kontrolliert"],
+            thema:"Partizip II: Verben auf -ieren",
+            tipp:"Denk an „repariert“.",
+            erklaerung_de:"Verben auf **-ieren** haben kein ge-: kontrollier**t**.",
+            erklaerung_es:"Verbos en **-ieren** sin ge-: kontrolliert (controlado)." },
+          { typ:"luecke", satz:"Die Arbeiter haben ihre Marken ___.", hinweis:"bekommen", loesung:["bekommen"],
+            thema:"Partizip II: untrennbare Verben",
+            tipp:"be- ist ein untrennbares Präfix. Das Partizip sieht dann ganz bekannt aus.",
+            erklaerung_de:"**bekommen** (be-) hat kein ge-. Das Partizip II ist gleich wie der Infinitiv: Sie haben ihre Marken **bekommen**.",
+            erklaerung_es:"„bekommen“ significa **recibir** (¡no „become“!). Sin ge-: bekommen." },
+          { typ:"luecke", satz:"Der Zug ist heute pünktlich ___.", hinweis:"abfahren", loesung:["abgefahren"],
+            thema:"Partizip II: trennbare Verben",
+            tipp:"„abfahren“ ist trennbar – wie „ankommen“.",
+            erklaerung_de:"**abfahren** ist trennbar: ab**ge**fahren. Perfekt mit **sein**: Der Zug **ist** abgefahren.",
+            erklaerung_es:"Verbo separable: ab-**ge**-fahren. Es movimiento → **sein**: der Zug ist abgefahren (el tren partió)." },
+        ] },
+      { id:"automat", art:"zeitfehler", name:"ein Automat", symbol:"🌭", ort:[700, 430, 55, 60],
+        titel:"Ein Completo-Automat?",
+        text:"Ein Automat! „Completo mit Avocado – nur 1 Marke.“\n\nDarunter klebt ein Zettel: „Außer Betrieb. Bitte im Jahr 2026 wiederkommen.“\n\nEin Completo-Automat um 1910? Das ist ein Zeitfehler!" },
+      { id:"altezeitung", art:"gag", name:"eine Zeitung an der Wand", symbol:"🗞️", ort:[460, 190, 60, 55],
+        titel:"Die Zeitung von gestern",
+        text:"**Die große Schlagzeile:**\n„Sensation! Telegraf ist schneller als Postpferd!“\n\n**Darunter, ganz klein:**\n„Das Pferd ist beleidigt und gibt keine Interviews.“" },
+      { id:"staub", art:"gag", name:"eine Staubwolke", symbol:"🌪️", ort:[200, 250, 60, 60],
+        titel:"Eine kleine Staubwolke",
+        text:"Eine kleine Staubwolke tanzt über den Sand. Benja tanzt mit. Jetzt ist Benja auch voll Staub." },
+    ],
+  },
+
+  /* ---------- Raum 4: Forschungsstation 2126 ---------- */
+  {
+    name: "Die Forschungsstation",
+    szene: "station",
+    jahr: "2126",
+    thema: "Modalverben, Imperativ, werden",
+    kostuem: ["🥽","🥽","🥽"],
+    geschichte: "Die Maschine landet in einer Station aus Glas und Metall. Draußen fliegt ein Bus ohne Räder vorbei. Ihr seid in der Zukunft, im Jahr 2126!\n\nEin Roboter rollt herein. „Willkommen. Ich war hier der Chef. Ich sprach immer … in der Vergangenheit.“ Komisch: Der Roboter spricht nur im Präteritum.\n\nDie Maschine braucht jetzt **Modalverben**, **Befehle** (Imperativ) und das Verb **werden**.",
+    geschafft: "Der Roboter sagte: „Das war gut. Ihr wart schnell.“ Dann winkte er.",
+    handy: "Kein Netz. Der Roboter sagte: „Handys? Die standen im Museum.“",
+    gegenstaende: [
+      { id:"pult", art:"aufgabe", name:"das Steuerpult", symbol:"🎛️", ort:[90, 380, 110, 90], ziffer:3,
+        titel:"Das Steuerpult",
+        text:"Das Steuerpult hat drei Ringe. Dreh sie, bis das Modalverb stimmt. „–“ heißt: keine Endung.",
+        aufgaben: [
+          { typ:"zahnrad", satz:"Wir ___ jetzt nach Hause fahren.",
+            ringe:["PERSON", ["müss","muss","mag"], ["e","st","t","en","–"]], loesung:["wir","müss","en"],
+            thema:"Modalverben im Präsens: müssen",
+            tipp:"Im Plural hat „müssen“ Punkte auf dem u.",
+            erklaerung_de:"**müssen:** ich muss, du musst, er muss – **wir müssen**, ihr müsst, sie müssen. Im Plural mit **ü**.",
+            erklaerung_es:"„müssen“ = tener que / deber. En plural lleva **ü**: wir müssen. El segundo verbo va al final en infinitivo: … nach Hause **fahren**." },
+          { typ:"zahnrad", satz:"Benja ___ den roten Knopf nicht drücken!",
+            ringe:["PERSON", ["dürf","darf","durf"], ["e","st","t","en","–"]], loesung:["er/sie/es","darf","–"],
+            thema:"Modalverben im Präsens: dürfen",
+            tipp:"Bei Modalverben haben „ich“ und „er/sie/es“ etwas Besonderes am Ende.",
+            erklaerung_de:"**dürfen:** ich darf, du darfst, **er darf** – bei **ich** und **er/sie/es** gibt es **keine Endung**.",
+            erklaerung_es:"Con los verbos modales, **ich** y **er/sie/es** no tienen terminación: er darf (él puede / tiene permiso). „nicht dürfen“ = no se permite." },
+        ] },
+      { id:"hologramm", art:"aufgabe", name:"das Hologramm", symbol:"💠", ort:[330, 170, 110, 110], ziffer:6,
+        titel:"Das Hologramm",
+        text:"Ein Hologramm schwebt in der Luft. Es zeigt zwei Tabellen mit Lücken.",
+        aufgaben: [
+          { typ:"tabelle", verb:"werden", zeit:"Präsens",
+            zellen:{ "ich":"werde", "du":"?", "er/sie/es":"?", "wir":"werden", "ihr":"?", "sie/Sie":"werden" },
+            loesung:{ "du":"wirst", "er/sie/es":"wird", "ihr":"werdet" },
+            thema:"Präsens: werden",
+            tipp:"Bei du und er/sie/es: e → i. Und bei „er“ gibt es kein t am Ende, sondern …",
+            erklaerung_de:"**werden:** du **wirst**, er **wird**, ihr **werdet**. Beispiel: Es **wird** kalt. Benja **wird** Pilot.",
+            erklaerung_es:"„werden“ = llegar a ser / ponerse: Es wird kalt. (Se pone frío.) Ich werde Ärztin. (Voy a ser médica.)" },
+          { typ:"tabelle", verb:"können", zeit:"Präsens",
+            zellen:{ "ich":"?", "du":"kannst", "er/sie/es":"?", "wir":"können", "ihr":"?", "sie/Sie":"können" },
+            loesung:{ "ich":"kann", "er/sie/es":"kann", "ihr":"könnt" },
+            thema:"Modalverben im Präsens: können",
+            tipp:"Singular mit a, Plural mit ö. ich und er/sie/es sind gleich.",
+            erklaerung_de:"**können:** ich **kann**, er **kann** (gleich, ohne Endung), ihr **könnt**.",
+            erklaerung_es:"„können“ = poder. Singular con **a** (kann), plural con **ö** (können, könnt). Ich y er/sie/es son iguales." },
+        ] },
+      { id:"roboter", art:"aufgabe", name:"der Roboter", symbol:"🤖", ort:[560, 330, 100, 120], ziffer:4,
+        titel:"Der Roboter",
+        text:"Der Roboter macht nur, was man ihm befiehlt. Sag ihm, was er tun soll – mit dem **Imperativ**!\n\nRoboter: „Ich wartete auf Befehle.“",
+        aufgaben: [
+          { typ:"luecke", satz:"Roboter, ___ uns bitte!", hinweis:"helfen, du", loesung:["hilf"],
+            thema:"Imperativ mit du",
+            tipp:"Nimm die du-Form „du hilfst“ und streich „du“ und die Endung.",
+            erklaerung_de:"Imperativ mit du: du hilfst → **Hilf!** Ohne „du“ und ohne **-st**. Der Vokalwechsel bleibt (e → i).",
+            erklaerung_es:"Imperativo con du: du hilfst → **¡Hilf!** (sin du y sin -st). Parecido al español: ayuda**s** → ¡ayuda!" },
+          { typ:"auswahl", satz:"Sofía flüstert: „Matías, Benja, ___ bitte leise!“", optionen:["seid","sind","seit"], loesung:"seid",
+            thema:"Imperativ mit ihr: sein",
+            tipp:"Sofía spricht mit zwei Personen: ihr. Wie heißt „sein“ bei ihr?",
+            erklaerung_de:"Imperativ von **sein** mit ihr: **Seid** leise! (ihr seid → Seid!)",
+            erklaerung_es:"Con ihr el imperativo es igual que el presente sin „ihr“: ihr seid → **¡Seid** leise!" },
+          { typ:"luecke", satz:"___ die Tür auf, bitte!", hinweis:"aufmachen, du", loesung:["mach","mache"],
+            thema:"Imperativ mit trennbaren Verben",
+            tipp:"„aufmachen“ ist trennbar. „auf“ steht schon am Ende.",
+            erklaerung_de:"Imperativ von **aufmachen** mit du: **Mach** die Tür **auf**! Das Präfix steht am Ende.",
+            erklaerung_es:"Imperativo + verbo separable: **Mach** die Tür **auf**! (¡Abre la puerta!) El prefijo va al final." },
+        ] },
+      { id:"telefon", art:"zeitfehler", name:"ein altes Ding", symbol:"☎️", ort:[690, 300, 55, 50],
+        titel:"Ein Telefon mit Wählscheibe?",
+        text:"Ein altes Telefon mit Wählscheibe – im Jahr 2126?\n\nDer Roboter sagte: „Das gehörte meinem Großvater. Er war ein Toaster.“\n\nDas ist ein Zeitfehler!" },
+      { id:"lichter", art:"gag", name:"blinkende Lichter", symbol:"💡", ort:[40, 150, 60, 55],
+        titel:"Blinkende Lichter",
+        text:"Rote, grüne und blaue Lichter. Benja drückt einen Knopf. Musik!\n\nDer Roboter tanzte. Dann sagte er: „Das passierte nie.“" },
+    ],
+  },
+
+  /* ---------- Raum 5: Finale Frutillar ---------- */
+  {
+    name: "Zurück in Frutillar",
+    szene: "frutillar",
+    jahr: "heute",
+    thema: "Alles zusammen: Präsens, Perfekt, Verben mit Dativ",
+    geschichte: "Die Maschine landet am Steg in Frutillar. Endlich zu Hause! Aber die Maschine zittert und qualmt. „Sie ist nicht stabil!“, ruft Sofía. „Wenn wir sie nicht reparieren, springt sie gleich wieder in eine andere Zeit!“\n\nJetzt brauchst du noch einmal alles, was du gelernt hast.",
+    geschafft: "Die Maschine wird ruhig. Die große Uhr zeigt: HEUTE. Von oben ruft Oma: „Kinder, es gibt Kuchen!“",
+    handy: "Netz! Fünf Nachrichten von Mama: „Wo seid ihr?“",
+    gegenstaende: [
+      { id:"kern", art:"aufgabe", name:"der Kern der Maschine", symbol:"🔩", ort:[700, 330, 70, 70], ziffer:2,
+        titel:"Der Kern der Maschine",
+        text:"Der Kern der Maschine braucht eine Verbform und zwei Energiezellen.",
+        aufgaben: [
+          { typ:"zahnrad", satz:"Ihr ___ heute wirklich viel!",
+            ringe:["PERSON", ["arbeit","spiel","wohn"], ["e","st","t","et","en"]], loesung:["ihr","arbeit","et"],
+            thema:"Präsens: Stamm auf -t",
+            tipp:"Mit „ihr“ spricht man mehrere Personen an. Der Stamm endet auf -t …",
+            erklaerung_de:"**ihr arbeitet** – endet der Stamm auf **-t** oder **-d**, kommt ein **e** dazu: arbeit**et**.",
+            erklaerung_es:"„ihr“ = vosotros / ustedes. Raíz en -t → se agrega **e**: ihr arbeit**et** (no „arbeitt“)." },
+          { typ:"zelle", satz:"Wir ___ durch die Zeit gefahren.", loesung:"sein", form:"sind",
+            thema:"Perfekt mit sein",
+            tipp:"Fahren ist eine Bewegung von A nach B.",
+            erklaerung_de:"**fahren** ist eine Bewegung → **sein**: Wir **sind** gefahren.",
+            erklaerung_es:"Hemos viajado → wir **sind** gefahren. Movimiento → **sein**." },
+          { typ:"zelle", satz:"Ich ___ jetzt alles verstanden.", loesung:"haben", form:"habe",
+            thema:"Perfekt mit haben",
+            tipp:"Ist „verstehen“ eine Bewegung?",
+            erklaerung_de:"**verstehen** ist keine Bewegung → **haben**: Ich **habe** alles verstanden.",
+            erklaerung_es:"He entendido → ich **habe** verstanden. Como en español con „haber“." },
+        ] },
+      { id:"boot", art:"aufgabe", name:"das Ruderboot am Steg", symbol:"🚣", ort:[350, 420, 100, 80], ziffer:7,
+        titel:"Das Ruderboot",
+        text:"Im Ruderboot liegt ein kleiner Amboss. Benja hat ihn aus dem Jahr 1852 mitgebracht. Schmiede noch zwei Partizipien!",
+        aufgaben: [
+          { typ:"schmieden", verb:"helfen", form:"Partizip II",
+            bausteine:[["","ge"], "h", ["e","a","o"], "lf", ["en","t"]], loesung:"geholfen",
+            thema:"Partizip II: unregelmäßige Verben",
+            tipp:"helfen – half – ge…? Der Vokal ist im Partizip ein anderer als im Präteritum.",
+            erklaerung_de:"**helfen – half – geholfen:** e → o im Partizip II.",
+            erklaerung_es:"„helfen“ (ayudar): geh**o**lfen. Recuerda: helfen + dativo: Ich habe **dir** geholfen." },
+          { typ:"schmieden", verb:"nehmen", form:"Partizip II",
+            bausteine:[["","ge"], "n", ["e","a","o"], "mm", ["en","t"]], loesung:"genommen",
+            thema:"Partizip II: unregelmäßige Verben",
+            tipp:"nehmen – nahm – ge…? Es klingt wie „gekommen“.",
+            erklaerung_de:"**nehmen – nahm – genommen:** e → o und **mm**.",
+            erklaerung_es:"„nehmen“ (tomar): gen**o**mmen – con o y doble m." },
+        ] },
+      { id:"brief", art:"aufgabe", name:"ein Brief von Oma", symbol:"💌", ort:[150, 380, 80, 70], ziffer:1,
+        titel:"Ein Brief von Oma",
+        text:"Am Steg liegt ein Brief von Oma. „Für die Zeitreisenden“ steht darauf. Hat sie etwas gewusst?",
+        aufgaben: [
+          { typ:"auswahl", satz:"„Die Zeitmaschine gefällt ___ sehr“, schreibt Oma.", optionen:["mir","mich","ich"], loesung:"mir",
+            thema:"Verben mit Dativ: gefallen",
+            tipp:"„gefallen“ funktioniert wie das spanische „gustar“.",
+            erklaerung_de:"**gefallen** + Dativ: Die Zeitmaschine gefällt **mir**. Die Sache ist das Subjekt, die Person steht im Dativ.",
+            erklaerung_es:"Como „me gusta“: la cosa es el sujeto y la persona va en **dativo**: Sie gefällt **mir**." },
+          { typ:"luecke", satz:"„Ich ___ euch heute einen Tipp“, schreibt Oma.", hinweis:"geben", loesung:["gebe"],
+            thema:"Präsens: Vokalwechsel – aber nicht bei ich!",
+            tipp:"Wer schreibt? „ich“. Hat „ich“ einen Vokalwechsel?",
+            erklaerung_de:"**geben:** du gibst, er gibt – aber **ich gebe**. Bei **ich** gibt es keinen Vokalwechsel.",
+            erklaerung_es:"Ojo: el cambio e → i es solo para du y er/sie/es. Con ich: ich **gebe**." },
+          { typ:"auswahl", satz:"Wir danken ___ Oma für den Tipp.", optionen:["der","die","den"], loesung:"der",
+            thema:"Verben mit Dativ: danken",
+            tipp:"„danken“ will den Dativ. „die Oma“ ist feminin.",
+            erklaerung_de:"**danken** + Dativ: Wir danken **der** Oma (die → der).",
+            erklaerung_es:"agradecer **a** alguien → jemandem danken (dativo): die Oma → **der** Oma." },
+        ] },
+      { id:"roboter2", art:"zeitfehler", name:"jemand am Steg", symbol:"🤖", ort:[585, 425, 45, 45],
+        titel:"Wer sitzt denn da?",
+        text:"Der kleine Roboter aus dem Jahr 2126 sitzt am Steg und angelt! Er ist heimlich mitgefahren.\n\n„Hier war es schön“, sagte er. Ein Roboter heute in Frutillar? Das ist ein Zeitfehler!" },
+      { id:"ente", art:"gag", name:"eine Ente", symbol:"🦆", ort:[520, 470, 50, 45],
+        titel:"Eine Ente",
+        text:"Eine Ente schwimmt vorbei. Sie schaut lange auf die Zeitmaschine. Dann schwimmt sie sehr schnell weiter." },
+    ],
+  },
+  ],
+
+  /* ---------- Bonusraum ---------- */
+  bonus: {
+    name: "Bonus: Die Steinzeit",
+    szene: "steinzeit",
+    jahr: "Steinzeit",
+    thema: "Partizip II: unregelmäßige Verben",
+    kostuem: ["🦴","🦴","🦴"],
+    geschichte: "Du hast alle Zeitfehler gefunden! Zur Belohnung springt die Maschine noch einmal – ganz weit zurück. In die Steinzeit!\n\nHier gibt es kein Metall. Benja nimmt einen Stein als Hammer. Schmiede fünf Partizipien für dein Album. Jede Aufgabe bringt Extrapunkte.",
+    geschafft: "Ein Mammut schaut aus der Höhle. Zeit für die Rückfahrt!",
+    handy: "Kein Netz. Kein Strom. Kein Handy-Laden. Benja ist traurig.",
+    gegenstaende: [
+      { id:"feuer", art:"aufgabe", name:"das Feuer", symbol:"🔥", ort:[420, 380, 90, 90],
+        titel:"Am Feuer",
+        text:"Am Feuer wird der Stein heiß. Schmiede die Partizipien!",
+        aufgaben: [
+          { typ:"schmieden", verb:"gehen", form:"Partizip II",
+            bausteine:[["","ge"], ["geh","gang"], ["en","t"]], loesung:"gegangen",
+            thema:"Partizip II: unregelmäßige Verben", tipp:"gehen – ging – ge…? Denk an „der Gang“.",
+            erklaerung_de:"**gehen – ging – gegangen.** Perfekt mit **sein**: Wir **sind** gegangen.",
+            erklaerung_es:"„gehen“ (ir, caminar): gegangen. Movimiento → **sein**." },
+          { typ:"schmieden", verb:"sehen", form:"Partizip II",
+            bausteine:[["","ge"], "seh", ["en","t"]], loesung:"gesehen",
+            thema:"Partizip II: unregelmäßige Verben", tipp:"Unregelmäßig → Endung -en.",
+            erklaerung_de:"**sehen – sah – gesehen.**",
+            erklaerung_es:"„sehen“ (ver): gesehen (visto)." },
+          { typ:"schmieden", verb:"essen", form:"Partizip II",
+            bausteine:[["","ge"], ["ess","gess"], ["en","t"]], loesung:"gegessen",
+            thema:"Partizip II: Sonderform", tipp:"Bei „essen“ hört man im Partizip zweimal g.",
+            erklaerung_de:"**essen – aß – gegessen:** Das Partizip hat ein extra **g**: ge-g-essen.",
+            erklaerung_es:"„essen“ (comer): ge**g**essen – con una g extra." },
+        ] },
+      { id:"hoehle", art:"aufgabe", name:"die Höhle", symbol:"", ort:[60, 160, 230, 260],
+        titel:"In der Höhle",
+        text:"An der Wand der Höhle sind Bilder. Und ein Amboss aus Stein!",
+        aufgaben: [
+          { typ:"schmieden", verb:"finden", form:"Partizip II",
+            bausteine:[["","ge"], "f", ["i","a","u"], "nd", ["en","t"]], loesung:"gefunden",
+            thema:"Partizip II: unregelmäßige Verben (i → u)", tipp:"Wie „getrunken“.",
+            erklaerung_de:"**finden – fand – gefunden:** i → u.",
+            erklaerung_es:"„finden“ (encontrar): gef**u**nden." },
+          { typ:"schmieden", verb:"schlafen", form:"Partizip II",
+            bausteine:[["","ge"], "schl", ["a","ä","ie"], "f", ["en","t"]], loesung:"geschlafen",
+            thema:"Partizip II: unregelmäßige Verben", tipp:"Der Vokal bleibt wie im Infinitiv.",
+            erklaerung_de:"**schlafen – schlief – geschlafen:** Der Vokal bleibt **a**.",
+            erklaerung_es:"„schlafen“ (dormir): geschlafen. Ojo: Präsens du schl**ä**fst, pero Partizip con **a**." },
+        ] },
+      { id:"mammut", art:"gag", name:"ein Mammut", symbol:"🦣", ort:[600, 200, 130, 120],
+        titel:"Ein Mammut!",
+        text:"Ein Mammut schaut euch an. Benja macht ein Foto. Das Handy sagt: „Speicher voll.“" },
+    ],
+  },
+},
+
+};
+</script>
+
+<style>
+:root{
+  --bg:#120d09; --panel:#251a12; --panel2:#352619; --line:#7d5a36;
+  --text:#fbf3e6; --muted:#e2cfb5; --accent:#f0c050; --accent-text:#1a1a1a;
+  --brass:#d9a441; --brass2:#a8732a; --energy:#5ff0d8;
+  --ok:#5ee08f; --ok-bg:#103a26; --bad:#ff8a8a; --bad-bg:#4a1a1f;
+  --focus:#ffe066; --btn:#4f3823; --btnh:#644830;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);background-image:radial-gradient(ellipse at 10% 0%,#3a2814 0%,transparent 55%),radial-gradient(ellipse at 95% 100%,#14303a 0%,transparent 50%);background-attachment:fixed;color:var(--text);font-family:Roboto,Arial,"Segoe UI",system-ui,sans-serif;font-size:19px;line-height:1.45;min-height:100vh}
+h1,h2,h3{line-height:1.2;margin:.2em 0 .5em} h1{font-size:1.7em} h2{font-size:1.25em} h3{font-size:1.05em}
+p{margin:.4em 0 .8em} a{color:var(--accent)}
+button{font:inherit;color:var(--text);cursor:pointer;border-radius:12px;border:2px solid #9a7353;background:var(--btn);padding:.35em .9em;min-height:46px;touch-action:manipulation}
+button:hover:not(:disabled){background:var(--btnh)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.primary:hover:not(:disabled){background:#ffd978}
+input[type=text]{font:inherit;color:#111;background:#fff;border:3px solid #d0a77f;border-radius:10px;padding:.25em .45em;min-height:46px}
+select{font:inherit;min-height:40px;border-radius:8px}
+.muted{color:var(--muted)} .small{font-size:.85em} .center{text-align:center}
+.row{display:flex;gap:.6em;flex-wrap:wrap;align-items:center} .spacer{flex:1}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:1em 1.3em;box-shadow:0 8px 24px rgba(0,0,0,.35);margin-bottom:.9em}
+.narrow{max-width:940px;margin-left:auto;margin-right:auto}
+.chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.05em .7em;font-size:.85em;color:var(--muted)}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.1em .7em;white-space:nowrap;font-size:.9em}
+.warnbox{background:#4a3a00;border:2px solid var(--accent);border-radius:12px;padding:.6em 1em;margin:.6em 0;font-size:.85em}
+.warnbox ul{margin:.3em 0 0;padding-left:1.2em}
+.okline{color:var(--ok)} .badline{color:var(--bad)}
+.tipbox{background:#3a3214;border:2px solid #b89a3a;border-radius:12px;padding:.45em .85em;margin-top:.6em}
+.tipbox.ok{background:var(--ok-bg);border-color:var(--ok)}
+.tipbox.bad{background:var(--bad-bg);border-color:var(--bad)}
+.tipbox.sofia{background:#20283e;border-color:#8fa8e0}
+.tipbox p{margin:.25em 0}
+.es{color:#9fd0ff}
+
+#top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.6em;flex-wrap:wrap;padding:.3em .8em;background:rgba(18,13,9,.96);border-bottom:2px solid var(--line)}
+#top .brand{font-weight:800;white-space:nowrap}
+#hud{display:flex;gap:.5em;flex-wrap:wrap;align-items:center;flex:1}
+#top .tools{display:flex;gap:.4em}
+#top .tools button{min-height:40px;padding:.2em .7em;font-size:.88em}
+.homelink{color:var(--muted);text-decoration:none;font-size:.85em;border:1px solid var(--line);border-radius:999px;padding:.15em .7em;white-space:nowrap}
+.homelink:hover{color:var(--text);border-color:var(--accent)}
+main{max-width:1320px;margin:0 auto;padding:.5em 1em 1.5em}
+.eingebettet .homelink{display:none}
+
+/* ---------- Start ---------- */
+.hero .herorow{display:flex;gap:1em;align-items:center;flex-wrap:wrap}
+.hero .herorow > div:first-child{flex:1 1 440px}
+.heroart{flex:0 1 220px;display:flex;justify-content:center}
+.heroart svg{width:200px;height:auto}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8em;margin:.6em 0 .2em}
+.level{display:flex;flex-direction:column;align-items:flex-start;gap:.15em;text-align:left;padding:.8em 1em;border-radius:16px;min-height:130px}
+.level .lv{font-size:1.6em;font-weight:800;color:var(--accent)} .level .lt{font-weight:700}
+.level .lo{font-size:.8em;color:var(--muted)}
+.extras{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8em}
+.extras button{display:flex;gap:.7em;align-items:center;text-align:left;padding:.7em 1em;border-radius:16px}
+.extras .big{font-size:2em}
+
+/* ---------- Bühne ---------- */
+.stage{position:relative;container-type:inline-size;width:min(100%, calc((100vh - 172px) * 1000 / 560));min-width:min(100%,520px);aspect-ratio:1000/560;margin:0 auto;border-radius:16px;overflow:hidden;border:3px solid var(--line);background:#000;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.world{position:absolute;inset:0}
+.world svg.bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hot{position:absolute;padding:0;min-height:0;background:transparent;border:3px solid transparent;border-radius:14px;cursor:pointer;z-index:4;display:flex;align-items:center;justify-content:center;line-height:1}
+.hot .sym{font-size:var(--fs,4cqw);filter:drop-shadow(0 3px 3px rgba(0,0,0,.55));pointer-events:none;transition:transform .2s}
+.hot:hover:not(:disabled),.hot:focus-visible{border-color:rgba(255,226,120,.95);background:rgba(255,240,180,.14);box-shadow:0 0 22px 6px rgba(255,220,100,.5),inset 0 0 18px rgba(255,230,140,.3)}
+.hot:hover .sym{transform:scale(1.12) rotate(-4deg)}
+.hot .tag{position:absolute;left:50%;bottom:100%;transform:translate(-50%,-4px);background:rgba(20,14,8,.92);color:#fff;border-radius:8px;padding:.05em .5em;font-size:16px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;z-index:9}
+.hot:hover .tag,.hot:focus-visible .tag{opacity:1}
+.hot.task::after{content:"";position:absolute;inset:-4px;border-radius:16px;border:3px solid rgba(255,214,102,.0);animation:hint 2.6s ease-in-out infinite;pointer-events:none}
+@keyframes hint{50%{border-color:rgba(255,214,102,.55);box-shadow:0 0 18px rgba(255,214,102,.35)}}
+.hot.done::after{display:none}
+.hot .bdg{position:absolute;right:-8px;top:-10px;min-width:32px;height:32px;padding:0 4px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:19px;box-shadow:0 2px 6px rgba(0,0,0,.5);z-index:5}
+.bdg.dig{background:radial-gradient(circle at 35% 30%,#fff3c4,#e0b24a 60%,#8a5a1a);color:#2a1606;border:2px solid #5a3a10;animation:digpop .7s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes digpop{from{transform:scale(0) rotate(-90deg)}to{transform:scale(1) rotate(0)}}
+@keyframes cellglow{0%{box-shadow:none;filter:brightness(1)}50%{box-shadow:0 0 26px #5ff0d8;filter:brightness(1.5)}100%{box-shadow:0 0 12px rgba(95,240,216,.7)}}
+.bdg.tf{background:#2a6f8f;color:#fff;font-size:16px}
+.bdg.part{background:#5d4a3c;color:#fff;font-size:13px}
+.roomlabel{position:absolute;left:10px;top:10px;z-index:6;background:rgba(20,14,8,.85);border:2px solid var(--line);border-radius:12px;padding:.05em .7em;font-weight:700;font-size:max(13px,1.55cqw)}
+.energy{position:absolute;right:10px;top:10px;z-index:6;display:flex;align-items:center;gap:.4em;background:rgba(20,14,8,.85);border:2px solid var(--line);border-radius:12px;padding:.15em .6em;font-size:max(12px,1.4cqw);font-weight:700}
+.energy .segs{display:flex;gap:3px}
+.energy .seg{width:max(12px,1.8cqw);height:max(12px,1.5cqw);border-radius:4px;background:#3a2d22;border:1px solid #6b5640;transition:background .5s,box-shadow .5s}
+.energy .seg.ok{background:var(--energy);box-shadow:0 0 8px var(--energy)}
+.energy .seg.half{background:#9a8a6a}
+.energy.full{border-color:var(--energy);box-shadow:0 0 14px rgba(95,240,216,.6)}
+
+/* Figuren */
+.fig{position:absolute;transform:translate(-50%,-100%);pointer-events:none;z-index:3;font-size:5.2cqw;line-height:1;text-align:center;filter:drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+.fig .hat{position:absolute;left:50%;top:-.5em;transform:translateX(-50%);font-size:.62em}
+.fig .hat.eyes{top:.18em;font-size:.5em}
+.fig.bob{animation:bob 1.9s ease-in-out infinite alternate}
+@keyframes bob{to{margin-top:-.5cqw}}
+.poof{position:absolute;z-index:7;pointer-events:none;font-size:6cqw;transform:translate(-50%,-100%);animation:poof 1.1s ease-out forwards}
+@keyframes poof{0%{opacity:0;transform:translate(-50%,-100%) scale(.3)}30%{opacity:1}100%{opacity:0;transform:translate(-50%,-120%) scale(1.7)}}
+
+/* Maschine */
+.machine{position:absolute;z-index:3;pointer-events:none}
+.machine svg{width:100%;height:100%;display:block;overflow:visible}
+.machine .g1,.machine .g2,.machine .g3{transform-box:fill-box;transform-origin:center}
+.machine.run .g1{animation:spin 6s linear infinite}
+.machine.run .g2{animation:spinr 4s linear infinite}
+.machine.run .g3{animation:spin 3s linear infinite}
+.machine.fast .g1{animation-duration:1s} .machine.fast .g2{animation-duration:.7s} .machine.fast .g3{animation-duration:.5s}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spinr{to{transform:rotate(-360deg)}}
+.machine .tubefill{transition:height .8s ease,y .8s ease}
+.machine.stutter{animation:stutter .6s}
+@keyframes stutter{10%,50%,90%{transform:translate(-4px,1px) rotate(-1deg)}30%,70%{transform:translate(4px,-1px) rotate(1deg)}}
+.machine.boost svg{animation:boost .9s ease-out}
+@keyframes boost{40%{filter:drop-shadow(0 0 22px var(--energy)) brightness(1.25)}}
+.machine .lever{transform-box:fill-box;transform-origin:50% 100%;transition:transform .6s cubic-bezier(.5,1.6,.5,1)}
+.machine.pulled .lever{transform:rotate(60deg)}
+.machine .lamp{transition:fill .4s}
+.machine .hand{transform-box:view-box;transform-origin:110px 95px}
+.machine.run .hand{animation:spin 8s linear infinite}
+.machine.fast .hand{animation-duration:.6s}
+.machinehot{z-index:4}
+.puff{position:absolute;z-index:8;pointer-events:none;width:7cqw;height:7cqw;border-radius:50%;background:radial-gradient(circle,rgba(90,90,90,.85),rgba(60,60,60,0) 70%);animation:puff 1.6s ease-out forwards}
+@keyframes puff{from{transform:translate(-50%,-50%) scale(.3);opacity:1}to{transform:translate(-30%,-180%) scale(2.4);opacity:0}}
+.spark{position:fixed;z-index:1300;width:7px;height:7px;border-radius:50%;background:#ffe27a;box-shadow:0 0 8px #ffb02e,0 0 2px #fff;pointer-events:none;animation:spark .7s ease-out forwards}
+@keyframes spark{to{transform:translate(var(--sx),var(--sy)) scale(.2);opacity:0}}
+
+/* Leerlauf-Animationen in den Szenen */
+.wave{animation:wave 5s ease-in-out infinite alternate}
+.wave.w2{animation-duration:6.5s;animation-delay:-2s}
+@keyframes wave{to{transform:translateX(-30px)}}
+.cloud{animation:cloud 60s linear infinite alternate}
+@keyframes cloud{to{transform:translateX(120px)}}
+.drift{animation:drift 9s linear infinite}
+.drift.d2{animation-duration:12s;animation-delay:-4s} .drift.d3{animation-duration:7s;animation-delay:-2s}
+@keyframes drift{0%{transform:translate(0,0);opacity:0}15%{opacity:.8}100%{transform:translate(260px,-40px);opacity:0}}
+.mote{animation:mote 7s ease-in-out infinite alternate}
+.mote.m2{animation-delay:-3s;animation-duration:9s}
+@keyframes mote{to{transform:translate(18px,-30px);opacity:.2}}
+.rain{animation:rain .8s linear infinite}
+@keyframes rain{from{transform:translateY(-30px)}to{transform:translateY(30px)}}
+.blink{animation:blink 1.4s steps(2,end) infinite}
+.blink.b2{animation-delay:-.5s;animation-duration:1.9s} .blink.b3{animation-delay:-1s;animation-duration:1.1s}
+@keyframes blink{50%{opacity:.2}}
+.glide{animation:glide 14s ease-in-out infinite alternate}
+@keyframes glide{to{transform:translate(160px,25px)}}
+.flame{transform-box:fill-box;transform-origin:50% 100%;animation:flame .4s ease-in-out infinite alternate}
+@keyframes flame{to{transform:scaleY(1.15) scaleX(.92)}}
+.smoke{transform-box:fill-box;transform-origin:center;animation:smoke 5s ease-out infinite}
+.smoke.s2{animation-delay:1.6s} .smoke.s3{animation-delay:3.2s}
+@keyframes smoke{0%{transform:translate(0,0) scale(.6);opacity:.8}100%{transform:translate(30px,-70px) scale(1.9);opacity:0}}
+.float{animation:float 3s ease-in-out infinite alternate}
+@keyframes float{to{transform:translateY(-8px)}}
+.holo{transform-box:fill-box;transform-origin:center;animation:holo 6s linear infinite}
+@keyframes holo{to{transform:rotate(360deg)}}
+
+/* Leiste unter der Bühne */
+.bar{display:flex;gap:.5em;flex-wrap:wrap;align-items:center;width:min(100%, calc((100vh - 172px) * 1000 / 560));min-width:min(100%,520px);margin:.45em auto 0}
+.bar button{min-height:42px;padding:.15em .7em;font-size:.9em}
+.digits{display:flex;gap:.3em;align-items:center;background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:.1em .6em;min-height:44px;font-size:.92em}
+.digits .d{display:inline-flex;align-items:center;gap:.15em;padding:0 .3em;border-radius:8px;background:#3a2d22}
+.digits .d b{display:inline-block;min-width:1.1em;text-align:center;color:var(--accent);font-size:1.15em}
+
+/* ---------- Overlays auf der Bühne ---------- */
+.over{position:absolute;z-index:20;left:1.2%;top:2.2%;bottom:2.2%;width:66%;display:flex;flex-direction:column;background:var(--panel);border:3px solid var(--brass2);border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.7);font-size:17px;animation:slidein .35s ease-out}
+@keyframes slidein{from{transform:translateX(-30px);opacity:0}to{transform:none;opacity:1}}
+.over .ohead{display:flex;align-items:center;gap:.5em;padding:.35em .7em;border-bottom:2px solid var(--line);background:linear-gradient(180deg,#3d2c1c,#2c1f14);border-radius:13px 13px 0 0}
+.over .ohead h2{margin:0;font-size:1.12em;flex:1}
+.over .ohead button{min-height:38px;padding:.1em .6em}
+.over .obody{flex:1;overflow:auto;padding:.5em .9em .8em}
+.backdrop{position:absolute;inset:0;z-index:19;background:rgba(5,4,2,.55)}
+.over.mid{left:50%;top:50%;bottom:auto;width:min(92%,760px);max-height:92%;transform:translate(-50%,-50%);animation:fadein .35s ease-out}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.paper{background:#fbf3df;color:#2b2015;border-radius:10px;padding:.5em .8em;margin:.2em 0 .6em;font-family:Georgia,serif;box-shadow:inset 0 0 30px rgba(140,100,40,.25)}
+.paper p{margin:.2em 0}
+.anleitung{background:#1c2a2f;border:2px solid #4f8f9a;border-radius:12px;padding:.4em .8em;margin:.4em 0}
+.anleitung p{margin:.2em 0}
+.panelhead{display:flex;gap:.5em;align-items:center;flex-wrap:wrap;margin-bottom:.3em}
+.dots{display:flex;gap:6px}
+.dots span{width:13px;height:13px;border-radius:50%;background:#5d4a3c;border:2px solid #9a7353}
+.dots span.ok{background:var(--ok);border-color:var(--ok)} .dots span.bad{background:var(--bad);border-color:var(--bad)} .dots span.cur{background:var(--accent);border-color:var(--accent)}
+.auftrag{font-weight:700;margin:.2em 0 .4em}
+.bedienung{font-size:.82em;color:var(--muted);margin:.1em 0 .4em}
+.satz{font-size:1.1em;margin:.3em 0 .5em}
+.satz .gap{display:inline-block;min-width:4.5em;border-bottom:3px solid var(--accent);text-align:center;font-weight:800;color:var(--accent);padding:0 .2em}
+.satz .gap.lit{color:var(--energy);border-color:var(--energy);text-shadow:0 0 10px rgba(95,240,216,.8)}
+.opts{display:flex;flex-direction:column;gap:.4em}
+.opt{text-align:left}
+.opt.right,.opt.right:disabled{background:var(--ok-bg);border-color:var(--ok);opacity:1}
+.opt.wrong,.opt.wrong:disabled{background:var(--bad-bg);border-color:var(--bad)}
+.fullin{width:100%}
+.umlauts{display:flex;gap:.35em;flex-wrap:wrap;align-items:center;margin:.3em 0}
+.umlauts button{min-width:44px;min-height:40px;font-weight:700;padding:.1em .5em}
+
+/* zahnrad */
+.rings{display:flex;align-items:center;gap:.3em;margin:.4em 0 .5em;flex-wrap:wrap}
+.ringwrap{display:flex;flex-direction:column;align-items:center;gap:2px}
+.ringwrap .rl{font-size:.72em;color:var(--muted)}
+.ringwrap button.arr{min-height:30px;width:100%;padding:0;font-size:.85em;border-radius:8px;background:#3a2a1a}
+.ring{min-width:7.2em;height:118px;border-radius:12px;border:3px solid #6e4a1e;background:linear-gradient(90deg,#6e4a1e,#e8b85a 18%,#fff0c0 50%,#e8b85a 82%,#6e4a1e);color:#2a1606;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;cursor:ns-resize;user-select:none;box-shadow:inset 0 10px 12px rgba(0,0,0,.35),inset 0 -10px 12px rgba(0,0,0,.35)}
+.ring .rv{font-weight:800;line-height:1.25;white-space:nowrap;transition:transform .18s}
+.ring .rv.cur{font-size:1.2em}
+.ring .rv.side{opacity:.45;font-size:.85em}
+.ring.turn .rv{animation:turn .2s ease-out}
+@keyframes turn{from{transform:translateY(var(--td,-14px));opacity:.4}to{transform:none;opacity:1}}
+.ring.lit{border-color:var(--energy);box-shadow:0 0 16px rgba(95,240,216,.8),inset 0 10px 12px rgba(0,0,0,.25),inset 0 -10px 12px rgba(0,0,0,.25)}
+.gearsep{width:46px;height:46px;flex:0 0 auto}
+.gearsep svg{width:100%;height:100%;transition:transform .3s}
+.rings.mesh .gearsep svg{animation:spin 1.2s linear infinite}
+.rings.mesh .gearsep:nth-of-type(even) svg{animation-name:spinr}
+
+/* tabelle */
+.ztable{border-collapse:separate;border-spacing:0 5px;margin:.3em 0}
+.ztable caption{text-align:left;font-weight:800;color:var(--accent);padding-bottom:.2em}
+.ztable th{text-align:right;padding:.1em .7em .1em 0;color:var(--muted);font-weight:600;white-space:nowrap}
+.ztable td{padding:0}
+.ztable .given,.ztable input{display:inline-block;min-width:9em;width:11em;min-height:42px;border-radius:9px;padding:.2em .5em}
+.ztable .given{background:#3a2d22;border:2px solid #5d4a3c;color:var(--muted)}
+.ztable input.lit,.ztable input.lit:read-only{background:#0f3a35;color:#d8fff8;border-color:var(--energy);box-shadow:0 0 12px rgba(95,240,216,.7)}
+.ztable input.wrongcell{border-color:var(--bad);background:#ffe2e2}
+.digitshow{display:flex;align-items:center;gap:.6em;margin:.5em 0;padding:.4em .8em;border-radius:12px;background:#2a2412;border:2px solid var(--accent)}
+.digitshow .bd{font-size:2.2em;font-weight:900;color:var(--accent);text-shadow:0 0 14px rgba(240,192,80,.9);animation:digpop .8s cubic-bezier(.3,1.6,.5,1) both}
+
+/* zelle */
+.cells{display:flex;gap:1em;flex-wrap:wrap;margin:.5em 0}
+.cell{position:relative;min-width:7.5em;min-height:64px;border-radius:12px 12px 10px 10px;font-weight:800;color:#0b2a26;border:3px solid #1d5f57;background:linear-gradient(90deg,#2aa594,#7ff5e2 45%,#2aa594);box-shadow:0 4px 0 #0e3f39;touch-action:none;user-select:none;cursor:grab}
+.cell::before{content:"";position:absolute;left:50%;top:-11px;transform:translateX(-50%);width:22px;height:9px;border-radius:4px 4px 0 0;background:#8a8a8a;border:2px solid #555}
+.cell:hover:not(:disabled){background:linear-gradient(90deg,#33b8a6,#a0fff0 45%,#33b8a6)}
+.cell.used,.cell.used:disabled{opacity:.35;filter:grayscale(1)}
+.cell.right,.cell.right:disabled{opacity:1;outline:4px solid var(--ok);outline-offset:3px}
+.dropzone.hover{background:rgba(95,240,216,.25);border-color:var(--energy)}
+.cellghost{position:fixed;z-index:1200;pointer-events:none;transform:translate(-50%,-50%) rotate(-6deg) scale(1.05);opacity:.95}
+.mport{position:absolute;z-index:9;border:4px dashed rgba(95,240,216,.85);border-radius:18px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:max(11px,1.2cqw);font-weight:800;color:#d8fff8;text-shadow:0 1px 3px #000;animation:portglow 1.4s ease-in-out infinite;pointer-events:none}
+@keyframes portglow{50%{box-shadow:0 0 22px rgba(95,240,216,.8);background:rgba(95,240,216,.12)}}
+.mport.hover{background:rgba(95,240,216,.3)}
+
+/* schmieden */
+.anvil{position:relative;margin:.3em 0 .4em;padding:.6em .6em 2.6em;border-radius:14px;background:linear-gradient(180deg,#2c2520,#1d1815)}
+.anvil::after{content:"";position:absolute;left:8%;right:8%;bottom:.5em;height:1.6em;border-radius:6px 6px 14px 14px;background:linear-gradient(180deg,#6d737a,#3b4046);box-shadow:inset 0 3px 0 rgba(255,255,255,.25)}
+.blocks{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:.3em;justify-content:center;align-items:flex-end}
+.block{min-width:2.6em;min-height:58px;padding:.1em .5em;border-radius:6px;font-weight:800;font-size:1.15em;color:#2b2b2b;border:3px solid #4a4f55;background:linear-gradient(180deg,#d6dbe0,#9aa2aa);box-shadow:0 4px 0 #3b4046}
+.block.heiss{color:#3a0e00;border-color:#a33a00;background:linear-gradient(180deg,#ffd27a,#ff8a2a 55%,#d4480a);box-shadow:0 0 14px rgba(255,120,30,.7),0 4px 0 #6a2200;cursor:pointer}
+.block.heiss:hover:not(:disabled){background:linear-gradient(180deg,#ffe2a0,#ff9a40 55%,#e0580f)}
+.block.empty{color:rgba(58,14,0,.45)}
+.block.cold,.block.cold:disabled{opacity:1;background:linear-gradient(180deg,#c9d6e2,#7d8fa0);border-color:#3f5568;color:#1a2a38;box-shadow:0 0 12px rgba(160,210,255,.6),0 4px 0 #2c3a48;cursor:default}
+.block.strike{animation:strike .25s ease-out}
+@keyframes strike{30%{transform:translateY(6px) scaleY(.85)}}
+.hammer{position:absolute;z-index:3;font-size:2.2em;pointer-events:none;transform-origin:80% 80%;animation:hammer .3s ease-out forwards}
+@keyframes hammer{0%{transform:translate(-50%,-110%) rotate(-50deg)}60%{transform:translate(-50%,-70%) rotate(10deg)}100%{transform:translate(-50%,-90%) rotate(-20deg);opacity:0}}
+.forgeword{font-size:1.15em;margin:.2em 0}
+.forgeword b{color:var(--accent);letter-spacing:.03em}
+.steam{position:absolute;left:50%;top:0;z-index:4;font-size:2em;pointer-events:none;animation:steam 1.2s ease-out forwards}
+@keyframes steam{from{transform:translate(-50%,0);opacity:1}to{transform:translate(-50%,-60px) scale(1.8);opacity:0}}
+
+/* Sammelkarten */
+.vcard{position:relative;width:200px;height:250px;perspective:900px;background:none;border:none;padding:0;min-height:0}
+.vcard .in{position:absolute;inset:0;transition:transform .6s;transform-style:preserve-3d}
+.vcard.flip .in{transform:rotateY(180deg)}
+.vcard .fa,.vcard .ba{position:absolute;inset:0;backface-visibility:hidden;border-radius:14px;border:4px solid #8a5a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.5em;text-align:center}
+.vcard .fa{background:radial-gradient(circle at 50% 30%,#fff6d8,#e8c070 70%,#b8862a);color:#2a1606}
+.vcard .fa .ic{font-size:2.4em}
+.vcard .fa .inf{font-size:1.35em;font-weight:900;margin:.2em 0}
+.vcard .fa .stars{font-size:.85em}
+.vcard .ba{background:linear-gradient(160deg,#20323a,#13232a);color:#e9fbff;transform:rotateY(180deg);font-size:.82em;justify-content:flex-start;text-align:left;align-items:stretch}
+.vcard .ba b{color:var(--energy)}
+.vcard .ba p{margin:.15em 0}
+.vcard.locked .fa{background:repeating-linear-gradient(45deg,#3a2d22,#3a2d22 10px,#33271d 10px,#33271d 20px);color:#8a7660;border-color:#5d4a3c}
+.cardrow .vcard{width:150px;height:190px;font-size:.85em}
+.vcard.newcard{animation:cardin 1s cubic-bezier(.3,1.4,.5,1) both}
+@keyframes cardin{from{transform:translateY(40px) rotate(-20deg) scale(.4);opacity:0}to{transform:none;opacity:1}}
+.albumgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.9em;justify-items:center;margin:.6em 0}
+.cardrow{display:flex;gap:1em;align-items:center;flex-wrap:wrap;margin:.4em 0}
+.facher{display:flex;gap:.6em;flex-wrap:wrap}
+.facher .f{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:.3em .8em;min-width:120px;text-align:center}
+.facher .f b{display:block;font-size:1.5em;color:var(--accent)}
+
+/* Zeitschloss */
+.lockbox{display:flex;gap:1em;flex-wrap:wrap;align-items:center;margin:.4em 0}
+.wheels{display:flex;gap:.5em;padding:.5em .7em;border-radius:14px;background:linear-gradient(180deg,#3d2c1c,#1f150d);border:3px solid var(--brass2)}
+.wheel{display:flex;flex-direction:column;align-items:center;gap:2px}
+.wheel .wl{font-size:1.4em;line-height:1.2}
+.wheel .wd{width:2.2em;height:2.4em;border-radius:10px;border:3px solid #6e4a1e;background:linear-gradient(180deg,#6e4a1e,#f3d48a 30%,#fff3cc 50%,#f3d48a 70%,#6e4a1e);color:#2a1606;font-size:1.5em;font-weight:900;display:flex;align-items:center;justify-content:center;user-select:none;cursor:ns-resize}
+.wheel button{min-height:30px;width:100%;padding:0;border-radius:8px;font-size:.8em;background:#3a2a1a}
+.wheels.rattle{animation:stutter .5s}
+.wheels.open .wd{border-color:var(--energy);box-shadow:0 0 14px rgba(95,240,216,.8)}
+.leverbtn{display:flex;flex-direction:column;align-items:center;gap:.2em;font-weight:800;padding:.4em 1em}
+.leverbtn .lv{font-size:2em;display:inline-block;transition:transform .4s}
+.leverbtn:hover:not(:disabled) .lv{transform:rotate(25deg)}
+.meter{height:20px;border-radius:10px;background:#3a2d22;border:2px solid #6b5640;overflow:hidden;margin:.2em 0 .5em}
+.meter > div{height:100%;background:linear-gradient(90deg,#2aa594,var(--energy));box-shadow:0 0 10px var(--energy);transition:width .8s}
+
+/* Zeitreise */
+.travel{position:absolute;inset:0;z-index:40;background:#05030a;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.travel .ringt{position:absolute;left:50%;top:50%;width:10%;aspect-ratio:1;border-radius:50%;border:6px solid;transform:translate(-50%,-50%) scale(.1);animation:tunnel 1.6s linear infinite;opacity:0}
+@keyframes tunnel{0%{transform:translate(-50%,-50%) scale(.1) rotate(0);opacity:0}20%{opacity:1}100%{transform:translate(-50%,-50%) scale(12) rotate(90deg);opacity:0}}
+.travel .tg{position:absolute;width:22%;opacity:.75}
+.travel .tg svg{width:100%;height:auto;animation:spin 1.4s linear infinite}
+.travel .tg.r svg{animation-name:spinr}
+.travel .year{position:relative;z-index:3;font-family:"Courier New",monospace;font-weight:900;font-size:9cqw;color:#fff3c4;text-shadow:0 0 20px #f0c050,0 0 40px #ff8a2a;letter-spacing:.06em;text-align:center}
+.travel .year small{display:block;font-size:.3em;letter-spacing:.02em;font-family:Roboto,Arial,sans-serif;color:#d8fff8;text-shadow:0 0 10px #5ff0d8}
+.travel .skip{position:absolute;right:12px;bottom:12px;z-index:4;min-height:40px;font-size:15px}
+.travel.calm .ringt,.travel.calm .tg{display:none}
+.flash{position:absolute;inset:0;z-index:41;background:#fff;pointer-events:none;animation:flash .7s ease-out forwards}
+@keyframes flash{from{opacity:1}to{opacity:0}}
+
+/* Sonstiges */
+.restable{border-collapse:collapse;margin:.5em 0} .restable th,.restable td{text-align:left;padding:.2em .8em .2em 0;border-bottom:1px solid var(--line)}
+.bigcode{font-family:"Courier New",monospace;font-size:1.6em;font-weight:800;letter-spacing:.06em;background:#fff;color:#111;border-radius:12px;padding:.2em .6em;display:inline-block;margin:.2em 0}
+.wronglist li{margin-bottom:.6em}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#fff;color:#222;border-radius:12px;padding:.5em 1em;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:1500;max-width:90vw}
+code{font-family:"Courier New",monospace;background:#00000055;padding:0 .3em;border-radius:4px}
+pre.code{background:#000;color:#9fe;padding:.6em;border-radius:10px;white-space:pre-wrap}
+.edold{position:absolute;border:3px solid #5ee08f;border-radius:10px;z-index:5;pointer-events:none}
+.edold span{position:absolute;left:0;top:-1.4em;background:#000c;color:#fff;font-size:13px;padding:0 .3em;border-radius:4px;white-space:nowrap}
+.edbox{position:absolute;border:3px dashed #ffd166;background:rgba(255,209,102,.15);z-index:6;pointer-events:none}
+.confirmbox{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1em}
+.confirmbox .cb{background:var(--panel);color:var(--text);border:2px solid var(--line);border-radius:16px;padding:1em 1.2em;max-width:520px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.confirmbox .cbrow{display:flex;gap:.6em;justify-content:flex-end;flex-wrap:wrap}
+.tfcount{animation:digpop .7s cubic-bezier(.3,1.6,.5,1)}
+
+/* Ruhiger Modus: „Animationen aus“ oder Systemeinstellung → nur Überblendungen */
+html.ruhig *,html.ruhig *::before,html.ruhig *::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;animation-delay:0s !important;transition-property:opacity,background-color,border-color,color,width !important}
+html.ruhig .over,html.ruhig .over.mid,html.ruhig .travel,html.ruhig .flash{animation:fadein .4s ease-out !important}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;animation-delay:0s !important;transition-property:opacity,background-color,border-color,color,width !important}
+  .over,.over.mid,.travel,.flash{animation:fadein .4s ease-out !important}
+}
+@media (max-width:900px){ .over{width:auto;right:1.2%} }
+@media (max-width:700px){ body{font-size:17px} }
+</style>
+</head>
+<body>
+<header id="top">
+  <a class="homelink" href="index.html" title="Zur Startseite mit allen Spielen">← Alle Spiele</a>
+  <span class="brand">⏳ Zeitmaschine</span>
+  <div id="hud" aria-live="polite"></div>
+  <div class="tools">
+    <button type="button" id="btnMenu" title="Zum Menü">☰ Menü</button>
+    <button type="button" id="btnAnim" aria-pressed="false" title="Animationen an/aus">🎞 Animationen an</button>
+    <button type="button" id="btnSound" aria-pressed="false" title="Ton an/aus">🔇 Ton aus</button>
+  </div>
+</header>
+<main id="app" tabindex="-1"></main>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+/* =====================================================================
+   AB HIER: SPIEL-LOGIK (muss nicht geändert werden)
+   ===================================================================== */
+const E = EINSTELLUNGEN;
+const LEVELS = ['A2','B1','B2','C1'];
+const LS_GAME = 'zeitmaschine.spiel.v1', LS_ALBUM = 'zeitmaschine.album.v1', LS_SET = 'zeitmaschine.einstellungen.v1';
+const TYPEN = ['zahnrad','tabelle','zelle','schmieden','umschreiben','auswahl','luecke','satz'];
+const ARTEN = ['aufgabe','zeitfehler','gag','info'];
+const PERSONEN = ['ich','du','er/sie/es','wir','ihr','sie/Sie'];
+const KINDER = ['👧🏽','👦🏻','🧒🏽'];
+const INPUT_ATTR = 'type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"';
+
+const app = document.getElementById('app');
+let state=null, view='start', ui={}, settings={ sound:false, anim:true };
+const optOrder={};
+
+/* ---------- Speicher ---------- */
+function lsGet(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { window.localStorage.setItem(k,v); } catch(e){} }
+function lsDel(k){ try { window.localStorage.removeItem(k); } catch(e){} }
+function save(){ if(state) lsSet(LS_GAME, JSON.stringify(state)); }
+function saveSettings(){ lsSet(LS_SET, JSON.stringify(settings)); }
+
+/* ---------- Hilfen ---------- */
+const $  = (s,r) => (r||document).querySelector(s);
+const $$ = (s,r) => Array.from((r||document).querySelectorAll(s));
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+function plain(s){ return String(s==null?'':s).replace(/\*\*/g,''); }
+function paras(s){ return String(s||'').split(/\n\s*\n/).map(p => '<p>'+fmt(p)+'</p>').join(''); }
+function asList(x){ return x==null ? [] : (Array.isArray(x) ? x : [x]); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function range(n){ return Array.from({length:n},(_,i)=>i); }
+function fmtTime(ms){ const s=Math.max(0,Math.round(ms/1000)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function fmtDate(d){ const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear(); }
+function focusEl(sel){ const el = sel ? (typeof sel==='string'?$(sel):sel) : null; (el||app).focus({preventScroll:true}); }
+let toastT=null;
+function toast(msg, ms){ const t=$('#toast'); t.innerHTML=fmt(msg); t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; }, ms||3000); }
+function spanish(){ return state && E.spanischeHilfe[state.level]; }
+function pos(r){ return 'left:'+(r[0]/10)+'%;top:'+(r[1]/5.6)+'%;width:'+(r[2]/10)+'%;height:'+(r[3]/5.6)+'%'; }
+function ruhig(){ return !settings.anim || !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+
+/* ---------- Eingebettet (z. B. Google Sites) ---------- */
+const EINGEBETTET = (()=>{ try { return window.self!==window.top; } catch(e){ return true; } })();
+if(EINGEBETTET) document.documentElement.classList.add('eingebettet');
+function bestaetigen(msg, ok){
+  const d=document.createElement('div'); d.className='confirmbox'; d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true');
+  d.innerHTML='<div class="cb"><p></p><div class="cbrow"><button type="button" class="cbno">Abbrechen</button><button type="button" class="primary cbyes">Ja</button></div></div>';
+  d.querySelector('p').textContent=msg; document.body.appendChild(d);
+  const close=()=>d.remove();
+  d.querySelector('.cbno').addEventListener('click',close);
+  d.querySelector('.cbyes').addEventListener('click',()=>{ close(); ok(); });
+  d.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); close(); } });
+  d.querySelector('.cbno').focus();
+}
+
+/* ---------- Antworten vergleichen (ae/oe/ue/ss werden akzeptiert) ---------- */
+function canon(s){
+  return String(s==null?'':s).normalize('NFC').toLowerCase().replace(/[„“”‟"«»‚‘’']/g,' ').replace(/[.,!?;:…–-]/g,' ')
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+    .normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+}
+function matches(val, list){ const c=canon(val); return c!=='' && asList(list).some(l=>canon(l)===c); }
+
+/* ---------- Verben ---------- */
+const VERB={}; VERBEN.forEach(v=>{ if(v && v.inf) VERB[v.inf]=v; });
+function sammelbar(inf){ const v=VERB[inf]; return !!v && v.art!=='regelmäßig'; }
+function sammelVerben(){
+  const set=new Set();
+  LEVELS.forEach(lv=>{ const S=SPIEL[lv]; if(!S) return;
+    asList(S.raeume).concat(S.bonus?[S.bonus]:[]).forEach(R=>asList(R.gegenstaende).forEach(O=>asList(O.aufgaben).forEach(a=>{ if(a.typ==='schmieden' && sammelbar(a.verb)) set.add(a.verb); }))); });
+  return VERBEN.filter(v=>set.has(v.inf));
+}
+
+/* ---------- Album (bleibt über alle Spiele erhalten) ---------- */
+function loadAlbum(){ try{ const a=JSON.parse(lsGet(LS_ALBUM)||'null'); if(a && a.v===1 && a.karten && typeof a.karten==='object') return a; }catch(e){} return { v:1, karten:{} }; }
+function saveAlbum(a){ lsSet(LS_ALBUM, JSON.stringify(a)); }
+function albumAdd(inf){ const a=loadAlbum(); if(a.karten[inf]) return false; a.karten[inf]={ fach:1, seit:new Date().toISOString().slice(0,10), richtig:0 }; saveAlbum(a); return true; }
+function albumCount(){ const a=loadAlbum(); return Object.keys(a.karten).filter(k=>VERB[k]).length; }
+
+/* ---------- Daten vorbereiten ---------- */
+function normTask(a, id){
+  const t=Object.assign({}, a, { id });
+  if(t.typ==='zahnrad'){ t.pRing = asList(a.ringe)[0]==='PERSON'; t.ringe=asList(a.ringe).map(r=>r==='PERSON'?PERSONEN.slice():asList(r)); }
+  return t;
+}
+function normRoom(R, r, bonus){
+  const objs=asList(R.gegenstaende).map((O,oi)=>({ O, oi, tasks: O.art==='aufgabe' ? asList(O.aufgaben).map((a,i)=>normTask(a,(bonus?'b':r)+'.'+oi+'.'+i)) : [] }));
+  const tasks=[]; objs.forEach(o=>o.tasks.forEach((t,i)=>{ t.oi=o.oi; t.k=i; tasks.push(t); }));
+  return { R, r, objs, tasks, bonus:!!bonus, lockObjs: objs.filter(o=>o.O.art==='aufgabe' && o.O.ziffer!=null && o.O.ziffer!=='') };
+}
+const DATA={};
+function D(level){ level=level||state.level; if(!DATA[level]){ const S=SPIEL[level]; DATA[level]={ rooms:asList(S.raeume).map((R,r)=>normRoom(R,r,false)), bonus:S.bonus?normRoom(S.bonus,asList(S.raeume).length,true):null }; } return DATA[level]; }
+function rooms(level){ return D(level).rooms; }
+function allTasks(level){ return rooms(level).reduce((a,x)=>a.concat(x.tasks),[]); }
+function signature(level){ const d=D(level); return d.rooms.concat(d.bonus?[d.bonus]:[]).map(x=>x.objs.map(o=>o.tasks.map(t=>t.typ.slice(0,2)).join('')).join(',')).join('|'); }
+function zfTotal(level){ return rooms(level).reduce((n,x)=>n+x.objs.filter(o=>o.O.art==='zeitfehler').length,0); }
+function L(){ return SPIEL[state.level]; }
+
+/* ---------- Daten prüfen ---------- */
+function forgeWords(b){ let words=['']; asList(b).forEach(seg=>{ const opts=Array.isArray(seg)?seg:[seg]; const n=[]; words.forEach(w=>opts.forEach(o=>n.push(w+o))); words=n; }); return words; }
+function checkTask(a, tw, w){
+  if(!a || !TYPEN.includes(a.typ)){ w.push(tw+'unbekannter typ „'+(a&&a.typ)+'“.'); return; }
+  if(!a.erklaerung_de) w.push(tw+'erklaerung_de fehlt.');
+  const gap = s => { if(!String(s||'').includes('___')) w.push(tw+'satz braucht ___ als Lücke.'); };
+  if(a.typ==='zahnrad'){
+    const ringe=asList(a.ringe).map(r=>r==='PERSON'?PERSONEN:asList(r)), l=asList(a.loesung);
+    gap(a.satz);
+    if(ringe.length<2) w.push(tw+'Es braucht mindestens zwei Ringe.');
+    if(l.length!==ringe.length) w.push(tw+'loesung braucht genau einen Wert pro Ring.');
+    else l.forEach((v,i)=>{ if(!ringe[i].includes(v)) w.push(tw+'„'+v+'“ steht nicht in Ring '+(i+1)+'.'); });
+  }
+  if(a.typ==='tabelle'){
+    const z=a.zellen||{}, l=a.loesung||{}, gaps=Object.keys(z).filter(k=>z[k]==='?');
+    if(!gaps.length) w.push(tw+'Die Tabelle hat keine Lücke ("?").');
+    gaps.forEach(k=>{ if(!asList(l[k]).length) w.push(tw+'loesung für „'+k+'“ fehlt.'); });
+    Object.keys(l).forEach(k=>{ if(z[k]!=='?') w.push(tw+'„'+k+'“ hat eine Lösung, aber in zellen steht kein "?".'); });
+  }
+  if(a.typ==='zelle'){
+    const o=asList(a.optionen).length?asList(a.optionen):['haben','sein'];
+    gap(a.satz); if(!o.includes(a.loesung)) w.push(tw+'loesung steht nicht in den Zellen.'); if(!a.form) w.push(tw+'form fehlt.');
+  }
+  if(a.typ==='schmieden'){
+    if(!['Partizip II','Präteritum'].includes(a.form)) w.push(tw+'form muss "Partizip II" oder "Präteritum" sein.');
+    if(!VERB[a.verb]) w.push(tw+'Das Verb „'+a.verb+'“ steht nicht in VERBEN.');
+    if(!forgeWords(a.bausteine).includes(a.loesung)) w.push(tw+'Mit diesen bausteinen kann man „'+a.loesung+'“ nicht schmieden.');
+    else if(VERB[a.verb]){ const soll=a.form==='Präteritum'?VERB[a.verb].praet:VERB[a.verb].part; if(soll!==a.loesung) w.push(tw+'loesung „'+a.loesung+'“ passt nicht zu VERBEN („'+soll+'“).'); }
+  }
+  if(a.typ==='umschreiben'){ if(!a.satz) w.push(tw+'satz fehlt.'); if(!asList(a.loesung).length) w.push(tw+'loesung fehlt.'); }
+  if(a.typ==='auswahl'){ gap(a.satz); if(!asList(a.optionen).includes(a.loesung)) w.push(tw+'loesung steht nicht genau so in optionen.'); }
+  if(a.typ==='luecke'){ gap(a.satz); if(!asList(a.loesung).length) w.push(tw+'loesung fehlt.'); }
+  if(a.typ==='satz'){ if(!asList(a.loesung).length) w.push(tw+'loesung fehlt.'); }
+}
+function checkRoom(R, where, w, bonus){
+  if(!SCENES[R.szene]) w.push(where+': unbekannte szene „'+R.szene+'“.');
+  const ids={};
+  asList(R.gegenstaende).forEach((O,i)=>{
+    const ow=where+', Gegenstand '+(i+1)+' ('+(O.id||'?')+'): ';
+    if(!O.id) w.push(ow+'id fehlt.'); else if(ids[O.id]) w.push(ow+'id kommt doppelt vor.'); ids[O.id]=1;
+    if(!ARTEN.includes(O.art)) w.push(ow+'unbekannte art „'+O.art+'“.');
+    if(!Array.isArray(O.ort) || O.ort.length!==4 || O.ort.some(n=>typeof n!=='number')) w.push(ow+'ort muss [x, y, Breite, Höhe] sein.');
+    if(O.art==='aufgabe'){
+      if(!asList(O.aufgaben).length) w.push(ow+'keine aufgaben.');
+      if(!bonus && !(Number.isInteger(O.ziffer) && O.ziffer>=0 && O.ziffer<=9)) w.push(ow+'ziffer (0–9) fehlt.');
+      asList(O.aufgaben).forEach((a,k)=>checkTask(a, ow+'Aufgabe '+(k+1)+': ', w));
+    }
+  });
+  if(!asList(R.gegenstaende).some(O=>O.art==='aufgabe')) w.push(where+': keine Gegenstände mit Aufgaben.');
+}
+function dataWarnings(){
+  const w=[];
+  VERBEN.forEach((v,i)=>{ ['inf','praet','part','hilfs','art'].forEach(f=>{ if(!v[f]) w.push('VERBEN '+(i+1)+' ('+(v.inf||'?')+'): '+f+' fehlt.'); }); if(v.art && !['unregelmäßig','gemischt','regelmäßig'].includes(v.art)) w.push('VERBEN „'+v.inf+'“: unbekannte art.'); });
+  LEVELS.forEach(lv=>{ const S=SPIEL[lv]; if(S==null) return;
+    if(!Array.isArray(S.raeume)||!S.raeume.length){ w.push(lv+': „raeume“ fehlt.'); return; }
+    S.raeume.forEach((R,r)=>checkRoom(R, lv+' · Raum '+(r+1)+' ('+(R.name||'?')+')', w, false));
+    if(S.bonus) checkRoom(S.bonus, lv+' · Bonusraum', w, true);
+  });
+  return w;
+}
+
+/* ---------- Prüfcode ---------- */
+function cyrb53(str){ let h1=0xdeadbeef, h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909); return 4294967296*(2097151&h2)+(h1>>>0); }
+const B32='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function normName(n){ return String(n||'').replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]/g,''); }
+function checksum(level,pct,d,name){ let n=cyrb53(['ZM',level,pct,d,normName(name),E.geheimwort].join('|')); let s=''; for(let i=0;i<5;i++){ s+=B32[n%32]; n=Math.floor(n/32); } return s; }
+function makeCode(level,pct,date,name){ const p=n=>String(n).padStart(2,'0'); const d=p(date.getDate())+p(date.getMonth()+1)+p(date.getFullYear()%100); return level+'-'+pct+'-'+d+'-'+checksum(level,pct,d,name); }
+function verifyCode(code,name){
+  const m=String(code||'').toUpperCase().replace(/\s+/g,'').match(/^(A2|B1|B2|C1)-(\d{1,3})-(\d{6})-([A-Z0-9]{5})$/);
+  if(!m) return { valid:false, reason:'Das Format stimmt nicht. Beispiel: B1-85-131026-K7QFM' };
+  return { valid: checksum(m[1],+m[2],m[3],name)===m[4], level:m[1], pct:+m[2], date:m[3].slice(0,2)+'.'+m[3].slice(2,4)+'.20'+m[3].slice(4) };
+}
+
+/* ---------- Ton ---------- */
+let actx=null;
+const SND={ ok:[[660,.12],[880,.2]], bad:[[220,.28]], stutter:[[140,.07],[110,.07],[150,.07],[90,.2]], hammer:[[1500,.03],[750,.07]], cool:[[900,.05],[650,.05],[420,.12]],
+  tick:[[520,.03]], open:[[523,.1],[659,.1],[784,.18]], tf:[[1047,.1],[1319,.1],[1568,.25]], card:[[660,.08],[880,.08],[1320,.22]], fanfare:[[523,.15],[659,.15],[784,.15],[1047,.4]], clank:[[200,.05],[160,.12]] };
+function sound(n){ if(!settings.sound) return; try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); let t=actx.currentTime;
+  if(n==='travel'){ const o=actx.createOscillator(), g=actx.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(1400,t+2.4); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.08,t+0.3); g.gain.exponentialRampToValueAtTime(0.0001,t+2.8); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+2.9); return; }
+  SND[n].forEach(([f,d])=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type=n==='stutter'||n==='clank'?'square':'triangle'; o.frequency.value=f; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(n==='stutter'?0.06:0.16,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+d); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d+0.03); t+=d*0.9; }); }catch(e){} }
+
+/* =====================================================================
+   ZEICHNUNGEN
+   ===================================================================== */
+function gearPath(cx,cy,r,n){
+  let d=''; const ri=r*0.78;
+  for(let i=0;i<n*2;i++){ const rr=i%2?ri:r, a1=Math.PI*2*i/(n*2), a2=Math.PI*2*(i+1)/(n*2);
+    const p=a=>(cx+rr*Math.cos(a)).toFixed(1)+' '+(cy+rr*Math.sin(a)).toFixed(1); d+=(i?'L':'M')+p(a1)+' L'+p(a2)+' '; }
+  return d+'Z';
+}
+function gear(cx,cy,r,n,cls,fill){ return '<g class="'+cls+'"><path d="'+gearPath(cx,cy,r,n)+'" fill="'+(fill||'#c8913a')+'" stroke="#5a3a10" stroke-width="2.5"/><circle cx="'+cx+'" cy="'+cy+'" r="'+(r*0.32)+'" fill="#5a3a10"/><circle cx="'+cx+'" cy="'+cy+'" r="'+(r*0.14)+'" fill="#e8c070"/></g>'; }
+function smallGear(){ return '<svg viewBox="-25 -25 50 50" aria-hidden="true"><path d="'+gearPath(0,0,22,10)+'" fill="#c8913a" stroke="#5a3a10" stroke-width="2"/><circle r="7" fill="#5a3a10"/></svg>'; }
+function machineSVG(en){
+  en=Math.max(0,Math.min(1,en||0)); const h=Math.round(72*en), lit=Math.round(en*3);
+  let ticks=''; for(let i=0;i<12;i++){ const a=i*Math.PI/6; ticks+='<line x1="'+(110+48*Math.sin(a)).toFixed(1)+'" y1="'+(95-48*Math.cos(a)).toFixed(1)+'" x2="'+(110+54*Math.sin(a)).toFixed(1)+'" y2="'+(95-54*Math.cos(a)).toFixed(1)+'" stroke="#5a3a10" stroke-width="3"/>'; }
+  return '<svg viewBox="0 0 220 330" aria-hidden="true"><defs>'+
+    '<linearGradient id="mbr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe7a0"/><stop offset=".5" stop-color="#d9a441"/><stop offset="1" stop-color="#8a5a1a"/></linearGradient>'+
+    '<linearGradient id="mwd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a5f2e"/><stop offset="1" stop-color="#5e3517"/></linearGradient></defs>'+
+    '<rect x="150" y="14" width="22" height="70" fill="url(#mbr)" stroke="#5a3a10" stroke-width="3"/><rect x="143" y="6" width="36" height="13" rx="3" fill="url(#mbr)" stroke="#5a3a10" stroke-width="3"/>'+
+    gear(40,168,30,12,'g1')+gear(184,176,20,9,'g3','#b8823a')+
+    '<circle cx="110" cy="95" r="70" fill="url(#mbr)" stroke="#5a3a10" stroke-width="5"/><circle cx="110" cy="95" r="57" fill="#fff6dc" stroke="#8a5a1a" stroke-width="3"/>'+ticks+
+    '<line class="hand" x1="110" y1="95" x2="110" y2="52" stroke="#2a1606" stroke-width="5" stroke-linecap="round"/><line x1="110" y1="95" x2="138" y2="104" stroke="#2a1606" stroke-width="4" stroke-linecap="round"/><circle cx="110" cy="95" r="7" fill="#2a1606"/>'+
+    gear(96,186,22,10,'g2','#e0b050')+
+    '<rect x="20" y="200" width="180" height="112" rx="10" fill="url(#mwd)" stroke="#3a2210" stroke-width="4"/>'+
+    '<rect x="26" y="206" width="168" height="8" rx="3" fill="#b07a40" opacity=".6"/>'+
+    '<rect x="40" y="216" width="34" height="80" rx="10" fill="#0d1f1d" stroke="#8a5a1a" stroke-width="3"/>'+
+    '<rect class="tubefill" x="44" y="'+(292-h)+'" width="26" height="'+h+'" rx="8" fill="#5ff0d8"/>'+
+    '<path d="M48 224 v60" stroke="#ffffff" stroke-opacity=".35" stroke-width="3" stroke-linecap="round"/>'+
+    [0,1,2].map(i=>'<circle class="lamp" cx="'+(98+i*22)+'" cy="230" r="8" fill="'+(i<lit?'#5ff0d8':'#3a2d22')+'" stroke="#2a1606" stroke-width="2"/>').join('')+
+    '<circle cx="176" cy="232" r="11" fill="#d33" stroke="#600" stroke-width="3"/>'+
+    '<rect x="90" y="252" width="96" height="44" rx="7" fill="#1d1712" stroke="#d9a441" stroke-width="3"/><text x="138" y="281" text-anchor="middle" font-size="20" font-family="Arial" fill="#d9a441">⚡</text>'+
+    '<rect x="26" y="312" width="22" height="14" rx="3" fill="#3a2210"/><rect x="172" y="312" width="22" height="14" rx="3" fill="#3a2210"/>'+
+    '<g class="lever"><rect x="203" y="214" width="9" height="62" rx="4" fill="#8a8f96" stroke="#3b4046" stroke-width="2"/><circle cx="207.5" cy="212" r="11" fill="#d33" stroke="#600" stroke-width="3"/></g>'+
+    '<rect x="198" y="270" width="20" height="18" rx="4" fill="url(#mbr)" stroke="#5a3a10" stroke-width="2"/>'+
+    '</svg>';
+}
+
+/* Szenen: svg = Raumbild (1000 × 560), m = Ort der Maschine, figs = Füße der drei Figuren */
+function moai(x,y,s){ return '<g transform="translate('+x+' '+y+') scale('+s+')"><path d="M-16 0 V-40 Q-16 -46 -12 -48 V-78 Q-12 -92 0 -92 Q12 -92 12 -78 V-48 Q16 -46 16 -40 V0 Z" fill="#74665b" stroke="#4a3f38" stroke-width="2"/><path d="M-9 -70 H9" stroke="#4a3f38" stroke-width="4"/><path d="M0 -68 V-56 L-3 -54" stroke="#4a3f38" stroke-width="2.5" fill="none"/><path d="M-6 -50 H6" stroke="#4a3f38" stroke-width="2"/></g>'; }
+function waves(y, n, cls, col){ let s=''; for(let k=0;k<n;k++){ let d='M'+(-40)+' '+(y+k*22); for(let x=-40;x<1060;x+=50) d+=' q 12 -7 25 0 t 25 0'; s+='<path class="wave'+(k%2?' w2':'')+(cls?' '+cls:'')+'" d="'+d+'" stroke="'+(col||'#d6efff')+'" stroke-opacity=".55" stroke-width="2.5" fill="none"/>'; } return s; }
+function volcano(cx,base,peak,half){ return '<polygon points="'+(cx-half)+','+base+' '+cx+','+peak+' '+(cx+half)+','+base+'" fill="#6b7f99"/><path d="M'+(cx-half*0.32)+' '+(peak+(base-peak)*0.32)+' L'+cx+' '+peak+' L'+(cx+half*0.32)+' '+(peak+(base-peak)*0.32)+' l-14 10 l-12 -8 l-14 12 l-12 -10 l-14 9 l-12 -8 Z" fill="#f4f8ff"/>'; }
+function tree(x,y,s,c){ return '<polygon points="'+(x-18*s)+','+y+' '+x+','+(y-70*s)+' '+(x+18*s)+','+y+'" fill="'+(c||'#2f5a35')+'"/><polygon points="'+(x-14*s)+','+(y-30*s)+' '+x+','+(y-90*s)+' '+(x+14*s)+','+(y-30*s)+'" fill="'+(c||'#2f5a35')+'"/>'; }
+function house(x,y,w,h,c){ return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+c+'" stroke="#3a2210" stroke-width="2"/><polygon points="'+(x-6)+','+y+' '+(x+w/2)+','+(y-w*0.55)+' '+(x+w+6)+','+y+'" fill="#7a3a22" stroke="#3a2210" stroke-width="2"/><rect x="'+(x+w*0.18)+'" y="'+(y+h*0.25)+'" width="'+(w*0.22)+'" height="'+(h*0.25)+'" fill="#fff8d8" stroke="#fff" stroke-width="2"/><rect x="'+(x+w*0.6)+'" y="'+(y+h*0.25)+'" width="'+(w*0.22)+'" height="'+(h*0.25)+'" fill="#fff8d8" stroke="#fff" stroke-width="2"/><rect x="'+(x+w*0.4)+'" y="'+(y+h*0.62)+'" width="'+(w*0.2)+'" height="'+(h*0.38)+'" fill="#5a3218"/>'; }
+function grad(id,a,b,v){ return '<linearGradient id="'+id+'" x1="0" y1="0" x2="'+(v?0:1)+'" y2="'+(v?1:0)+'"><stop offset="0" stop-color="'+a+'"/><stop offset="1" stop-color="'+b+'"/></linearGradient>'; }
+
+const SCENES = {
+  dachboden: { m:[740,190,220,330], figs:[[390,548],[448,550],[506,548]], svg(){
+    let planks=''; for(let x=0;x<1000;x+=55) planks+='<line x1="'+x+'" y1="0" x2="'+x+'" y2="430" stroke="#2e1c0f" stroke-opacity=".5" stroke-width="2"/>';
+    let rain=''; for(let i=0;i<14;i++) rain+='<line x1="'+(450+i*8)+'" y1="'+(30+(i%4)*12)+'" x2="'+(446+i*8)+'" y2="'+(52+(i%4)*12)+'" stroke="#cfe6ff" stroke-width="2"/>';
+    let motes=''; for(let i=0;i<9;i++) motes+='<circle class="mote'+(i%2?' m2':'')+'" cx="'+(420+i*30)+'" cy="'+(220+((i*53)%220))+'" r="2.5" fill="#fff6c8" opacity=".7"/>';
+    return '<defs>'+grad('dbw','#4d3220','#2e1d11',1)+grad('dbf','#6a4428','#3b2414',1)+'<clipPath id="dbwin"><circle cx="500" cy="95" r="50"/></clipPath></defs>'+
+      '<rect width="1000" height="560" fill="url(#dbw)"/>'+planks+
+      '<polygon points="0,0 290,0 0,330" fill="#21130a"/><polygon points="1000,0 710,0 1000,330" fill="#21130a"/>'+
+      '<rect x="0" y="40" width="1000" height="22" fill="#2a190d"/><rect x="292" y="0" width="22" height="430" fill="#2a190d"/><rect x="690" y="0" width="22" height="430" fill="#2a190d"/>'+
+      '<circle cx="500" cy="95" r="56" fill="#4f6f86" stroke="#2a190d" stroke-width="12"/><g clip-path="url(#dbwin)"><g class="rain">'+rain+'</g></g><line x1="444" y1="95" x2="556" y2="95" stroke="#2a190d" stroke-width="6"/><line x1="500" y1="39" x2="500" y2="151" stroke="#2a190d" stroke-width="6"/>'+
+      '<polygon points="462,140 538,140 720,520 300,520" fill="#ffe6a0" opacity=".09"/>'+motes+
+      '<rect y="430" width="1000" height="130" fill="url(#dbf)"/><line x1="0" y1="460" x2="1000" y2="460" stroke="#2e1c0f" stroke-width="2"/><line x1="0" y1="495" x2="1000" y2="495" stroke="#2e1c0f" stroke-width="2"/><line x1="0" y1="530" x2="1000" y2="530" stroke="#2e1c0f" stroke-width="2"/>'+
+      '<rect x="180" y="368" width="120" height="10" fill="#7a4a24" stroke="#3a2210" stroke-width="2"/><path d="M195 378 l0 22 M285 378 l0 22" stroke="#3a2210" stroke-width="5"/>'+
+      '<path d="M30 430 Q40 270 110 250 Q180 260 190 430 Z" fill="#9a9488" stroke="#6b665c" stroke-width="3"/><path d="M60 300 Q100 330 150 300" stroke="#6b665c" stroke-width="3" fill="none"/>'+
+      '<rect x="580" y="340" width="110" height="90" fill="#a8763e" stroke="#5a3a1a" stroke-width="3"/><line x1="580" y1="365" x2="690" y2="365" stroke="#5a3a1a" stroke-width="2"/><rect x="610" y="290" width="70" height="50" fill="#b8864a" stroke="#5a3a1a" stroke-width="3"/>'+
+      '<path d="M120 40 L190 40 M120 40 L120 100 M120 40 L175 90 M135 40 Q140 60 120 62 M155 40 Q160 72 120 82" stroke="#ddd" stroke-opacity=".5" stroke-width="1.5" fill="none"/>'+
+      '<path d="M720 470 Q735 500 755 480" stroke="#222" stroke-width="5" fill="none"/>';
+  }},
+  rapanui: { m:[760,220,210,310], figs:[[590,548],[645,550],[700,548]], svg(){
+    return '<defs>'+grad('rnsky','#6fb7e8','#d6f1ff',1)+grad('rnsea','#2f86c0','#1d5f91',1)+grad('rngr','#7ab64e','#3f7a2a',1)+'</defs>'+
+      '<rect width="1000" height="560" fill="url(#rnsky)"/><circle cx="880" cy="70" r="38" fill="#fff3b0"/>'+
+      '<g class="cloud"><ellipse cx="200" cy="80" rx="70" ry="20" fill="#fff" opacity=".9"/><ellipse cx="240" cy="68" rx="40" ry="18" fill="#fff" opacity=".9"/></g><g class="cloud" style="animation-duration:80s"><ellipse cx="600" cy="50" rx="60" ry="16" fill="#fff" opacity=".8"/></g>'+
+      '<rect y="200" width="1000" height="110" fill="url(#rnsea)"/>'+waves(225,3)+
+      '<path d="M0 300 Q200 200 430 300 Z" fill="#4f8a36"/>'+
+      '<path d="M0 300 Q300 268 600 288 T1000 280 V560 H0 Z" fill="url(#rngr)"/>'+
+      '<rect x="470" y="266" width="240" height="22" rx="3" fill="#7d7065" stroke="#5a4f46" stroke-width="2"/>'+
+      moai(495,268,1)+moai(540,268,1.05)+moai(590,268,1.1)+moai(640,268,1.0)+moai(685,268,0.95)+
+      '<g class="glide"><path d="M120 120 q10 -9 20 0 q10 -9 20 0" stroke="#333" stroke-width="3" fill="none"/></g><g class="glide" style="animation-duration:18s"><path d="M300 90 q8 -7 16 0 q8 -7 16 0" stroke="#333" stroke-width="2.5" fill="none"/></g>'+
+      '<ellipse cx="160" cy="470" rx="40" ry="16" fill="#8a8a80"/><ellipse cx="380" cy="520" rx="30" ry="12" fill="#7a7a70"/><ellipse cx="720" cy="540" rx="34" ry="10" fill="#8a8a80"/>'+
+      '<path d="M40 540 l6 -18 l6 18 M340 470 l5 -15 l5 15 M560 430 l5 -16 l5 16 M900 520 l6 -18 l6 18" stroke="#2f6a20" stroke-width="3" fill="none"/>';
+  }},
+  llanquihue: { m:[790,230,200,300], figs:[[570,548],[625,550],[680,548]], svg(){
+    let trees=''; for(let i=0;i<7;i++) trees+=tree(20+i*38, 360-(i%2)*8, 1.4-(i%3)*0.15, i%2?'#2a5230':'#335f38');
+    return '<defs>'+grad('lqsky','#8fc8ee','#e8f6ff',1)+grad('lqlake','#4a8fc0','#2c6a96',1)+grad('lqgr','#78a84f','#4d7a33',1)+'</defs>'+
+      '<rect width="1000" height="560" fill="url(#lqsky)"/>'+
+      '<g class="cloud"><ellipse cx="150" cy="70" rx="60" ry="16" fill="#fff"/></g>'+
+      volcano(620,250,62,190)+
+      '<rect y="245" width="1000" height="100" fill="url(#lqlake)"/>'+waves(268,3)+
+      '<path d="M0 252 Q60 236 120 250 T240 248 T360 252 T440 250 V258 H0Z" fill="#2f5a35"/><path d="M800 252 Q860 238 920 250 T1000 248 V258 H800Z" fill="#2f5a35"/>'+
+      '<rect y="335" width="1000" height="225" fill="url(#lqgr)"/>'+trees+
+      '<rect x="570" y="250" width="180" height="130" fill="#a0703c" stroke="#5a3a1a" stroke-width="3"/>'+[0,1,2,3,4,5,6,7].map(i=>'<line x1="'+(592+i*21)+'" y1="250" x2="'+(592+i*21)+'" y2="380" stroke="#6a4420" stroke-width="2"/>').join('')+
+      '<polygon points="555,252 660,180 765,252" fill="#6a3f20" stroke="#3a2210" stroke-width="3"/><path d="M600 222 L720 222 M630 202 L690 202" stroke="#3a2210" stroke-width="3"/>'+
+      '<rect x="600" y="285" width="40" height="40" fill="#3a2a1a"/><rect x="690" y="300" width="36" height="80" fill="#3a2a1a"/>'+
+      '<rect x="415" y="405" width="110" height="10" fill="#7a4a24" stroke="#3a2210" stroke-width="2"/><path d="M425 415 v40 M515 415 v40" stroke="#3a2210" stroke-width="6"/>'+
+      '<ellipse cx="130" cy="488" rx="55" ry="14" fill="#6a4a2a"/><rect x="90" y="455" width="80" height="33" fill="#7a5530" stroke="#3a2210" stroke-width="2"/>'+
+      '<path d="M300 520 l70 -6 M310 532 l70 -4 M305 544 l72 -2" stroke="#7a5530" stroke-width="10" stroke-linecap="round"/>';
+  }},
+  oficina: { m:[800,220,190,310], figs:[[460,548],[515,550],[570,548]], svg(){
+    let dust=''; for(let i=0;i<8;i++) dust+='<circle class="drift'+(i%3===1?' d2':i%3===2?' d3':'')+'" cx="'+(60+i*110)+'" cy="'+(420+(i%3)*30)+'" r="'+(3+i%3)+'" fill="#f3d9a8"/>';
+    let sleepers=''; for(let x=0;x<1000;x+=40) sleepers+='<rect x="'+x+'" y="512" width="12" height="36" fill="#6a4a30"/>';
+    return '<defs>'+grad('ofsky','#8ec3e8','#f6e7c4',1)+grad('ofgr','#e0b880','#c08f55',1)+'</defs>'+
+      '<rect width="1000" height="560" fill="url(#ofsky)"/><circle cx="120" cy="80" r="40" fill="#fff8d0"/>'+
+      '<polygon points="0,250 120,170 240,230 380,150 520,240 700,180 860,230 1000,170 1000,260 0,260" fill="#b98a5a"/>'+
+      '<rect y="250" width="1000" height="310" fill="url(#ofgr)"/>'+
+      '<rect x="230" y="215" width="70" height="45" fill="#c9a070" stroke="#7a5530" stroke-width="2"/><rect x="310" y="222" width="60" height="38" fill="#c9a070" stroke="#7a5530" stroke-width="2"/><rect x="380" y="218" width="70" height="42" fill="#c9a070" stroke="#7a5530" stroke-width="2"/>'+
+      '<rect x="650" y="130" width="140" height="140" fill="#8a6a50" stroke="#4a3020" stroke-width="3"/><path d="M650 130 l35 -25 v25 l35 -25 v25 l35 -25 v25 l35 -25 v25" fill="#6a4a38" stroke="#4a3020" stroke-width="3"/>'+
+      '<rect x="750" y="28" width="26" height="110" fill="#6a4a38" stroke="#4a3020" stroke-width="3"/>'+
+      '<circle class="smoke" cx="763" cy="24" r="14" fill="#9a9488"/><circle class="smoke s2" cx="763" cy="24" r="14" fill="#9a9488"/><circle class="smoke s3" cx="763" cy="24" r="14" fill="#9a9488"/>'+
+      '<rect x="290" y="300" width="130" height="100" fill="#c98c5a" stroke="#5a3218" stroke-width="3"/><rect x="300" y="282" width="110" height="24" fill="#5a3218"/><text x="355" y="300" text-anchor="middle" font-family="Georgia" font-size="18" font-weight="bold" fill="#f6e7c4">LADEN</text><rect x="340" y="345" width="30" height="55" fill="#4a2a14"/>'+
+      '<rect x="550" y="255" width="130" height="115" fill="#b07a4a" stroke="#5a3218" stroke-width="3"/><rect x="556" y="240" width="118" height="24" fill="#2a1a10"/><text x="615" y="258" text-anchor="middle" font-family="Georgia" font-size="17" font-weight="bold" fill="#f6e7c4">ZEITUNG</text><rect x="600" y="315" width="30" height="55" fill="#4a2a14"/>'+
+      '<rect x="452" y="185" width="76" height="70" fill="#8a6440" stroke="#4a3020" stroke-width="3"/><rect x="486" y="255" width="8" height="60" fill="#4a3020"/>'+
+      '<rect x="40" y="330" width="170" height="120" fill="#9a7048" stroke="#4a3020" stroke-width="3"/><polygon points="30,332 125,290 220,332" fill="#6a4a38" stroke="#4a3020" stroke-width="3"/>'+
+      sleepers+'<rect y="518" width="1000" height="6" fill="#4a4f55"/><rect y="538" width="1000" height="6" fill="#4a4f55"/>'+dust;
+  }},
+  station: { m:[790,220,200,310], figs:[[290,548],[345,550],[400,548]], svg(){
+    let city=''; const bx=[170,230,300,350,430,520,600,660,740,790];
+    bx.forEach((x,i)=>{ const h=80+((i*37)%120); city+='<rect x="'+x+'" y="'+(250-h)+'" width="'+(40+(i%3)*10)+'" height="'+h+'" fill="#13284a" stroke="#2c4a7a"/>'; for(let k=0;k<3;k++) city+='<rect class="blink'+(k===1?' b2':k===2?' b3':'')+'" x="'+(x+8+k*10)+'" y="'+(262-h+((i+k)%4)*14)+'" width="6" height="6" fill="'+(k%2?'#5ff0d8':'#ffe27a')+'"/>'; });
+    let grid=''; for(let x=0;x<=1000;x+=80) grid+='<line x1="'+x+'" y1="400" x2="'+(500+(x-500)*1.6)+'" y2="560" stroke="#3d4d70" stroke-width="2"/>'; for(let y=420;y<560;y+=34) grid+='<line x1="0" y1="'+y+'" x2="1000" y2="'+y+'" stroke="#3d4d70" stroke-width="2"/>';
+    return '<defs>'+grad('stbg','#0d1530','#1b2650',1)+grad('stwin','#0a1a36','#1d3a6a',1)+'</defs>'+
+      '<rect width="1000" height="560" fill="url(#stbg)"/>'+
+      '<rect x="150" y="40" width="700" height="215" rx="18" fill="url(#stwin)" stroke="#6a7fa8" stroke-width="8"/><circle cx="760" cy="90" r="22" fill="#e8f0ff" opacity=".85"/>'+city+
+      '<g class="glide" style="animation-duration:9s"><rect x="200" y="100" width="90" height="28" rx="14" fill="#cfe3ff" stroke="#5ff0d8" stroke-width="3"/><rect x="212" y="106" width="14" height="10" rx="3" fill="#1b2650"/><rect x="232" y="106" width="14" height="10" rx="3" fill="#1b2650"/><rect x="252" y="106" width="14" height="10" rx="3" fill="#1b2650"/><ellipse cx="245" cy="134" rx="34" ry="4" fill="#5ff0d8" opacity=".6"/></g>'+
+      '<rect y="400" width="1000" height="160" fill="#26314d"/>'+grid+
+      '<rect x="30" y="140" width="80" height="80" rx="10" fill="#18223e" stroke="#3d4d70" stroke-width="3"/>'+
+      '<path d="M70 470 L80 405 H210 L220 470 Z" fill="#3a4a70" stroke="#6a7fa8" stroke-width="3"/><circle class="blink" cx="110" cy="425" r="6" fill="#ff6a6a"/><circle class="blink b2" cx="135" cy="425" r="6" fill="#5ff0d8"/><circle class="blink b3" cx="160" cy="425" r="6" fill="#ffe27a"/>'+
+      '<ellipse cx="385" cy="300" rx="50" ry="12" fill="#3a4a70" stroke="#6a7fa8" stroke-width="3"/><path d="M345 296 L385 160 L425 296" fill="#5ff0d8" opacity=".12"/><circle class="holo" cx="385" cy="222" r="46" fill="none" stroke="#5ff0d8" stroke-width="3" stroke-dasharray="14 8" opacity=".8"/>'+
+      '<rect x="660" y="350" width="120" height="12" fill="#6a7fa8"/><path d="M670 362 v38 M770 362 v38" stroke="#6a7fa8" stroke-width="6"/>';
+  }},
+  frutillar: { m:[780,190,200,300], figs:[[648,500],[700,502],[752,500]], svg(){
+    let posts=''; for(let x=600;x<1000;x+=60) posts+='<rect x="'+x+'" y="495" width="10" height="65" fill="#5a3a1a"/>';
+    let planks=''; for(let x=580;x<1000;x+=22) planks+='<line x1="'+x+'" y1="470" x2="'+x+'" y2="500" stroke="#5a3a1a" stroke-width="2"/>';
+    return '<defs>'+grad('frsky','#9bd0f0','#eaf7ff',1)+grad('frlake','#4a92c4','#24618e',1)+'</defs>'+
+      '<rect width="1000" height="560" fill="url(#frsky)"/><g class="cloud"><ellipse cx="300" cy="60" rx="70" ry="18" fill="#fff"/></g>'+
+      volcano(660,200,55,200)+
+      '<rect y="190" width="1000" height="370" fill="url(#frlake)"/>'+waves(230,2)+waves(330,2)+waves(440,2)+
+      '<path d="M0 260 L270 280 Q330 330 300 420 L250 560 H0Z" fill="#6a9a45"/>'+
+      house(20,215,80,75,'#d9534f')+house(120,225,80,70,'#f0ad4e')+house(212,238,70,62,'#5bc0de')+
+      '<rect x="580" y="470" width="420" height="30" fill="#9a6a3c"/>'+planks+posts;
+  }},
+  steinzeit: { m:[790,220,190,300], figs:[[320,548],[375,550],[430,548]], svg(){
+    return '<defs>'+grad('szsky','#f4a259','#6b2f52',1)+grad('szgr','#7a5638','#4a3020',1)+'</defs>'+
+      '<rect width="1000" height="560" fill="url(#szsky)"/><circle cx="820" cy="120" r="44" fill="#ffd27a" opacity=".85"/>'+
+      '<polygon points="0,330 150,200 300,300 450,190 620,310 800,220 1000,320 1000,380 0,380" fill="#3a2030"/>'+
+      '<rect y="360" width="1000" height="200" fill="url(#szgr)"/>'+
+      '<path d="M40 430 Q30 150 175 140 Q320 150 310 430 Z" fill="#5a4030" stroke="#3a2418" stroke-width="4"/><path d="M75 430 Q70 200 175 190 Q280 200 275 430 Z" fill="#1a0f0a"/>'+
+      '<path d="M120 260 l14 -10 l14 10 M180 240 q10 -12 20 0 M150 300 l20 0" stroke="#c96a3a" stroke-width="3" fill="none" opacity=".7"/>'+
+      '<path d="M430 470 L510 450 M435 452 L505 472" stroke="#4a2a14" stroke-width="10" stroke-linecap="round"/>'+
+      '<ellipse cx="560" cy="500" rx="40" ry="14" fill="#6a6058"/><ellipse cx="700" cy="530" rx="50" ry="16" fill="#5a5048"/>';
+  }},
+};
+function sceneSVG(R){ const S=SCENES[R.szene]||SCENES.dachboden; return S.svg(); }
+function jahrGross(j){ j=String(j||''); if(/heute/i.test(j)) return String(new Date().getFullYear()); const m=j.match(/\d{4}/); return m?m[0]:'· · · ·'; }
+
+/* =====================================================================
+   SPIELABLAUF
+   ===================================================================== */
+function newGame(level){
+  state={ v:1, level, sig:signature(level), room:0, inBonus:false, bonusDone:false, phase:'play', intro:{}, done:{}, tries:{}, tips:{}, tipsUsed:{}, zf:{}, lock:{},
+    wrong:[], karten:[], elapsed:0, name:'', finished:null };
+  ui={}; save();
+}
+function loadSaved(){
+  let s=null; try{ s=JSON.parse(lsGet(LS_GAME)||'null'); }catch(e){ s=null; }
+  if(!s || s.v!==1 || !SPIEL[s.level]) return null;
+  try { if(s.sig!==signature(s.level)) return null; } catch(e){ return null; }
+  return s;
+}
+function curRoom(){ const d=D(); return state.inBonus && d.bonus ? d.bonus : d.rooms[state.room]; }
+function roomKey(){ return state.inBonus ? 'B' : String(state.room); }
+function objDone(o){ return o.tasks.length>0 && o.tasks.every(t=>state.done[t.id]); }
+function energy(X){ X=X||curRoom(); if(!X.tasks.length) return 1; return X.tasks.filter(t=>state.done[t.id]).length/X.tasks.length; }
+function zfCount(){ return Object.keys(state.zf).length; }
+function stats(){
+  const all=allTasks(state.level); let score=0, ok=0, bonus=0;
+  all.forEach(t=>{ const r=state.done[t.id]; if(r){ score+=r.pts; if(r.ok) ok++; } });
+  const B=D().bonus; if(B) B.tasks.forEach(t=>{ const r=state.done[t.id]; if(r) bonus+=r.pts; });
+  const max=all.length*E.punkteErsterVersuch;
+  return { score:score+bonus, bonus, max, pct: max? Math.min(100,Math.round((score+bonus)/max*100)) : 0, total:all.length, ok };
+}
+function tipsLeft(){ return E.tippsProRaum-(state.tipsUsed[roomKey()]||0); }
+
+/* Versuch: 'ok' | 'retry' | 'fail' */
+function attempt(t, ok, given){
+  const tries=state.tries[t.id]||0;
+  if(ok){
+    let pts = tries===0 ? E.punkteErsterVersuch : E.punkteZweiterVersuch;
+    if(state.tips[t.id]) pts=Math.max(0, pts-E.tippKosten);
+    state.done[t.id]={ ok:true, pts }; sound('ok'); save(); return 'ok';
+  }
+  state.tries[t.id]=tries+1;
+  if(tries+1>=2){
+    state.done[t.id]={ ok:false, pts:0 };
+    state.wrong.push({ raum:curRoom().R.name, aufgabe:taskLabel(t), deine:given, loesung:solutionText(t) });
+    sound('stutter'); save(); return 'fail';
+  }
+  sound('stutter'); save(); return 'retry';
+}
+function zahnWort(t, vals){ return vals.slice(t.pRing?1:0).map(v=>v==='–'?'':v).join(''); }
+function taskLabel(t){
+  switch(t.typ){
+    case 'zahnrad': case 'zelle': case 'auswahl': return plain(t.satz);
+    case 'luecke': return plain(t.satz)+(t.hinweis?' ('+t.hinweis+')':'');
+    case 'tabelle': return t.verb+' – '+t.zeit;
+    case 'schmieden': return t.form+' von „'+t.verb+'“';
+    case 'umschreiben': return plain(t.satz)+' → '+t.nach;
+    case 'satz': return plain(t.auftrag)+(t.woerter?' ('+plain(t.woerter)+')':'');
+  }
+  return '';
+}
+function solutionText(t){
+  switch(t.typ){
+    case 'zahnrad': return plain(t.satz).replace('___', zahnWort(t, t.loesung))+(t.pRing?' ('+t.loesung[0]+')':'');
+    case 'tabelle': return Object.keys(t.loesung).map(k=>k+' '+asList(t.loesung[k])[0]).join(' · ');
+    case 'zelle': return plain(t.satz).replace('___', t.form)+' ('+t.loesung+')';
+    case 'schmieden': return t.loesung;
+    case 'auswahl': return plain(t.satz).replace('___', t.loesung);
+    case 'luecke': return plain(t.satz).replace('___', asList(t.loesung)[0]);
+    default: return asList(t.loesung)[0];
+  }
+}
+
+/* ---------- Kopfzeile ---------- */
+function renderHud(){
+  const hud=$('#hud');
+  if(!state || view!=='game' || /^#(lehrer|editor)$/.test(location.hash) || state.phase==='name' || state.phase==='end'){ hud.innerHTML=''; return; }
+  const s=stats(), n=rooms().length;
+  hud.innerHTML='<span class="pill">'+esc(state.level)+'</span><span class="pill">🚪 '+(state.inBonus?'Bonus':(Math.min(state.room+1,n)+'/'+n))+'</span><span class="pill">⭐ '+s.score+'</span><span class="pill" id="clock">⏱ '+fmtTime(state.elapsed)+'</span>'+
+    '<span class="pill" id="tfPill" title="Zeitfehler gefunden">🕰️ '+zfCount()+'/'+zfTotal()+'</span><span class="pill" title="Karten im Album">🃏 '+albumCount()+'</span>';
+}
+
+/* ---------- Haupt-Render ---------- */
+function render(){
+  closeTravel(true);
+  if(location.hash==='#lehrer'){ renderTeacher(); renderHud(); return; }
+  if(location.hash==='#editor'){ renderEditor(); renderHud(); return; }
+  if(view==='album') renderAlbum();
+  else if(view==='schmiede') renderSchmiede();
+  else if(view==='start' || !state) renderStart();
+  else if(state.phase==='end') renderResult();
+  else if(state.phase==='name') renderName();
+  else renderGame();
+  renderHud();
+}
+
+/* ---------- Start ---------- */
+function renderStart(){
+  view='start';
+  const saved=loadSaved(), warn=dataWarnings(), n=albumCount(), N=sammelVerben().length;
+  let h='<section class="card narrow hero"><div class="herorow"><div><h1>⏳ Die Zeitmaschine von Frutillar</h1>'+
+    '<p>Auf dem Dachboden von Sofías Oma steht eine alte Zeitmaschine aus Messing und Holz. Benja drückt auf den Knopf – und los geht die Reise durch die Zeit! Aber die Maschine läuft nur mit <strong>richtigen Verbformen</strong>. Repariere sie in jeder Epoche und bring alle wieder nach Hause.</p>'+
+    '<p class="small es" lang="es">🇨🇱 Un escape room sobre verbos: conjuga, forja participios y repara la máquina del tiempo.</p></div>'+
+    '<div class="heroart">'+machineSVG(0.7)+'</div></div></section>';
+  if(warn.length) h+='<div class="warnbox narrow"><strong>⚠️ Hinweis für Lehrkräfte – in den Daten stimmt etwas nicht:</strong><ul>'+warn.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+  if(saved){
+    const R=saved.inBonus ? SPIEL[saved.level].bonus : SPIEL[saved.level].raeume[saved.room];
+    h+='<section class="card narrow"><h2>▶ Weiterspielen</h2><p>Niveau <strong>'+esc(saved.level)+'</strong> · '+(saved.phase==='end'?'fertig':esc((R||{}).name||''))+'</p>'+
+      '<div class="row"><button type="button" class="primary" id="btnCont">'+(saved.phase==='end'?'🏆 Ergebnis ansehen':'Weiterspielen ➜')+'</button><button type="button" id="btnDiscard">Neu beginnen</button></div></section>';
+  } else {
+    h+='<section class="card narrow"><h2>Wähle dein Niveau</h2><div class="levels">'+LEVELS.map(lv=>{ const S=SPIEL[lv];
+      return S ? '<button type="button" class="level" data-l="'+lv+'"><span class="lv">'+lv+'</span><span class="lt">'+esc(S.titel)+'</span><span class="lo">'+esc(S.schwerpunkt||'')+'</span></button>'
+               : '<button type="button" class="level" disabled><span class="lv">'+lv+'</span><span class="lt">🔒 kommt bald</span></button>'; }).join('')+'</div></section>';
+  }
+  h+='<section class="card narrow"><h2>Album und Schmiede</h2><div class="extras">'+
+    '<button type="button" id="btnAlbum"><span class="big">🃏</span><span><strong>Mein Verbalbum</strong><br><span class="small muted">'+n+' von '+N+' Sammelkarten</span></span></button>'+
+    '<button type="button" id="btnSchmiede"><span class="big">🔨</span><span><strong>Die Schmiede</strong><br><span class="small muted">Übe deine Karten (5–10 Min.)</span></span></button></div></section>';
+  h+='<p class="small center"><a href="#lehrer">Für Lehrkräfte: Prüfcode kontrollieren</a> · <a href="#editor">Bearbeitungsmodus</a></p>';
+  app.innerHTML=h;
+  if($('#btnCont')) $('#btnCont').addEventListener('click',()=>{ state=saved; view='game'; ui={}; render(); });
+  if($('#btnDiscard')) $('#btnDiscard').addEventListener('click',()=>bestaetigen('Das gespeicherte Spiel wird gelöscht (dein Album bleibt). Wirklich neu beginnen?', ()=>{ lsDel(LS_GAME); state=null; render(); }));
+  $$('.level[data-l]').forEach(b=>b.addEventListener('click',()=>{ newGame(b.dataset.l); view='game'; render(); window.scrollTo(0,0); }));
+  $('#btnAlbum').addEventListener('click',()=>{ view='album'; render(); });
+  $('#btnSchmiede').addEventListener('click',()=>{ view='schmiede'; sch=null; render(); });
+}
+
+/* ---------- Spielbildschirm ---------- */
+function renderGame(){
+  view='game';
+  app.innerHTML='<div class="stage" id="stage"><div class="world" id="world"></div></div><div class="bar" id="bar"></div>';
+  drawWorld(); drawBar();
+  if(state.phase==='final') return openFinal();
+  if(!state.intro[roomKey()]) openIntro();
+}
+function scene(){ const R=curRoom().R; return SCENES[R.szene]||SCENES.dachboden; }
+function hotHTML(o){
+  const O=o.O, key=roomKey()+'.'+O.id; let cls='hot', bdg='';
+  if(O.art==='aufgabe'){ const done=objDone(o), n=o.tasks.filter(t=>state.done[t.id]).length;
+    cls+=done?' done':' task';
+    if(done) bdg='<span class="bdg dig">'+(O.ziffer!=null && O.ziffer!==''?esc(O.ziffer):'✓')+'</span>';
+    else if(n) bdg='<span class="bdg part">'+n+'/'+o.tasks.length+'</span>'; }
+  if(O.art==='zeitfehler' && state.zf[key]) bdg='<span class="bdg tf">🕰️</span>';
+  const fs=(Math.min(O.ort[2],O.ort[3])*0.075).toFixed(2);
+  return '<button type="button" class="'+cls+'" data-obj="'+o.oi+'" style="'+pos(O.ort)+';--fs:'+fs+'cqw" aria-label="'+esc(O.name)+'">'+(O.symbol?'<span class="sym" aria-hidden="true">'+O.symbol+'</span>':'')+'<span class="tag">'+esc(O.name)+'</span>'+bdg+'</button>';
+}
+function energyHTML(){
+  const X=curRoom(), full=energy()>=1;
+  return '<div class="energy'+(full?' full':'')+'" id="energy" title="Energie der Zeitmaschine">⚡<span class="segs">'+X.tasks.map(t=>{ const r=state.done[t.id]; return '<span class="seg'+(r?(r.ok?' ok':' half'):'')+'"></span>'; }).join('')+'</span>'+(full?' voll!':'')+'</div>';
+}
+function drawWorld(){
+  const X=curRoom(), R=X.R, S=scene(), hats=asList(R.kostuem), en=energy();
+  let h='<svg class="bg" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+S.svg()+'</svg>';
+  h+='<div class="machine'+(en>0?' run':'')+'" id="machine" style="'+pos(S.m)+'">'+machineSVG(en)+'</div>';
+  h+=S.figs.map((p,i)=>'<div class="fig bob" id="fig'+i+'" style="left:'+(p[0]/10)+'%;top:'+(p[1]/5.6)+'%;animation-delay:'+(i*0.35)+'s">'+(hats[i]?'<span class="hat'+(hats[i]==='🥽'?' eyes':'')+'">'+hats[i]+'</span>':'')+KINDER[i]+'</div>').join('');
+  h+=X.objs.map(hotHTML).join('');
+  h+='<button type="button" class="hot machinehot" id="hotMachine" style="'+pos(S.m)+'" aria-label="die Zeitmaschine"><span class="tag">⏳ die Zeitmaschine</span></button>';
+  h+='<div class="roomlabel">📍 '+esc(R.name)+' · '+esc(R.jahr||'')+'</div>'+energyHTML();
+  $('#world').innerHTML=h;
+  $$('#world .hot[data-obj]').forEach(b=>b.addEventListener('click',()=>openObject(+b.dataset.obj)));
+  $('#hotMachine').addEventListener('click',openMachine);
+}
+function refreshWorld(){
+  // nur Abzeichen, Energie und Maschine erneuern (ohne die Animationen neu zu starten)
+  const X=curRoom();
+  X.objs.forEach(o=>{ const b=$('#world .hot[data-obj="'+o.oi+'"]'); if(!b) return; const tmp=document.createElement('div'); tmp.innerHTML=hotHTML(o); const nb=tmp.firstChild; b.className=nb.className; const ob=b.querySelector('.bdg'), nbd=nb.querySelector('.bdg'); if(ob && (!nbd || ob.outerHTML!==nbd.outerHTML)) ob.remove(); if(nbd && (!ob || ob.outerHTML!==nbd.outerHTML)) b.appendChild(nbd); });
+  const e=$('#energy'); if(e) e.outerHTML=energyHTML();
+  const m=$('#machine'); if(m){ const en=energy(); const f=m.querySelector('.tubefill'); const h=Math.round(72*en); if(f){ f.setAttribute('y',292-h); f.setAttribute('height',h); }
+    $$('.lamp',m).forEach((l,i)=>l.setAttribute('fill', i<Math.round(en*3)?'#5ff0d8':'#3a2d22')); m.classList.toggle('run', en>0); }
+  drawBar(); renderHud();
+}
+function drawBar(){
+  const X=curRoom(), b=$('#bar'); if(!b) return;
+  b.innerHTML=(X.lockObjs.length?'<div class="digits" title="Ziffern für das Zeitschloss">🔒 '+X.lockObjs.map(o=>'<span class="d" title="'+esc(o.O.name)+'">'+esc(lockSym(o))+' <b>'+(objDone(o)?esc(o.O.ziffer):'?')+'</b></span>').join('')+'</div>':'')+
+    '<span class="spacer"></span><button type="button" id="btnHandy">📱 Benjas Handy</button><button type="button" id="btnAlbumG">🃏 Album</button><button type="button" class="primary" id="btnMachine">⏳ Zeitmaschine</button>';
+  $('#btnHandy').addEventListener('click',()=>{ toast('📱 **Benjas Handy:** '+(X.R.handy||'Kein Netz.'),5000); sound('tick'); });
+  $('#btnAlbumG').addEventListener('click',openAlbumOver);
+  $('#btnMachine').addEventListener('click',openMachine);
+}
+function lockSym(o){ return o.O.schloss || o.O.symbol || '🔹'; }
+
+/* ---------- Overlays ---------- */
+function closeOver(silent){
+  $$('#stage .over, #stage .backdrop, #stage .mport').forEach(x=>x.remove());
+  stopDrag();
+  if(!silent){ const f=ui.returnFocus && document.body.contains(ui.returnFocus) ? ui.returnFocus : $('#world .hot.task') || $('#hotMachine'); if(f) f.focus({preventScroll:true}); }
+  ui={};
+}
+function openOver(title, mid, extra){
+  closeOver(true);
+  const st=$('#stage'); if(!st) return null;
+  if(mid){ const bd=document.createElement('div'); bd.className='backdrop'; st.appendChild(bd); }
+  const o=document.createElement('div'); o.className='over'+(mid?' mid':''); o.setAttribute('role','dialog'); o.setAttribute('aria-label',plain(title));
+  o.innerHTML='<div class="ohead"><h2>'+fmt(title)+'</h2>'+(extra||'')+'<button type="button" class="oclose" aria-label="Schließen">✕</button></div><div class="obody" id="obody"></div>';
+  st.appendChild(o);
+  o.querySelector('.oclose').addEventListener('click',()=>closeOver());
+  return $('#obody');
+}
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape') return;
+  if($('.confirmbox')) return;
+  if($('#stage .travel')){ finishTravel(); return; }
+  if($('#stage .over') && !$('#stage .over.locked')){ e.preventDefault(); closeOver(); }
+});
+
+function openIntro(){
+  const X=curRoom(), R=X.R;
+  const b=openOver(R.name, true);
+  const o=$('#stage .over'); o.classList.add('locked'); o.querySelector('.oclose').remove();
+  b.innerHTML='<div class="panelhead"><span class="chip">🕰️ '+esc(R.jahr||'')+'</span>'+(R.thema?'<span class="chip">🎯 '+esc(R.thema)+'</span>':'')+'</div>'+paras(R.geschichte)+
+    (R.anleitung?'<div class="anleitung"><p><strong>So funktioniert die Zeitmaschine</strong></p>'+String(R.anleitung).split('\n').map(z=>'<p>'+fmt(z)+'</p>').join('')+'</div>':'')+
+    (asList(R.kostuem).length?'<p class="small">👗 <strong>Kostümwechsel!</strong> Die Maschine hat euch passende Kleidung für diese Zeit gegeben: '+asList(R.kostuem).join(' ')+'</p>':'')+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnGo">Los geht’s ➜</button></div>';
+  $('#btnGo').addEventListener('click',()=>{ state.intro[roomKey()]=true; save(); closeOver(true); if(asList(R.kostuem).length) poofFigures(); const f=$('#world .hot.task'); if(f) f.focus({preventScroll:true}); });
+  focusEl('#btnGo');
+}
+function poofFigures(){ const st=$('#stage'); if(!st || ruhig()) return; scene().figs.forEach(p=>{ const d=document.createElement('div'); d.className='poof'; d.textContent='✨'; d.style.left=(p[0]/10)+'%'; d.style.top=(p[1]/5.6)+'%'; st.appendChild(d); setTimeout(()=>d.remove(),1200); }); sound('card'); }
+
+/* ---------- Gegenstand öffnen ---------- */
+function openObject(oi){
+  const X=curRoom(), o=X.objs[oi], O=o.O, key=roomKey()+'.'+O.id;
+  const ret=$('#world .hot[data-obj="'+oi+'"]');
+  if(O.art==='zeitfehler'){
+    const neu=!state.zf[key];
+    if(neu){ state.zf[key]=true; save(); sound('tf'); }
+    const b=openOver('🕰️ '+(O.titel||O.name));
+    b.innerHTML='<div class="paper">'+paras(O.text)+'</div>'+(neu?'<p class="tipbox ok"><strong>🕰️ Zeitfehler gefunden!</strong> Du hast jetzt <strong class="tfcount">'+zfCount()+' von '+zfTotal()+'</strong>. Zeitfehler bringen keine Punkte – aber findest du alle, öffnet sich am Ende ein Bonusraum …</p>':'<p class="small muted">Diesen Zeitfehler hast du schon gefunden.</p>')+
+      '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnOk">Zurück in den Raum</button></div>';
+    ui.returnFocus=ret; $('#btnOk').addEventListener('click',()=>closeOver()); focusEl('#btnOk'); refreshWorld();
+    if(neu){ const p=$('#tfPill'); if(p){ p.classList.remove('tfcount'); void p.offsetWidth; p.classList.add('tfcount'); } }
+    return;
+  }
+  if(O.art==='gag' || O.art==='info'){
+    const b=openOver((O.art==='info'?'ℹ️ ':'')+(O.titel||O.name));
+    b.innerHTML='<div class="paper">'+paras(O.text)+'</div><div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnOk">Zurück in den Raum</button></div>';
+    ui.returnFocus=ret; $('#btnOk').addEventListener('click',()=>closeOver()); focusEl('#btnOk'); sound('tick');
+    return;
+  }
+  openOver((O.symbol||'🔧')+' '+(O.titel||O.name), false, '<span class="chip" id="tipChip">💡 Tipps: '+tipsLeft()+'/'+E.tippsProRaum+'</span>');
+  ui={ oi, returnFocus:ret };
+  renderObjTask();
+}
+function renderObjTask(){
+  const X=curRoom(), o=X.objs[ui.oi], O=o.O, b=$('#obody'); if(!b) return;
+  stopDrag(); $$('#stage .mport').forEach(x=>x.remove());
+  const t = ui.resolved ? o.tasks.find(x=>x.id===ui.resolved) : o.tasks.find(x=>!state.done[x.id]);
+  if(!t) return renderObjDone(o);
+  if(ui.id!==t.id){ ui={ oi:ui.oi, returnFocus:ui.returnFocus, id:t.id, resolved:ui.resolved }; }
+  const dots='<div class="dots" aria-label="Fortschritt">'+o.tasks.map(x=>{ const r=state.done[x.id]; return '<span class="'+(r?(r.ok?'ok':'bad'):(x.id===t.id?'cur':''))+'"></span>'; }).join('')+'</div>';
+  b.innerHTML=(t.k===0 && !state.tries[t.id] && !state.done[t.id]?'<div class="paper">'+paras(O.text)+'</div>':'')+
+    '<div class="panelhead"><strong>Aufgabe '+(t.k+1)+' von '+o.tasks.length+'</strong>'+dots+'</div><div id="task"></div>';
+  T[t.typ](t, $('#task'), ()=>{ ui={ oi:ui.oi, returnFocus:ui.returnFocus }; renderObjTask(); $('#obody').scrollTop=0; });
+}
+function renderObjDone(o){
+  const b=$('#obody'), O=o.O, full=energy()>=1;
+  const hasDigit = O.ziffer!=null && O.ziffer!=='';
+  b.innerHTML=(hasDigit?'<div class="digitshow"><span class="bd">'+esc(O.ziffer)+'</span><div><strong>Gelöst!</strong> Auf dem Gegenstand leuchtet eine Ziffer. Du brauchst sie für das Zeitschloss: '+esc(lockSym(o))+' = <strong>'+esc(O.ziffer)+'</strong></div></div>':'<p class="tipbox ok"><strong>✓ Gelöst!</strong></p>')+
+    (full?'<p class="tipbox ok">⚡ <strong>Die Maschine hat volle Energie!</strong> Klick auf die Zeitmaschine'+(curRoom().lockObjs.length?' und stell das Zeitschloss ein':'')+'.</p>':'<p class="muted">⚡ Energie: '+Math.round(energy()*100)+' %. Es gibt noch mehr Aufgaben im Raum.</p>')+
+    '<div class="row"><span class="spacer"></span>'+(full?'<button type="button" id="btnToMachine">⏳ Zur Maschine</button>':'')+'<button type="button" class="primary" id="btnOk">Zurück in den Raum</button></div>';
+  $('#btnOk').addEventListener('click',()=>closeOver());
+  if($('#btnToMachine')) $('#btnToMachine').addEventListener('click',openMachine);
+  focusEl(full?'#btnToMachine':'#btnOk');
+}
+
+/* ---------- Maschine: Reaktionen ---------- */
+function machineEl(){ return $('#machine'); }
+function boost(){ const m=machineEl(); if(!m) return; m.classList.remove('boost'); void m.offsetWidth; m.classList.add('boost'); setTimeout(()=>m.classList.remove('boost'),950); sparksAt(m.querySelector('.tubefill')||m, 10, '#5ff0d8'); }
+function stutter(){
+  const m=machineEl(), st=$('#stage'); if(!m||!st) return;
+  m.classList.remove('stutter'); void m.offsetWidth; m.classList.add('stutter'); setTimeout(()=>m.classList.remove('stutter'),650);
+  const S=scene(); const x=(S.m[0]+S.m[2]*161/220)/10, y=(S.m[1]+S.m[3]*10/330)/5.6;
+  [0,250,500].forEach(d=>setTimeout(()=>{ const p=document.createElement('div'); p.className='puff'; p.style.left=x+'%'; p.style.top=y+'%'; st.appendChild(p); setTimeout(()=>p.remove(),1700); }, ruhig()?0:d));
+}
+function sparksAt(el, n, col){
+  if(!el || ruhig()) return; const r=el.getBoundingClientRect(); const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  for(let i=0;i<(n||12);i++){ const s=document.createElement('div'); s.className='spark'; const a=Math.random()*Math.PI*2, d=30+Math.random()*60;
+    s.style.left=cx+'px'; s.style.top=cy+'px'; s.style.setProperty('--sx',(Math.cos(a)*d).toFixed(0)+'px'); s.style.setProperty('--sy',(Math.sin(a)*d-20).toFixed(0)+'px'); if(col) s.style.background=col;
+    document.body.appendChild(s); setTimeout(()=>s.remove(),750); }
+}
+
+/* ---------- Zeitmaschine: Zeitschloss und Hebel ---------- */
+function openMachine(){
+  const X=curRoom(), R=X.R, en=energy(), last=!state.inBonus && state.room===rooms().length-1;
+  const b=openOver('⏳ Die Zeitmaschine');
+  ui.returnFocus=$('#hotMachine');
+  const k=roomKey(); if(!state.lock[k]) state.lock[k]=X.lockObjs.map(()=>0);
+  const vals=state.lock[k];
+  b.innerHTML='<p><strong>⚡ Energie: '+Math.round(en*100)+' %</strong></p><div class="meter"><div style="width:'+Math.round(en*100)+'%"></div></div>'+
+    (en<1?'<p class="muted">Die Maschine braucht noch Energie. Löse alle Aufgaben in diesem Raum – jede Verbform zählt.</p>':'<div class="paper">'+paras(R.geschafft)+'</div>')+
+    (X.lockObjs.length?'<h3>🔒 Das Zeitschloss</h3><p class="small muted">Stell die Ziffern der gelösten Gegenstände ein (▲ ▼, Pfeiltasten oder Mausrad).</p>'+
+      '<div class="lockbox"><div class="wheels" id="wheels">'+X.lockObjs.map((o,i)=>'<div class="wheel"><span class="wl" title="'+esc(o.O.name)+'">'+esc(lockSym(o))+'</span><button type="button" data-w="'+i+'" data-d="1" tabindex="-1" aria-label="höher">▲</button><div class="wd" tabindex="0" role="spinbutton" aria-valuemin="0" aria-valuemax="9" aria-valuenow="'+vals[i]+'" aria-label="Ziffer für '+esc(o.O.name)+'" data-w="'+i+'">'+vals[i]+'</div><button type="button" data-w="'+i+'" data-d="-1" tabindex="-1" aria-label="niedriger">▼</button></div>').join('')+'</div>'+
+      '<button type="button" class="primary leverbtn" id="btnLever"><span class="lv">🕹️</span>'+(last?'Maschine stabilisieren':'Hebel ziehen')+'</button></div>'
+     :'<div class="row"><button type="button" class="primary leverbtn" id="btnLever"><span class="lv">🕹️</span>'+(state.inBonus?'Zurück nach Hause':(last?'Maschine stabilisieren':'Hebel ziehen'))+'</button></div>')+
+    '<div id="lockFb" role="status" aria-live="polite"></div>';
+  const setW=(i,d)=>{ vals[i]=(vals[i]+d+10)%10; const el=$('.wd[data-w="'+i+'"]'); el.textContent=vals[i]; el.setAttribute('aria-valuenow',vals[i]); save(); sound('tick'); };
+  $$('#wheels button').forEach(x=>x.addEventListener('click',()=>setW(+x.dataset.w,+x.dataset.d)));
+  $$('#wheels .wd').forEach(x=>{
+    x.addEventListener('keydown',e=>{ const i=+x.dataset.w;
+      if(e.key==='ArrowUp'){ e.preventDefault(); setW(i,1); } else if(e.key==='ArrowDown'){ e.preventDefault(); setW(i,-1); }
+      else if(/^[0-9]$/.test(e.key)){ e.preventDefault(); vals[i]=+e.key; setW(i,0); const n=$('.wd[data-w="'+(i+1)+'"]'); if(n) n.focus(); }
+      else if(e.key==='ArrowRight'){ e.preventDefault(); const n=$('.wd[data-w="'+(i+1)+'"]')||$('#btnLever'); n.focus(); }
+      else if(e.key==='ArrowLeft'){ e.preventDefault(); const n=$('.wd[data-w="'+(i-1)+'"]'); if(n) n.focus(); }
+      else if(e.key==='Enter'){ e.preventDefault(); pullLever(); } });
+    x.addEventListener('wheel',e=>{ e.preventDefault(); setW(+x.dataset.w, e.deltaY<0?1:-1); },{passive:false});
+    x.addEventListener('click',()=>setW(+x.dataset.w,1));
+  });
+  $('#btnLever').addEventListener('click',pullLever);
+  focusEl($('#wheels .wd')||$('#btnLever'));
+}
+function pullLever(){
+  const X=curRoom(), fb=$('#lockFb'), vals=state.lock[roomKey()]||[];
+  if(energy()<1){ stutter(); sound('stutter'); fb.innerHTML='<p class="tipbox bad">💨 Die Maschine stottert und qualmt: <strong>zu wenig Energie!</strong> Löse zuerst alle Aufgaben in diesem Raum.</p>'; return; }
+  const ok=X.lockObjs.every((o,i)=>vals[i]===+o.O.ziffer);
+  if(!ok){ const w=$('#wheels'); if(w){ w.classList.remove('rattle'); void w.offsetWidth; w.classList.add('rattle'); } sound('clank');
+    fb.innerHTML='<p class="tipbox bad">🔒 <strong>Das Zeitschloss klemmt.</strong> Vergleiche die Ziffern mit den gelösten Gegenständen (unten in der Leiste).</p>'; return; }
+  const w=$('#wheels'); if(w) w.classList.add('open');
+  const m=machineEl(); if(m){ m.classList.add('pulled','fast','run'); }
+  sound('open'); $('#btnLever').disabled=true;
+  setTimeout(depart, ruhig()?300:900);
+}
+function depart(){
+  const last=!state.inBonus && state.room===rooms().length-1;
+  if(state.inBonus){ state.inBonus=false; state.bonusDone=true; state.phase='final'; save(); closeOver(true); travel(curRoomBonusR(), D().rooms[state.room].R, ()=>renderGame()); return; }
+  if(last){ state.phase='final'; save(); closeOver(true); sound('fanfare'); const m=machineEl(); if(m) m.classList.remove('fast'); openFinal(); return; }
+  const from=curRoom().R; state.room++; ui={}; save(); closeOver(true);
+  travel(from, curRoom().R, ()=>renderGame());
+}
+function curRoomBonusR(){ return D().bonus ? D().bonus.R : { jahr:'' }; }
+
+/* ---------- Zeitreise-Animation (überspringbar) ---------- */
+let travelDone=null, travelTimers=[];
+function travel(fromR, toR, done){
+  const st=$('#stage'); if(!st){ done(); return; }
+  closeTravel(true);
+  const d=document.createElement('div'); d.className='travel'+(ruhig()?' calm':''); d.setAttribute('role','status'); d.setAttribute('aria-label','Zeitreise nach '+plain(toR.name||''));
+  const target=jahrGross(toR.jahr);
+  let h=''; if(!ruhig()){ const cols=['#f0c050','#5ff0d8','#ff8a2a','#c88fd6','#fff3c4','#5ff0d8']; for(let i=0;i<6;i++) h+='<div class="ringt" style="border-color:'+cols[i]+';animation-delay:'+(i*0.27)+'s"></div>';
+    h+='<div class="tg" style="left:-6%;top:-10%"><svg viewBox="-25 -25 50 50"><path d="'+gearPath(0,0,22,12)+'" fill="#8a5a1a" stroke="#f0c050"/></svg></div><div class="tg r" style="right:-6%;bottom:-12%"><svg viewBox="-25 -25 50 50"><path d="'+gearPath(0,0,22,12)+'" fill="#8a5a1a" stroke="#f0c050"/></svg></div>'; }
+  h+='<div class="year" id="tYear">'+(ruhig()?esc(target):esc(jahrGross(fromR.jahr)))+'<small>'+esc((toR.name||'')+(toR.jahr?' · '+toR.jahr:''))+'</small></div><button type="button" class="skip" id="tSkip">Überspringen ⏭</button>';
+  d.innerHTML=h; st.appendChild(d);
+  travelDone=done; sound('travel');
+  const y=$('#tYear');
+  if(!ruhig()){
+    const small=y.querySelector('small').outerHTML; let n=0;
+    const iv=setInterval(()=>{ n++; y.innerHTML=String(1000+Math.floor(Math.random()*9000))+small; },70); travelTimers.push(iv);
+    travelTimers.push(setTimeout(()=>{ clearInterval(iv); y.innerHTML=esc(target)+small; },2200));
+    travelTimers.push(setTimeout(finishTravel,3100));
+  } else travelTimers.push(setTimeout(finishTravel,1400));
+  d.addEventListener('click',finishTravel);
+  $('#tSkip').focus({preventScroll:true});
+}
+function closeTravel(silent){ travelTimers.forEach(t=>{ clearTimeout(t); clearInterval(t); }); travelTimers=[]; $$('.travel').forEach(x=>x.remove()); if(silent) travelDone=null; }
+function finishTravel(){
+  const done=travelDone; travelDone=null; closeTravel(false);
+  if(done) done();
+  const st=$('#stage'); if(st && !ruhig()){ const f=document.createElement('div'); f.className='flash'; st.appendChild(f); setTimeout(()=>f.remove(),750); }
+}
+
+/* ---------- Finale ---------- */
+function openFinal(){
+  const N=zfTotal(), n=zfCount(), B=D().bonus, all=N>0 && n>=N;
+  const b=openOver('🎉 Geschafft!', true);
+  const o=$('#stage .over'); o.classList.add('locked'); o.querySelector('.oclose').remove();
+  b.innerHTML=(state.bonusDone?'<p>Zurück aus der Steinzeit! Benja hat noch etwas Asche im Haar.</p>':paras(L().schluss))+
+    '<p>🕰️ Zeitfehler gefunden: <strong>'+n+' von '+N+'</strong></p>'+
+    (B && !state.bonusDone ? (all ? '<p class="tipbox ok">🦴 <strong>Bonusraum freigeschaltet!</strong> Du hast alle Zeitfehler gefunden. Willst du noch in „'+esc(B.R.name.replace(/^Bonus:\s*/,''))+'“? Dort gibt es Extrapunkte und neue Sammelkarten.</p>'
+                                  : '<p class="small muted">Findest du beim nächsten Mal alle Zeitfehler, öffnet sich ein Bonusraum.</p>') : '')+
+    (state.bonusDone?'<p class="okline">✓ Bonusraum geschafft: +'+stats().bonus+' Extrapunkte</p>':'')+
+    '<div class="row"><span class="spacer"></span>'+(B && all && !state.bonusDone?'<button type="button" id="btnBonus">🦴 In den Bonusraum</button>':'')+'<button type="button" class="primary" id="btnRes">🏆 Zum Ergebnis</button></div>';
+  if($('#btnBonus')) $('#btnBonus').addEventListener('click',()=>{ const from=curRoom().R; state.inBonus=true; state.phase='play'; ui={}; save(); closeOver(true); travel(from, B.R, ()=>renderGame()); });
+  $('#btnRes').addEventListener('click',()=>{ state.phase='name'; save(); render(); window.scrollTo(0,0); });
+  focusEl($('#btnBonus')||$('#btnRes'));
+}
+
+/* ---------- Tipps und Rückmeldung ---------- */
+function tipHTML(t){
+  if(state.done[t.id] || state.tips[t.id] || !t.tipp) return state.tips[t.id] && !state.done[t.id] ? '<div class="tipbox sofia">💡 <strong>Sofía:</strong> '+fmt(t.tipp)+'</div>' : '';
+  return '<button type="button" id="btnTip"'+(tipsLeft()<=0?' disabled title="Keine Tipps mehr in diesem Raum"':'')+'>💡 Tipp von Sofía (−'+E.tippKosten+')</button>';
+}
+function bindTip(t, rerender){ const b=$('#btnTip'); if(!b) return; b.addEventListener('click',()=>{ if(tipsLeft()<=0) return; state.tips[t.id]=true; state.tipsUsed[roomKey()]=(state.tipsUsed[roomKey()]||0)+1; save(); const c=$('#tipChip'); if(c) c.textContent='💡 Tipps: '+tipsLeft()+'/'+E.tippsProRaum; rerender(); const s=$('.tipbox.sofia'); if(s) s.scrollIntoView({block:'nearest'}); }); }
+function feedbackHTML(t){
+  const f=ui.fb; if(!f) return '';
+  const es = spanish() && t.erklaerung_es ? '<p class="small es" lang="es">🇨🇱 <strong>Ayuda:</strong> '+fmt(t.erklaerung_es)+'</p>' : '';
+  if(f.type==='ok') return '<div class="tipbox ok"><p><strong>✓ Richtig!</strong> ⚡ Die Maschine bekommt Energie. <span class="small">+'+f.pts+' Punkte</span></p>'+(t.erklaerung_de?'<p>'+fmt(t.erklaerung_de)+'</p>':'')+es+(f.extra||'')+'</div>';
+  if(f.type==='retry') return '<div class="tipbox bad"><p><strong>💨 Die Maschine stottert!</strong> '+fmt(f.msg||'Das stimmt noch nicht.')+'</p>'+(t.thema?'<p>💡 Denkhilfe: <strong>'+esc(t.thema)+'</strong></p>':'')+'<p class="small">Du hast noch einen Versuch.</p></div>';
+  return '<div class="tipbox bad"><p><strong>✗ Leider falsch.</strong> Die Maschine qualmt – aber sie läuft weiter. '+fmt(f.msg||'')+'</p><p>Richtig: <strong>'+esc(solutionText(t))+'</strong></p>'+(t.erklaerung_de?'<p>'+fmt(t.erklaerung_de)+'</p>':'')+es+'</div>';
+}
+function nextBtn(){ return '<div class="row" style="margin-top:.6em"><span class="spacer"></span><button type="button" class="primary" id="btnNextTask">Weiter ➜</button></div>'; }
+function afterAnswer(t, out, el, rerender){
+  if(out==='ok') boost(); else stutter();
+  if(out==='ok'||out==='fail'){ ui.resolved=t.id; }
+  if(out==='ok'){ const s=stats(); ui.fb=Object.assign(ui.fb||{}, { type:'ok', pts:state.done[t.id].pts }); }
+  rerender();
+  if(out!=='retry') refreshWorld();
+  const fb=$('.tipbox.ok, .tipbox.bad', el); if(fb) setTimeout(()=>fb.scrollIntoView({block:'nearest',behavior:ruhig()?'auto':'smooth'}),30);
+  if(out!=='retry'){ const nb=$('#btnNextTask',el); if(nb) nb.focus({preventScroll:true}); }
+}
+function bindNext(el, onNext){ const b=$('#btnNextTask',el); if(b) b.addEventListener('click',onNext); }
+function satzHTML(s, inner, cls){ return '<p class="satz">'+fmt(String(s)).replace('___','<span class="gap'+(cls?' '+cls:'')+'" id="gap">'+(inner==null?'&nbsp;':inner)+'</span>')+'</p>'; }
+function umlautBar(){ return '<div class="umlauts" aria-label="Sonderzeichen">'+['ä','ö','ü','ß','Ä','Ö','Ü'].map(c=>'<button type="button" class="uml" data-u="'+c+'" tabindex="-1">'+c+'</button>').join('')+'<span class="small muted">oder ae, oe, ue, ss</span></div>'; }
+function bindUmlauts(el, getInput){
+  $$('.uml',el).forEach(b=>{ b.addEventListener('mousedown',e=>e.preventDefault()); b.addEventListener('click',()=>{ const inp=getInput(); if(!inp || inp.readOnly) return; const s=inp.selectionStart??inp.value.length, en=inp.selectionEnd??inp.value.length; inp.value=inp.value.slice(0,s)+b.dataset.u+inp.value.slice(en); inp.dispatchEvent(new Event('input')); inp.focus(); inp.setSelectionRange(s+1,s+1); }); });
+}
+
+/* ---------- Aufgabentypen ---------- */
+const T = {
+  /* Kryptex mit Ringen */
+  zahnrad(t, el, onNext){
+    const res=state.done[t.id], R=t.ringe, rerender=()=>T.zahnrad(t,el,onNext);
+    if(!ui.pos){ ui.pos=R.map(r=>Math.floor(Math.random()*r.length)); if(R.every((r,i)=>r[ui.pos[i]]===t.loesung[i])) ui.pos[R.length-1]=(ui.pos[R.length-1]+1)%R[R.length-1].length; }
+    if(res && !res.ok) ui.pos=R.map((r,i)=>r.indexOf(t.loesung[i]));
+    const val=i=>R[i][ui.pos[i]], vals=()=>R.map((r,i)=>val(i));
+    const names=asList(t.ringnamen).length?t.ringnamen:(t.pRing?['Person','Verbstamm','Endung','Teil 4']:['Teil 1','Teil 2','Teil 3','Teil 4']);
+    const word=()=>zahnWort(t, vals())||'–';
+    const ringInner=i=>{ const r=R[i], p=ui.pos[i], n=r.length, sh=v=>v==='–'?'(keine)':v; return (n>2?'<span class="rv side">'+esc(sh(r[(p-1+n)%n]))+'</span>':'')+'<span class="rv cur">'+esc(sh(r[p]))+'</span>'+(n>1?'<span class="rv side">'+esc(sh(r[(p+1)%n]))+'</span>':''); };
+    let h='<p class="auftrag">Dreh die Ringe, bis die Verbform passt.</p><p class="bedienung">🖱️ Klick auf ▲ ▼ oder auf den Ring · ⌨️ ← → Ring wählen, ↑ ↓ drehen, Enter = einrasten</p>'+
+      satzHTML(t.satz, esc(word()), res&&res.ok?'lit':'')+
+      '<div class="rings'+(res&&res.ok?' mesh':'')+'" id="rings">'+R.map((r,i)=>(i?'<span class="gearsep" aria-hidden="true">'+smallGear()+'</span>':'')+
+        '<div class="ringwrap"><span class="rl">'+esc(names[i]||'')+'</span><button type="button" class="arr" data-r="'+i+'" data-d="-1" tabindex="-1"'+(res?' disabled':'')+' aria-label="nach oben drehen">▲</button>'+
+        '<div class="ring'+(res&&res.ok?' lit':'')+'" tabindex="0" role="spinbutton" data-r="'+i+'" aria-label="'+esc(names[i]||('Ring '+(i+1)))+'" aria-valuetext="'+esc(val(i))+'">'+ringInner(i)+'</div>'+
+        '<button type="button" class="arr" data-r="'+i+'" data-d="1" tabindex="-1"'+(res?' disabled':'')+' aria-label="nach unten drehen">▼</button></div>').join('')+'</div>';
+    if(!res) h+='<div class="row"><button type="button" class="primary" id="btnCheck">⚙️ Einrasten ✓</button>'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    if(res) return;
+    let rot=R.map(()=>0);
+    const turn=(i,d)=>{ const n=R[i].length; ui.pos[i]=(ui.pos[i]+d+n)%n; rot[i]+=d*36; const ring=$('.ring[data-r="'+i+'"]',el); ring.innerHTML=ringInner(i); ring.setAttribute('aria-valuetext',val(i)); ring.style.setProperty('--td',(d>0?'14px':'-14px')); ring.classList.remove('turn'); void ring.offsetWidth; ring.classList.add('turn');
+      $$('.gearsep svg',el).forEach((g,k)=>{ if(k===i||k===i-1) g.style.transform='rotate('+((k%2?-1:1)*rot[i])+'deg)'; });
+      $('#gap',el).textContent=word(); sound('tick'); };
+    $$('.arr',el).forEach(b=>b.addEventListener('click',()=>turn(+b.dataset.r,+b.dataset.d)));
+    $$('.ring',el).forEach(r=>{ const i=+r.dataset.r;
+      r.addEventListener('click',()=>turn(i,1));
+      r.addEventListener('wheel',e=>{ e.preventDefault(); turn(i,e.deltaY<0?-1:1); },{passive:false});
+      r.addEventListener('keydown',e=>{
+        if(e.key==='ArrowUp'){ e.preventDefault(); turn(i,-1); } else if(e.key==='ArrowDown'){ e.preventDefault(); turn(i,1); }
+        else if(e.key==='ArrowRight'){ e.preventDefault(); const n=$('.ring[data-r="'+(i+1)+'"]',el)||$('#btnCheck',el); n.focus(); }
+        else if(e.key==='ArrowLeft'){ e.preventDefault(); const n=$('.ring[data-r="'+(i-1)+'"]',el); if(n) n.focus(); }
+        else if(e.key==='Enter'||e.key===' '){ e.preventDefault(); check(); } }); });
+    const check=()=>{ const v=vals(); const alts=Array.isArray(t.loesung[0])?t.loesung:[t.loesung]; const ok=alts.some(l=>l.every((x,i)=>x===v[i]));
+      const out=attempt(t, ok, v.join(' | ')+' → '+word());
+      ui.fb={ type:out, msg: out==='retry' ? 'Die Zahnräder greifen nicht.' : '' }; const keep=document.activeElement && document.activeElement.classList.contains('ring') ? +document.activeElement.dataset.r : null;
+      afterAnswer(t,out,el,rerender); if(out==='retry'){ const r=keep!=null?$('.ring[data-r="'+keep+'"]',el):$('.ring',el); if(r) r.focus({preventScroll:true}); }
+      if(out==='ok') sparksAt($('#rings',el), 14); };
+    $('#btnCheck',el).addEventListener('click',check);
+    if(!ui.focused){ ui.focused=true; const r=$('.ring',el); if(r) r.focus({preventScroll:true}); }
+  },
+
+  /* Konjugationstabelle */
+  tabelle(t, el, onNext){
+    const res=state.done[t.id], z=t.zellen||{}, rerender=()=>T.tabelle(t,el,onNext);
+    ui.vals=ui.vals||{}; ui.okc=ui.okc||{}; ui.bad=ui.bad||{};
+    if(res && !res.ok) Object.keys(t.loesung).forEach(k=>{ if(!ui.okc[k]) ui.bad[k]='sol'; });
+    let h='<p class="auftrag">Füll die Lücken in der Tabelle aus.</p><p class="bedienung">⌨️ Tab = nächste Lücke · Enter = prüfen</p>'+
+      '<table class="ztable"><caption>'+esc(t.verb)+' – '+esc(t.zeit)+'</caption>'+Object.keys(z).map(k=>'<tr><th scope="row">'+esc(k)+'</th><td>'+
+        (z[k]==='?' ? '<input '+INPUT_ATTR+' data-k="'+esc(k)+'" aria-label="'+esc(t.verb)+', '+esc(k)+'" value="'+esc(ui.vals[k]||'')+'" class="'+(ui.okc[k]?'lit':(ui.bad[k]?'wrongcell':''))+'"'+(ui.okc[k]||res?' readonly':'')+'>'+(ui.bad[k]==='sol'?' <span class="small badline">✗ richtig: '+esc(asList(t.loesung[k])[0])+'</span>':'')
+                    : '<span class="given">'+esc(z[k])+'</span>')+'</td></tr>').join('')+'</table>';
+    if(!res) h+=umlautBar()+'<div class="row"><button type="button" class="primary" id="btnCheck">✓ Prüfen</button>'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    if(res) return;
+    let last=null;
+    $$('input[data-k]',el).forEach(inp=>{ inp.addEventListener('focus',()=>{ last=inp; }); inp.addEventListener('input',()=>{ ui.vals[inp.dataset.k]=inp.value; inp.classList.remove('wrongcell'); });
+      inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); check(); } }); });
+    bindUmlauts(el, ()=>last || $('input[data-k]:not([readonly])',el));
+    const check=()=>{
+      const gaps=Object.keys(t.loesung); if(gaps.some(k=>!ui.okc[k] && !String(ui.vals[k]||'').trim())){ toast('Füll zuerst alle Lücken aus.'); const e1=$('input[data-k]:not([readonly])',el); if(e1 && !e1.value) e1.focus(); else { const e2=$$('input[data-k]',el).find(x=>!x.value.trim()); if(e2) e2.focus(); } return; }
+      gaps.forEach(k=>{ if(matches(ui.vals[k], t.loesung[k])){ ui.okc[k]=true; ui.bad[k]=false; } else ui.bad[k]=true; });
+      const ok=gaps.every(k=>ui.okc[k]);
+      const out=attempt(t, ok, gaps.map(k=>k+' '+(ui.vals[k]||'')).join(' · '));
+      ui.fb={ type:out, msg: out==='retry' ? 'Die leuchtenden Formen stimmen. Die roten noch nicht.' : '' };
+      afterAnswer(t,out,el,rerender);
+      // Zellen nacheinander aufleuchten lassen
+      $$('input.lit',el).forEach((x,i)=>{ x.style.animation='cellglow .7s '+(i*0.15)+'s both'; });
+      if(out==='retry'){ const w=$('input.wrongcell',el); if(w){ w.focus(); w.select(); } }
+    };
+    $('#btnCheck',el).addEventListener('click',check);
+    if(!ui.focused){ ui.focused=true; const f=$('input[data-k]:not([readonly])',el); if(f) f.focus({preventScroll:true}); }
+  },
+
+  /* Energiezelle in die Maschine ziehen */
+  zelle(t, el, onNext){
+    const res=state.done[t.id], opts=asList(t.optionen).length?asList(t.optionen):['haben','sein'], rerender=()=>T.zelle(t,el,onNext);
+    if(!optOrder[t.id]) optOrder[t.id]=shuffle(range(opts.length));
+    ui.used=ui.used||[];
+    const solved = res ? (res.ok ? t.form : null) : null;
+    let h='<p class="auftrag">Welche Energiezelle passt? Zieh sie in die Lücke oder in die Maschine – oder klick sie an.</p><p class="bedienung">🖱️ Ziehen oder klicken · ⌨️ Tab + Enter</p>'+
+      satzHTML(t.satz, res ? esc(t.form) : '?', 'dropzone'+(res?' lit':''))+
+      '<div class="cells">'+optOrder[t.id].map(i=>{ const v=opts[i], used=ui.used.includes(v), right=res && v===t.loesung;
+        return '<button type="button" class="cell'+(used?' used':'')+(right?' right':'')+'" data-v="'+esc(v)+'"'+(res||used?' disabled':'')+' aria-label="Energiezelle '+esc(v)+'">🔋 '+esc(v)+'</button>'; }).join('')+'</div>';
+    if(!res) h+='<div class="row">'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    $$('#stage .mport').forEach(x=>x.remove());
+    if(res) return;
+    // Andockstelle an der Maschine
+    const S=scene(), st=$('#stage');
+    if(st){ const p=document.createElement('div'); p.className='mport dropzone'; p.textContent='⚡ hier hinein';
+      p.style.cssText=pos([S.m[0]+S.m[2]*84/220, S.m[1]+S.m[3]*246/330, S.m[2]*108/220, S.m[3]*56/330]); st.appendChild(p); }
+    const choose=v=>{ if(state.done[t.id]) return;
+      const ok=v===t.loesung, out=attempt(t, ok, v);
+      if(!ok) ui.used.push(v);
+      ui.fb={ type:out, msg: ok?'':'Mit „'+v+'“ läuft die Maschine nicht.' };
+      $$('#stage .mport').forEach(x=>x.remove());
+      afterAnswer(t,out,el,rerender);
+      if(out==='ok') sparksAt($('#gap',el), 12, '#5ff0d8');
+      if(out==='retry'){ const c=$('.cell:not([disabled])',el); if(c) c.focus({preventScroll:true}); } };
+    $$('.cell',el).forEach(c=>{ c.addEventListener('click',()=>{ if(dragState && dragState.moved) return; choose(c.dataset.v); }); c.addEventListener('pointerdown',e=>startDrag(e,c,choose)); });
+    if(!ui.focused){ ui.focused=true; const c=$('.cell',el); if(c) c.focus({preventScroll:true}); }
+  },
+
+  /* Schmieden am Amboss */
+  schmieden(t, el, onNext){
+    const res=state.done[t.id], B=asList(t.bausteine), rerender=()=>T.schmieden(t,el,onNext);
+    if(!ui.sel){ ui.sel=B.map(()=>0); if(forge()===t.loesung){ const i=B.findIndex(s=>Array.isArray(s)); if(i>=0) ui.sel[i]=1; } }
+    function forge(){ return B.map((s,i)=>Array.isArray(s)?s[ui.sel[i]]:s).join(''); }
+    if(res && !res.ok) ui.sel=solveSel(B,t.loesung)||ui.sel;
+    const v=VERB[t.verb]||{};
+    let h='<p class="auftrag">Schmiede: <strong>'+esc(t.form)+'</strong> von <strong>„'+esc(t.verb)+'“</strong></p><p class="bedienung">🖱️ Klick auf einen glühenden Baustein = Hammerschlag · ⌨️ Tab/← → wählen, Leertaste = schlagen</p>'+
+      '<div class="anvil" id="anvil"><div class="blocks">'+B.map((s,i)=>{ if(!Array.isArray(s)) return '<span class="block'+(res?' cold':'')+'">'+esc(s)+'</span>'; const cur=s[ui.sel[i]];
+        return '<button type="button" class="block '+(res?'cold':'heiss')+(cur===''?' empty':'')+'" data-i="'+i+'"'+(res?' disabled':'')+' aria-label="glühender Baustein: '+(cur===''?'leer':esc(cur))+'. Klick zum Schmieden.">'+(cur===''?'·':esc(cur))+'</button>'; }).join('')+'</div></div>'+
+      '<p class="forgeword">Dein Wort: <b id="fword">'+esc(forge())+'</b></p>';
+    if(!res) h+='<div class="row"><button type="button" class="primary" id="btnCheck">💧 Abkühlen ✓</button>'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    $$('.vcard',el).forEach(c=>c.addEventListener('click',()=>c.classList.toggle('flip')));
+    if(res) return;
+    const strike=(i)=>{ const s=B[i]; ui.sel[i]=(ui.sel[i]+1)%s.length; const b=$('.block[data-i="'+i+'"]',el), cur=s[ui.sel[i]];
+      b.textContent=cur===''?'·':cur; b.classList.toggle('empty',cur===''); b.setAttribute('aria-label','glühender Baustein: '+(cur===''?'leer':cur)+'. Klick zum Schmieden.');
+      b.classList.remove('strike'); void b.offsetWidth; b.classList.add('strike');
+      if(!ruhig()){ const a=$('#anvil',el), ar=a.getBoundingClientRect(), br=b.getBoundingClientRect(); const hm=document.createElement('span'); hm.className='hammer'; hm.textContent='🔨'; hm.style.left=(br.left-ar.left+br.width/2)+'px'; hm.style.top=(br.top-ar.top)+'px'; a.appendChild(hm); setTimeout(()=>hm.remove(),350); }
+      sparksAt(b, 9); sound('hammer'); $('#fword',el).textContent=forge(); };
+    const hots=$$('.block.heiss',el);
+    hots.forEach((b,k)=>{ b.addEventListener('click',()=>strike(+b.dataset.i));
+      b.addEventListener('keydown',e=>{ if(e.key==='ArrowUp'||e.key==='ArrowDown'){ e.preventDefault(); strike(+b.dataset.i); }
+        else if(e.key==='ArrowRight'){ e.preventDefault(); (hots[k+1]||$('#btnCheck',el)).focus(); } else if(e.key==='ArrowLeft'){ e.preventDefault(); if(hots[k-1]) hots[k-1].focus(); } }); });
+    const check=()=>{
+      const w=forge(), ok=w===t.loesung, out=attempt(t, ok, w);
+      ui.fb={ type:out, msg: out==='retry'?'„'+w+'“ ist noch nicht richtig geschmiedet.':'' };
+      if(out==='ok'){ ui.fb.extra=karteHTML(t); }
+      afterAnswer(t,out,el,rerender);
+      if(out==='ok'){ sound('cool'); const a=$('#anvil',el); if(a && !ruhig()){ const s=document.createElement('span'); s.className='steam'; s.textContent='💨'; a.appendChild(s); setTimeout(()=>s.remove(),1300); } if(sammelbar(t.verb)) setTimeout(()=>sound('card'),400); }
+      if(out==='retry'){ const f=$('.block.heiss',el); if(f) f.focus({preventScroll:true}); } };
+    $('#btnCheck',el).addEventListener('click',check);
+    if(!ui.focused){ ui.focused=true; if(hots[0]) hots[0].focus({preventScroll:true}); }
+  },
+
+  /* Satz umformen */
+  umschreiben(t, el, onNext){
+    const res=state.done[t.id], rerender=()=>T.umschreiben(t,el,onNext);
+    let h='<p class="auftrag">Schreib den Satz '+(t.nach?'im <strong>'+esc(t.nach)+'</strong>':'neu')+'.</p>'+(t.von?'<p class="small muted">'+esc(t.von)+' → '+esc(t.nach||'')+'</p>':'')+
+      '<div class="paper"><p>'+fmt(t.satz)+'</p></div>'+
+      '<p><input '+INPUT_ATTR+' id="ans" class="fullin" aria-label="Dein Satz" value="'+esc(ui.val||'')+'"'+(res?' readonly':'')+'></p>';
+    if(!res) h+=umlautBar()+'<div class="row"><button type="button" class="primary" id="btnCheck">✓ Prüfen</button>'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    if(res) return;
+    textCheck(t, el, rerender);
+  },
+
+  /* Multiple Choice */
+  auswahl(t, el, onNext){
+    const res=state.done[t.id], rerender=()=>T.auswahl(t,el,onNext);
+    if(!optOrder[t.id]) optOrder[t.id]=shuffle(range(t.optionen.length));
+    ui.wrongs=ui.wrongs||[];
+    let h='<p class="auftrag">Wähl das richtige Wort.</p>'+satzHTML(t.satz, res?esc(t.loesung):'&nbsp;', res&&res.ok?'lit':'')+
+      '<div class="opts">'+optOrder[t.id].map(i=>{ const o=t.optionen[i], w=ui.wrongs.includes(o), r=res && o===t.loesung;
+        return '<button type="button" class="opt'+(w?' wrong':'')+(r?' right':'')+'" data-o="'+esc(o)+'"'+(res||w?' disabled':'')+'>'+esc(o)+'</button>'; }).join('')+'</div>';
+    if(!res) h+='<div class="row" style="margin-top:.5em">'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    if(res) return;
+    $$('.opt',el).forEach(b=>b.addEventListener('click',()=>{ const o=b.dataset.o, ok=o===t.loesung, out=attempt(t,ok,o); if(!ok) ui.wrongs.push(o); ui.fb={ type:out, msg:'' }; afterAnswer(t,out,el,rerender); if(out==='retry'){ const n=$('.opt:not([disabled])',el); if(n) n.focus({preventScroll:true}); } }));
+    if(!ui.focused){ ui.focused=true; const f=$('.opt',el); if(f) f.focus({preventScroll:true}); }
+  },
+
+  /* Lücke mit Texteingabe */
+  luecke(t, el, onNext){
+    const res=state.done[t.id], rerender=()=>T.luecke(t,el,onNext);
+    const inp='<input '+INPUT_ATTR+' id="ans" style="width:9em" aria-label="Lücke" value="'+esc(res&&!res.ok?asList(t.loesung)[0]:(ui.val||''))+'" class="'+(res&&res.ok?'lit':'')+'"'+(res?' readonly':'')+'>';
+    let h='<p class="auftrag">Schreib die richtige Form in die Lücke.</p><p class="satz">'+fmt(String(t.satz)).replace('___',inp)+(t.hinweis?' <span class="muted">('+esc(t.hinweis)+')</span>':'')+'</p>';
+    if(!res) h+=umlautBar()+'<div class="row"><button type="button" class="primary" id="btnCheck">✓ Prüfen</button>'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    if(res) return;
+    textCheck(t, el, rerender);
+  },
+
+  /* ganzen Satz schreiben */
+  satz(t, el, onNext){
+    const res=state.done[t.id], rerender=()=>T.satz(t,el,onNext);
+    let h='<p class="auftrag">'+fmt(t.auftrag||'Schreib den Satz.')+'</p>'+(t.woerter?'<p class="paper" style="font-family:inherit"><strong>'+fmt(t.woerter)+'</strong></p>':'')+
+      '<p><input '+INPUT_ATTR+' id="ans" class="fullin" aria-label="Dein Satz" value="'+esc(ui.val||'')+'"'+(res?' readonly':'')+'></p>';
+    if(!res) h+=umlautBar()+'<div class="row"><button type="button" class="primary" id="btnCheck">✓ Prüfen</button>'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    if(res) return;
+    textCheck(t, el, rerender);
+  },
+};
+function textCheck(t, el, rerender){
+  const inp=$('#ans',el);
+  inp.addEventListener('input',()=>{ ui.val=inp.value; });
+  const check=()=>{ const v=inp.value.trim(); if(!v){ toast('Schreib zuerst etwas.'); inp.focus(); return; }
+    ui.val=v; const ok=matches(v, t.loesung), out=attempt(t,ok,v); ui.fb={ type:out, msg: out==='retry'?'„'+v+'“ stimmt noch nicht.':'' };
+    afterAnswer(t,out,el,rerender); if(out==='retry'){ const i=$('#ans',el); if(i){ i.focus(); i.select(); } } };
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); check(); } });
+  bindUmlauts(el, ()=>$('#ans',el));
+  $('#btnCheck',el).addEventListener('click',check);
+  if(!ui.focused){ ui.focused=true; inp.focus({preventScroll:true}); }
+}
+function solveSel(B, word){
+  const go=(i,acc,sel)=>{ if(i===B.length) return acc===word?sel:null; const s=B[i];
+    if(!Array.isArray(s)) return word.startsWith(acc+s)?go(i+1,acc+s,sel.concat([0])):null;
+    for(let k=0;k<s.length;k++){ if(word.startsWith(acc+s[k])){ const r=go(i+1,acc+s[k],sel.concat([k])); if(r) return r; } } return null; };
+  return go(0,'',[]);
+}
+function karteHTML(t){
+  const v=VERB[t.verb]; if(!v) return '';
+  if(!sammelbar(t.verb)) return '<p class="small muted">„'+esc(v.inf)+'“ ist regelmäßig – dafür gibt es keine Sammelkarte.</p>';
+  const neu=albumAdd(t.verb); if(neu) state.karten=asList(state.karten).concat([t.verb]); save();
+  return '<div class="cardrow">'+vcardHTML(v, loadAlbum().karten[v.inf], neu?'newcard':'')+'<p><strong>'+(neu?'🃏 Neue Sammelkarte für dein Album!':'🃏 Diese Karte hast du schon im Album.')+'</strong><br><span class="small">Klick auf die Karte, dann dreht sie sich um.</span></p></div>';
+}
+
+/* ---------- Ziehen der Energiezellen (Maus, Touchpad, Touch) ---------- */
+let dragState=null;
+function startDrag(e, btn, onDrop){
+  if(btn.disabled || e.button>0) return;
+  dragState={ btn, onDrop, x:e.clientX, y:e.clientY, moved:false, ghost:null, id:e.pointerId };
+  btn.setPointerCapture && btn.setPointerCapture(e.pointerId);
+  btn.addEventListener('pointermove',dragMove); btn.addEventListener('pointerup',dragEnd); btn.addEventListener('pointercancel',dragCancel);
+}
+function dropAt(x,y){ const el=document.elementFromPoint(x,y); if(el && el.closest('.dropzone')) return el.closest('.dropzone'); const p=$('#stage .mport'); if(p){ const r=p.getBoundingClientRect(); if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom) return p; } return null; }
+function dragMove(e){
+  const d=dragState; if(!d) return;
+  if(!d.moved && Math.hypot(e.clientX-d.x,e.clientY-d.y)>6){ d.moved=true; d.ghost=d.btn.cloneNode(true); d.ghost.classList.add('cellghost'); document.body.appendChild(d.ghost); }
+  if(d.moved){ d.ghost.style.left=e.clientX+'px'; d.ghost.style.top=e.clientY+'px'; $$('.dropzone.hover').forEach(z=>z.classList.remove('hover')); const z=dropAt(e.clientX,e.clientY); if(z) z.classList.add('hover'); }
+}
+function dragEnd(e){
+  const d=dragState; if(!d) return;
+  const z=d.moved ? dropAt(e.clientX,e.clientY) : null;
+  const v=d.btn.dataset.v, cb=d.onDrop, moved=d.moved;
+  stopDrag(); if(moved){ dragState={ moved:true }; setTimeout(()=>{ if(dragState && !dragState.btn) dragState=null; },50); }
+  if(z) cb(v);
+}
+function dragCancel(){ stopDrag(); }
+function stopDrag(){ const d=dragState; if(!d) return; if(d.btn){ d.btn.removeEventListener('pointermove',dragMove); d.btn.removeEventListener('pointerup',dragEnd); d.btn.removeEventListener('pointercancel',dragCancel); } if(d.ghost) d.ghost.remove(); $$('.dropzone.hover').forEach(z=>z.classList.remove('hover')); dragState=null; }
+
+/* =====================================================================
+   ALBUM UND SCHMIEDE
+   ===================================================================== */
+function vcardHTML(v, card, cls){
+  const art=v.art==='gemischt'?'⚙️':'🔥';
+  if(!card) return '<div class="vcard locked" aria-label="noch nicht gesammelt"><div class="in"><div class="fa"><span class="ic">❓</span><span class="inf">???</span><span class="small">Niveau '+esc(v.niveau||'')+'</span></div></div></div>';
+  return '<button type="button" class="vcard'+(cls?' '+cls:'')+'" aria-label="Sammelkarte '+esc(v.inf)+' – umdrehen"><span class="in"><span class="fa"><span class="ic">'+art+'</span><span class="inf">'+esc(v.inf)+'</span><span class="stars" title="Fach in der Schmiede">'+'⭐'.repeat(Math.max(1,Math.min(3,card.fach||1)))+'</span><span class="small">'+esc(v.art)+' · '+esc(v.niveau||'')+'</span></span>'+
+    '<span class="ba"><p><b>Infinitiv:</b> '+esc(v.inf)+'</p><p><b>Präteritum:</b> er/sie/es '+esc(v.praet)+'</p><p><b>Partizip II:</b> '+esc(v.part)+'</p><p><b>Perfekt mit:</b> '+esc(v.hilfs)+'</p><p><i>'+esc(v.beispiel||'')+'</i></p></span></span></button>';
+}
+function albumBody(){
+  const a=loadAlbum(), list=sammelVerben(), n=list.filter(v=>a.karten[v.inf]).length;
+  const f=[1,2,3].map(k=>Object.keys(a.karten).filter(x=>VERB[x] && (a.karten[x].fach||1)===k).length);
+  return '<p>Du hast <strong>'+n+' von '+list.length+'</strong> Sammelkarten. Klick auf eine Karte, dann dreht sie sich um. Neue Karten bekommst du, wenn du im Spiel ein unregelmäßiges Verb richtig schmiedest.</p>'+
+    '<div class="facher">'+['🟥 Fach 1: neu','🟨 Fach 2: geübt','🟩 Fach 3: sicher'].map((x,i)=>'<div class="f"><b>'+f[i]+'</b>'+x+'</div>').join('')+'</div>'+
+    '<div class="albumgrid">'+list.map(v=>vcardHTML(v, a.karten[v.inf])).join('')+'</div>';
+}
+function bindCards(root){ $$('.vcard:not(.locked)',root).forEach(c=>c.addEventListener('click',()=>{ c.classList.toggle('flip'); sound('tick'); })); }
+function renderAlbum(){
+  view='album';
+  app.innerHTML='<section class="card narrow"><div class="row"><h1 style="margin:0">🃏 Mein Verbalbum</h1><span class="spacer"></span><button type="button" class="primary" id="btnSch">🔨 Zur Schmiede</button><button type="button" id="btnBack">← Zurück</button></div>'+albumBody()+'</section>';
+  bindCards(app);
+  $('#btnBack').addEventListener('click',()=>{ view=state?'game':'start'; render(); });
+  $('#btnSch').addEventListener('click',()=>{ view='schmiede'; sch=null; render(); });
+  focusEl('#btnBack');
+}
+function openAlbumOver(){
+  const b=openOver('🃏 Mein Verbalbum', true);
+  ui.returnFocus=$('#btnAlbumG');
+  b.innerHTML=albumBody()+'<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnOk">Zurück ins Spiel</button></div>';
+  bindCards(b); $('#btnOk').addEventListener('click',()=>closeOver()); focusEl('#btnOk');
+}
+
+/* Schmiede: Übung mit eigenen Karten (Leitner-System mit 3 Fächern, ohne Prüfcode) */
+let sch=null;
+function renderSchmiede(){
+  view='schmiede';
+  const a=loadAlbum(), mine=Object.keys(a.karten).filter(k=>VERB[k]);
+  const back='<button type="button" id="btnBack">← Zurück</button>';
+  if(!mine.length){
+    app.innerHTML='<section class="card narrow"><div class="row"><h1 style="margin:0">🔨 Die Schmiede</h1><span class="spacer"></span>'+back+'</div><p>Dein Album ist noch leer. Spiel ein Niveau und schmiede am Amboss unregelmäßige Verben – dann kommen hier deine Karten an.</p></section>';
+    $('#btnBack').addEventListener('click',()=>{ view=state?'game':'start'; render(); }); return;
+  }
+  if(!sch){
+    const order=shuffle(mine).sort((x,y)=>(a.karten[x].fach||1)-(a.karten[y].fach||1));
+    sch={ queue:order.slice(0,E.schmiedeKarten), i:0, ok:0, done:false, cur:null };
+  }
+  if(sch.i>=sch.queue.length){
+    const f=[1,2,3].map(k=>mine.filter(x=>(a.karten[x].fach||1)===k).length);
+    app.innerHTML='<section class="card narrow"><div class="row"><h1 style="margin:0">🔨 Runde geschafft!</h1><span class="spacer"></span>'+back+'</div>'+
+      '<p>Du hast <strong>'+sch.ok+' von '+sch.queue.length+'</strong> Karten richtig geschmiedet.</p>'+
+      '<div class="facher">'+['🟥 Fach 1: neu','🟨 Fach 2: geübt','🟩 Fach 3: sicher'].map((x,i)=>'<div class="f"><b>'+f[i]+'</b>'+x+'</div>').join('')+'</div>'+
+      '<p class="small muted">Richtig = die Karte wandert ein Fach weiter. Falsch = sie kommt zurück in Fach 1. Karten aus Fach 1 kommen in der nächsten Runde zuerst.</p>'+
+      '<div class="row"><button type="button" class="primary" id="btnAgain">🔨 Noch eine Runde</button><button type="button" id="btnAlb">🃏 Zum Album</button></div></section>';
+    $('#btnBack').addEventListener('click',()=>{ view=state?'game':'start'; render(); });
+    $('#btnAgain').addEventListener('click',()=>{ sch=null; render(); });
+    $('#btnAlb').addEventListener('click',()=>{ view='album'; render(); });
+    focusEl('#btnAgain'); return;
+  }
+  const inf=sch.queue[sch.i], v=VERB[inf], card=a.karten[inf], r=sch.cur;
+  const hb=x=>'<button type="button" class="cell'+(sch.h===x?' right':'')+'" data-h="'+x+'"'+(r?' disabled':'')+' aria-pressed="'+(sch.h===x)+'">🔋 '+x+'</button>';
+  app.innerHTML='<section class="card narrow"><div class="row"><h1 style="margin:0">🔨 Die Schmiede</h1><span class="spacer"></span><span class="chip">Karte '+(sch.i+1)+' von '+sch.queue.length+'</span>'+back+'</div>'+
+    '<div class="anvil" id="anvil"><div class="blocks"><span class="block heiss" style="font-size:1.5em">'+esc(inf)+'</span></div></div>'+
+    '<p class="small muted">Fach '+(card.fach||1)+' '+'⭐'.repeat(card.fach||1)+' · Schmiede die Formen:</p>'+
+    '<p class="row"><label for="sPr" style="min-width:12em">Präteritum (er/sie/es):</label><input '+INPUT_ATTR+' id="sPr" value="'+esc(sch.pr||'')+'"'+(r?' readonly':'')+'></p>'+
+    '<p class="row"><label for="sPa" style="min-width:12em">Partizip II:</label><input '+INPUT_ATTR+' id="sPa" value="'+esc(sch.pa||'')+'"'+(r?' readonly':'')+'></p>'+
+    '<div class="row"><span style="min-width:12em">Perfekt mit:</span><div class="cells" style="margin:0">'+hb('haben')+hb('sein')+'</div></div>'+
+    (r?'':umlautBar()+'<div class="row" style="margin-top:.5em"><button type="button" class="primary" id="sCheck">🔨 Schmieden!</button></div>')+
+    (r?'<div class="tipbox '+(r.ok?'ok':'bad')+'"><p><strong>'+(r.ok?'✓ Perfekt geschmiedet! Die Karte wandert in Fach '+r.fach+'.':'✗ Nicht ganz. Die Karte kommt zurück in Fach 1.')+'</strong></p><p>'+esc(v.inf)+' – '+esc(v.praet)+' – '+esc(v.part)+' (Perfekt mit '+esc(v.hilfs)+')</p><p class="small"><i>'+esc(v.beispiel||'')+'</i></p></div><div class="row" style="margin-top:.5em"><span class="spacer"></span><button type="button" class="primary" id="sNext">Weiter ➜</button></div>':'')+
+    '</section>';
+  $('#btnBack').addEventListener('click',()=>{ sch=null; view=state?'game':'start'; render(); });
+  if(r){ $('#sNext').addEventListener('click',()=>{ sch.i++; sch.cur=null; sch.pr=''; sch.pa=''; sch.h=null; render(); }); focusEl('#sNext'); return; }
+  let last=null; ['#sPr','#sPa'].forEach(s=>{ const i=$(s); i.addEventListener('focus',()=>{ last=i; }); i.addEventListener('input',()=>{ if(s==='#sPr') sch.pr=i.value; else sch.pa=i.value; }); i.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); if(s==='#sPr') $('#sPa').focus(); else check(); } }); });
+  bindUmlauts(app, ()=>last||$('#sPr'));
+  $$('.cell[data-h]').forEach(b=>b.addEventListener('click',()=>{ sch.h=b.dataset.h; $$('.cell[data-h]').forEach(x=>{ x.classList.toggle('right',x===b); x.setAttribute('aria-pressed',String(x===b)); }); sound('tick'); }));
+  const check=()=>{
+    if(!String(sch.pr||'').trim()||!String(sch.pa||'').trim()||!sch.h){ toast('Schreib beide Formen und wähl haben oder sein.'); return; }
+    const ok=matches(sch.pr, v.praet) && matches(sch.pa, v.part) && v.hilfs.split('/').includes(sch.h);
+    const A=loadAlbum(), c=A.karten[inf]; c.fach = ok ? Math.min(3,(c.fach||1)+1) : 1; if(ok){ c.richtig=(c.richtig||0)+1; sch.ok++; } saveAlbum(A);
+    sch.cur={ ok, fach:c.fach }; sound(ok?'hammer':'stutter'); if(ok) setTimeout(()=>sound('ok'),150);
+    const blk=$('#anvil .block'); if(ok) sparksAt(blk, 16);
+    render();
+  };
+  $('#sCheck').addEventListener('click',check);
+  focusEl('#sPr');
+}
+
+/* ---------- Name und Ergebnis ---------- */
+function renderName(){
+  app.innerHTML='<section class="card narrow"><h1>🏆 Geschafft!</h1><p>Schreib deinen Namen für das Ergebnis und den Prüfcode.</p>'+
+    '<p class="row"><label for="nameIn">Dein Name:</label> <input '+INPUT_ATTR+' id="nameIn" maxlength="60" style="flex:1;min-width:220px" placeholder="Vorname Nachname"></p><div id="nameFb" role="status"></div>'+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnName">Ergebnis anzeigen ➜</button></div></section>';
+  const go=()=>{ const n=$('#nameIn').value.trim().replace(/\s+/g,' '); if(normName(n).length<2){ $('#nameFb').innerHTML='<p class="badline">Bitte schreib deinen Namen.</p>'; return; } state.name=n; state.finished=new Date().toISOString(); state.phase='end'; save(); render(); };
+  $('#btnName').addEventListener('click',go); $('#nameIn').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }); focusEl('#nameIn');
+}
+function renderResult(){
+  const s=stats(), d=new Date(state.finished), code=makeCode(state.level,s.pct,d,state.name);
+  const rows=[['Name',state.name],['Niveau',state.level+' – '+L().titel],['Punkte',s.score+' von '+s.max+(s.bonus?' (davon '+s.bonus+' Bonus)':'')],['Prozent',s.pct+' %'],['Zeit',fmtTime(state.elapsed)+' min'],['Datum',fmtDate(d)],['Richtig',s.ok+' von '+s.total+' Aufgaben'],['Zeitfehler',zfCount()+' von '+zfTotal()],['Neue Sammelkarten',asList(state.karten).length]];
+  let h='<section class="card narrow"><div class="row"><h1 style="margin:0">🏆 Dein Ergebnis</h1><span class="spacer"></span><div style="width:110px">'+machineSVG(1)+'</div></div>'+
+    '<table class="restable">'+rows.map(r=>'<tr><th scope="row">'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table>'+
+    '<p style="margin-bottom:0">Prüfcode:</p><div class="bigcode">'+esc(code)+'</div><p class="small muted">Mach einen Screenshot oder kopiere das Ergebnis und gib es in Google Classroom ab.</p>'+
+    '<div class="row"><button type="button" class="primary" id="btnCopy">📋 Ergebnis kopieren</button><button type="button" id="btnAlb">🃏 Mein Album</button><button type="button" id="btnNew">↺ Neues Spiel</button><span id="copyFb" role="status" class="okline"></span></div>'+
+    '<h2 style="margin-top:1em">Falsch beantwortete Aufgaben ('+state.wrong.length+')</h2>';
+  h += state.wrong.length ? '<ol class="wronglist">'+state.wrong.map(w=>'<li><span class="muted small">'+esc(w.raum)+'</span><br>'+esc(w.aufgabe)+'<br><span class="badline">✗ Deine Antwort: '+esc(w.deine)+'</span><br><span class="okline">✓ Richtig: '+esc(w.loesung)+'</span></li>').join('')+'</ol>' : '<p class="okline">✓ Keine Fehler – super!</p>';
+  app.innerHTML=h+'</section>';
+  $('#btnCopy').addEventListener('click',()=>copyText(resultText(code,s,d)));
+  $('#btnAlb').addEventListener('click',()=>{ view='album'; render(); });
+  $('#btnNew').addEventListener('click',()=>bestaetigen('Neues Spiel starten? Dieses Ergebnis wird gelöscht (dein Album bleibt). Hast du schon einen Screenshot gemacht?', ()=>{ lsDel(LS_GAME); state=null; view='start'; render(); }));
+  focusEl('#btnCopy');
+}
+function resultText(code,s,d){
+  let t='Die Zeitmaschine von Frutillar – Verben-Escape-Room\nName: '+state.name+'\nNiveau: '+state.level+' – '+L().titel+
+    '\nPunkte: '+s.score+' / '+s.max+' ('+s.pct+' %)'+(s.bonus?' – davon '+s.bonus+' Bonus':'')+'\nZeit: '+fmtTime(state.elapsed)+' min\nDatum: '+fmtDate(d)+'\nZeitfehler: '+zfCount()+' von '+zfTotal()+'\nPrüfcode: '+code+'\n';
+  t+='\nFalsch beantwortet ('+state.wrong.length+'):\n'+(state.wrong.length?state.wrong.map((w,i)=>(i+1)+'. '+w.aufgabe+'\n   Meine Antwort: '+w.deine+'\n   Richtig: '+w.loesung).join('\n'):'–');
+  return t;
+}
+function copyText(t){
+  const done=()=>{ $('#copyFb').textContent='✓ Kopiert! Jetzt in Google Classroom einfügen (Strg + V).'; };
+  const fallback=()=>{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){ $('#copyFb').textContent='Kopieren hat nicht geklappt – bitte Screenshot machen.'; } ta.remove(); };
+  let settled=false; const once=f=>()=>{ if(!settled){ settled=true; f(); } };
+  try{ if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(t).then(once(done),once(fallback)); setTimeout(once(fallback),800); } else once(fallback)(); }catch(e){ once(fallback)(); }
+}
+
+/* ---------- Lehrkraft ---------- */
+function backToGame(){ history.replaceState(null,'',location.pathname+location.search); render(); }
+function renderTeacher(){
+  app.innerHTML='<section class="card narrow"><h1>🔎 Prüfcode kontrollieren</h1><p class="muted">Für Lehrkräfte. Name so eingeben, wie er im Ergebnis steht (Groß-/Kleinschreibung, Akzente und Leerzeichen sind egal).</p>'+
+    '<p><label for="tName">Name</label><br><input '+INPUT_ATTR+' id="tName" class="fullin"></p><p><label for="tCode">Prüfcode</label><br><input '+INPUT_ATTR+' id="tCode" class="fullin" placeholder="z. B. B1-85-131026-K7QFM"></p>'+
+    '<div class="row"><button type="button" class="primary" id="tCheck">Prüfen</button><span class="spacer"></span><button type="button" id="tBack">← Zurück zum Spiel</button></div><div id="tRes" role="status" aria-live="polite" style="margin-top:.8em"></div></section>'+
+    '<section class="card narrow"><h2>ℹ️ Gut zu wissen</h2><ul>'+
+    '<li><strong>Punkte:</strong> 10 beim 1. Versuch, 5 beim 2. Versuch; ein Tipp kostet 3 Punkte (höchstens 3 Tipps pro Raum).</li>'+
+    '<li><strong>Zeitfehler</strong> 🕰️ (ein Anachronismus pro Raum) zählen nicht für die Punkte. Wer alle findet, darf in den <strong>Bonusraum</strong>: Die Bonuspunkte kommen dazu, senken den Prozentwert aber nie.</li>'+
+    '<li><strong>Album und Schmiede</strong> werden im Browser des Geräts gespeichert (nicht im Prüfcode). Auf einem anderen Chromebook ist das Album leer.</li>'+
+    '<li><strong>Gegenstände verschieben:</strong> <a href="#editor">Bearbeitungsmodus</a></li></ul></section>';
+  const go=()=>{ const r=verifyCode($('#tCode').value,$('#tName').value);
+    $('#tRes').innerHTML = r.valid ? '<p class="tipbox ok"><strong>✓ Der Code ist gültig.</strong><br>Niveau <strong>'+r.level+'</strong> · <strong>'+r.pct+' %</strong> · '+r.date+'</p>'
+      : '<p class="tipbox bad"><strong>✗ Der Code ist nicht gültig.</strong><br>'+esc(r.reason||'Name oder Code passen nicht zusammen.')+'</p>'; };
+  $('#tCheck').addEventListener('click',go); ['#tName','#tCode'].forEach(s=>$(s).addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }));
+  $('#tBack').addEventListener('click',backToGame);
+  focusEl('#tName');
+}
+function renderEditor(){
+  const lv = (renderEditor.lv && SPIEL[renderEditor.lv]) ? renderEditor.lv : LEVELS.find(l=>SPIEL[l]);
+  const S=SPIEL[lv], list=asList(S.raeume).concat(S.bonus?[S.bonus]:[]);
+  const ri = Math.min(renderEditor.ri||0, list.length-1), Rm=list[ri], Sc=SCENES[Rm.szene]||SCENES.dachboden;
+  app.innerHTML='<section><h1>🛠️ Bearbeitungsmodus</h1><p class="muted">Ziehe mit der Maus einen Rahmen um die Stelle, an der ein Gegenstand liegen soll. Unten erscheint die Zeile <code>ort: […]</code> zum Kopieren. Grüne Rahmen = vorhandene Gegenstände, gelb = Zeitmaschine.</p>'+
+    '<div class="row" style="margin-bottom:.5em"><label>Niveau <select id="edLv">'+LEVELS.filter(l=>SPIEL[l]).map(l=>'<option'+(l===lv?' selected':'')+'>'+l+'</option>').join('')+'</select></label>'+
+    '<label>Raum <select id="edRm">'+list.map((x,i)=>'<option value="'+i+'"'+(i===ri?' selected':'')+'>'+(i<asList(S.raeume).length?(i+1):'Bonus')+' – '+esc(x.name)+'</option>').join('')+'</select></label><span class="spacer"></span><button type="button" id="edBack">← Zurück zum Spiel</button></div>'+
+    '<div class="stage" id="edStage" style="cursor:crosshair;touch-action:none"><svg class="bg" viewBox="0 0 1000 560" style="position:absolute;inset:0;width:100%;height:100%">'+Sc.svg()+'</svg>'+
+    '<div class="machine" style="'+pos(Sc.m)+'">'+machineSVG(.5)+'</div>'+
+    asList(Rm.gegenstaende).map(o=>'<div class="edold" style="'+pos(o.ort)+';display:flex;align-items:center;justify-content:center;font-size:'+(Math.min(o.ort[2],o.ort[3])*0.075).toFixed(2)+'cqw"><span>'+esc(o.id)+' ('+esc(o.art)+')</span>'+(o.symbol||'')+'</div>').join('')+
+    '<div class="edold" style="'+pos(Sc.m)+';border-color:#ffd166"><span>Zeitmaschine</span></div></div>'+
+    '<pre class="code" id="edOut">Noch kein Rahmen gezogen.</pre><button type="button" id="edCopy">📋 Zeile kopieren</button>'+
+    '<p class="small muted">Als <code>symbol</code> kann jedes Emoji stehen (z. B. "🧳"). Ist der Gegenstand schon im Raumbild gezeichnet, schreiben Sie <code>symbol:""</code> und für das Zeitschloss <code>schloss:"🏠"</code>.</p></section>';
+  $('#edLv').addEventListener('change',e=>{ renderEditor.lv=e.target.value; renderEditor.ri=0; renderEditor(); });
+  $('#edRm').addEventListener('change',e=>{ renderEditor.ri=+e.target.value; renderEditor(); });
+  $('#edBack').addEventListener('click',backToGame);
+  const st=$('#edStage'); let start=null, box=null;
+  const toU=e=>{ const r=st.getBoundingClientRect(); return [Math.round((e.clientX-r.left)/r.width*1000), Math.round((e.clientY-r.top)/r.height*560)]; };
+  st.addEventListener('pointerdown',e=>{ start=toU(e); if(box) box.remove(); box=document.createElement('div'); box.className='edbox'; st.appendChild(box); st.setPointerCapture(e.pointerId); });
+  st.addEventListener('pointermove',e=>{ if(!start) return; const p=toU(e); const r=[Math.min(start[0],p[0]),Math.min(start[1],p[1]),Math.abs(p[0]-start[0]),Math.abs(p[1]-start[1])]; box.style.cssText=pos(r); box.dataset.r=JSON.stringify(r); });
+  st.addEventListener('pointerup',()=>{ if(!start) return; start=null; if(box && box.dataset.r){ const r=JSON.parse(box.dataset.r); $('#edOut').textContent='ort: ['+r.join(', ')+'],'; } });
+  $('#edCopy').addEventListener('click',()=>{ const t=$('#edOut').textContent; try{ navigator.clipboard.writeText(t); }catch(e){} toast('📋 Kopiert: '+t); });
+}
+
+/* ---------- Uhr ---------- */
+setInterval(()=>{
+  if(!state || view!=='game' || state.phase!=='play' || document.hidden || location.hash) return;
+  state.elapsed+=1000;
+  const c=$('#clock'); if(c) c.textContent='⏱ '+fmtTime(state.elapsed);
+  if(state.elapsed%5000===0) save();
+},1000);
+
+/* ---------- Start ---------- */
+(function init(){
+  try{ const s=JSON.parse(lsGet(LS_SET)||'{}'); if(s.sound) settings.sound=true; if(s.anim===false) settings.anim=false; }catch(e){}
+  const sb=$('#btnSound'), ab=$('#btnAnim');
+  const upd=()=>{ sb.textContent=settings.sound?'🔊 Ton an':'🔇 Ton aus'; sb.setAttribute('aria-pressed',String(settings.sound));
+    ab.textContent=settings.anim?'🎞 Animationen an':'🎞 Animationen aus'; ab.setAttribute('aria-pressed',String(!settings.anim)); document.documentElement.classList.toggle('ruhig',!settings.anim); };
+  upd();
+  sb.addEventListener('click',()=>{ settings.sound=!settings.sound; saveSettings(); upd(); sound('ok'); });
+  ab.addEventListener('click',()=>{ settings.anim=!settings.anim; saveSettings(); upd(); toast(settings.anim?'🎞 Animationen sind wieder an.':'🎞 Animationen sind aus – nur noch sanfte Überblendungen.'); });
+  $('#btnMenu').addEventListener('click',()=>{ if(location.hash) history.replaceState(null,'',location.pathname+location.search); closeTravel(true); view='start'; state=null; ui={}; render(); });
+  window.addEventListener('hashchange',()=>{ if(!location.hash && view==='game' && !state) view='start'; render(); });
+  render();
+})();
+</script>
+</body>
+</html>

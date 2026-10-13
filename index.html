@@ -150,6 +150,29 @@ const SPIELE = [
     neu: true,
     speicher: "superempanada.spiel.v1",
     lehrerseite: true
+  },
+  {
+    datei: "zeitmaschine.html",
+    titel: "Die Zeitmaschine von Frutillar",
+    bild: "⏳⚙️🔨",
+    farbe: "#5a3a12",
+    kurz: "Ein Escape Room durch die Zeit: Die alte Zeitmaschine läuft nur mit richtigen Verbformen.",
+    beschreibung: "Auf dem Dachboden in Frutillar drückt Benja auf den Knopf – und schon reisen Sofía, Matías und Benja nach Rapa Nui, zu den Siedlern am Llanquihue-See, in eine Salpeter-Oficina und in die Zukunft. Dreh die Zahnrad-Ringe, füll Konjugationstabellen, zieh Energiezellen in die Maschine und schmiede Partizipien am Amboss. Sammle Verbkarten für dein Album und finde die versteckten Zeitfehler!",
+    sospielst: [
+      "Wähle dein Niveau.",
+      "Klick auf die Gegenstände im Raum: Jede richtige Verbform gibt der Zeitmaschine Energie.",
+      "Gelöste Gegenstände zeigen eine Ziffer – öffne damit das Zeitschloss und zieh den Hebel.",
+      "Am Ende bekommst du einen Prüfcode für Google Classroom. Dein Verbalbum kannst du jederzeit in der Schmiede üben."
+    ],
+    niveaus: {
+      A2: "Präsens (Vokalwechsel, trennbare Verben, Modalverben, Imperativ), Perfekt mit haben/sein, Partizip II, Verben mit Dativ"
+    },
+    typ: "Escape Room",
+    dauer: "30–45 Min. pro Niveau",
+    spanisch: "Un escape room sobre verbos: conjuga, forja participios y repara la máquina del tiempo.",
+    neu: true,
+    speicher: "zeitmaschine.spiel.v1",
+    lehrerseite: true
   }
 
   /* ---- Neues Spiel hier einfügen: Komma nach der } oben nicht vergessen! ----
@@ -336,6 +359,7 @@ function drawGames(){
 /* Lehrkraft-Links */
 const tl = games.filter(g => g.lehrerseite).map(g => '<li>🔎 <a href="'+esc(g.datei)+'#lehrer">Prüfcodes kontrollieren: '+esc(g.titel)+'</a></li>');
 if(games.some(g => g.datei==='artikel-detektive.html')) tl.push('<li>🛠️ <a href="artikel-detektive.html#editor">Bearbeitungsmodus Artikel-Detektive (Gegenstände platzieren)</a></li>');
+if(games.some(g => g.datei==='zeitmaschine.html')) tl.push('<li>🛠️ <a href="zeitmaschine.html#editor">Bearbeitungsmodus Zeitmaschine (Gegenstände platzieren)</a></li>');
 $('#lehrerlinks').innerHTML = tl.join('') || '<li>Noch keine Lehrkraft-Seiten.</li>';
 
 drawFilter(); drawGames();
