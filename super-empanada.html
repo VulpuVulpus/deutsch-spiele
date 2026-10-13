@@ -165,7 +165,7 @@ const SPIEL = {
         name: "Die Töpferei", szene: "toepferei",
         ruf: "Der Ton trocknet. Ihr seid langsam. Ha!",
         thema: "Sätze mit Konnektor-Steinen kleben",
-        geschichte: "In der Töpferei liegen überall zerbrochene Sätze. Die erste Scherbe der Tafel klebt unter einem Haufen nasser Tonsätze fest.\n\nVerbinde jeweils zwei Satzscherben mit dem passenden Stein. Danach klickst du den zweiten Satz in die richtige Reihenfolge. Aber beeil dich: **Der Ton trocknet!**",
+        geschichte: "In der Töpferei liegen überall zerbrochene Sätze. Die erste Scherbe der Tafel klebt unter einem Haufen nasser Tonsätze fest.\n\nWähle jeweils den passenden Stein und bau dann aus den Scherben einen richtigen Satz. Aber beeil dich: **Der Ton trocknet!**",
         geschafft: "Alle Sätze kleben – und unter dem letzten Tonsatz liegt die erste Scherbe der Tafel!",
         scherbe: "Der Teig: 1 kg Mehl, 150 g Schmalz und warmes Salzwasser. So lange kneten, bis der Teig weich ist.",
         aufgaben: [
@@ -507,9 +507,9 @@ const SPIEL = {
             verbunden: "**Wenn** ihr noch ein Wort sagt, verwandle ich euch in Lehm.",
             erklaerung_de: "Das passiert nur unter einer Bedingung → **wenn**.",
             erklaerung_es: "«si» (condición) → wenn." },
-          { typ: "konter", satzpaar: "Ich verstecke die Scherben. Niemand soll sie finden.", loesung: "Zweck",
+          { typ: "konter", satzpaar: "Ich verstecke die Scherben. Niemand soll sie finden.", loesung: ["Zweck", "Grund"],
             verbunden: "Ich verstecke die Scherben, **damit** niemand sie findet.",
-            erklaerung_de: "„soll“ zeigt ein Ziel → Zweck: **damit**.",
+            erklaerung_de: "„soll“ zeigt ein Ziel → am genauesten: Zweck (**damit**). „weil niemand sie finden soll“ (Grund) geht auch.",
             erklaerung_es: "«para que nadie las encuentre» → damit." },
           { typ: "konter", satzpaar: "Ihr liebt Empanadas. Ich hasse Empanadas.", loesung: "Gegensatz",
             verbunden: "Ihr liebt Empanadas, **während** ich sie hasse.",
@@ -523,9 +523,9 @@ const SPIEL = {
             verbunden: "Ich spreche ohne Konnektoren, **denn** ich habe sie alle zerbröckelt.",
             erklaerung_de: "Der zweite Satz erklärt den ersten → Grund: **denn** oder **weil**.",
             erklaerung_es: "«porque» → denn / weil." },
-          { typ: "konter", satzpaar: "Ich rufe meinen Zauberspruch. Alle Sätze sollen zerbrechen.", loesung: "Zweck",
+          { typ: "konter", satzpaar: "Ich rufe meinen Zauberspruch. Alle Sätze sollen zerbrechen.", loesung: ["Zweck", "Grund"],
             verbunden: "Ich rufe meinen Zauberspruch, **damit** alle Sätze zerbrechen.",
-            erklaerung_de: "Lehmann hat ein Ziel („sollen“) → Zweck: **damit**.",
+            erklaerung_de: "Lehmann hat ein Ziel („sollen“) → am genauesten: Zweck (**damit**). Als Grund formuliert geht es auch.",
             erklaerung_es: "«para que» → damit." }
         ],
         reserve: [
@@ -542,10 +542,1029 @@ const SPIEL = {
     ]
   },
 
-  /* A2, B2 und C1 folgen. Solange hier null steht, zeigt die Startseite „kommt bald“. */
-  A2: null,
-  B2: null,
-  C1: null
+  /* =================================================================
+     A2
+     ================================================================= */
+  A2: {
+    titel: "Die Scherben von Pomaire",
+    schwerpunkt: "und, aber, oder, denn, sondern, weil, dass, wenn, deshalb, dann",
+    intro: "Pomaire ist ein kleines Dorf in Chile. Hier macht man Töpfe aus Ton – und riesige Empanadas! Das Rezept für die Super-Empanada steht auf einer alten Tontafel.\n\nAber heute Nacht war **Magister Lehmann** hier. Er ist ein böser Zauberer. Er hat die Tafel kaputt gemacht und die Scherben im Dorf versteckt. Sein Zauberwort ist „Zerbröckel!“. Jetzt sprechen alle im Dorf nur noch ganz kurze Sätze.\n\nSofía, Matías und Benja helfen. Das **Chanchito de greda**, ein kleines Schwein aus Ton mit drei Beinen, hilft auch. Es weiß: Lehmann hat Angst vor **Konnektoren**!",
+    schluss: "Lehmann ist müde. Und plötzlich spricht er lange Sätze:\n\n„Ihr habt gewonnen, **weil** ihr so gut seid. Ich war böse, **aber** jetzt bin ich nett. **Deshalb** gebe ich euch die Tafel zurück. **Und wenn** ihr wollt, esse ich mit euch eine Empanada.“\n\nDie Tafel ist wieder ganz. Am Abend backt ganz Pomaire Super-Empanadas – und das Chanchito bekommt das erste Stück. 🥟",
+    raeume: [
+
+      /* ---------- A2 · Raum 1: Die Töpferei ---------- */
+      {
+        name: "Die Töpferei", szene: "toepferei",
+        ruf: "Der Ton trocknet. Ihr seid langsam. Ha!",
+        thema: "Sätze mit Konnektor-Steinen kleben",
+        geschichte: "In der Töpferei liegen überall kaputte Sätze. Die erste Scherbe der Tafel ist unter den Sätzen versteckt.\n\nWähle einen Stein. Dann bau aus den Scherben einen richtigen Satz. Schnell: **Der Ton trocknet!**",
+        geschafft: "Super! Alle Sätze sind wieder ganz – und da liegt die erste Scherbe der Tafel!",
+        scherbe: "Der Teig: Mehl, Fett und warmes Wasser. Gut kneten!",
+        aufgaben: [
+          {
+            typ: "kleben", thema: "Warum? → ein Grund",
+            satz1: "Benja ist heute müde.",
+            satz2: "er | [hat] | schlecht | [geschlafen]",
+            optionen: ["weil", "aber", "oder", "dann"], loesung: ["weil"],
+            tipp: "Warum ist Benja müde?",
+            erklaerung_de: "**weil** nennt den Grund. „weil“ ist ein Haken: Das Verb geht ans Ende: …, weil er schlecht geschlafen **hat**.",
+            erklaerung_es: "«porque» → weil (verbo al final) o denn (verbo en posición 2)."
+          },
+          {
+            typ: "kleben", thema: "Was passiert dann? → eine Folge",
+            satz1: "Es regnet in Pomaire.",
+            satz2: "wir | [bleiben] | in der Töpferei",
+            optionen: ["deshalb", "aber", "weil", "oder"], loesung: ["deshalb"],
+            tipp: "Der Regen ist der Grund. Was ist die Folge?",
+            erklaerung_de: "Regen → wir bleiben drinnen. Das ist eine Folge: **deshalb**. Keil: Deshalb **bleiben** wir in der Töpferei.",
+            erklaerung_es: "«por eso» → deshalb. Después viene el verbo: «Deshalb bleiben wir…»."
+          },
+          {
+            typ: "kleben", thema: "Etwas ist anders → ein Gegensatz",
+            satz1: "Die Vase ist schön.",
+            satz2: "sie | [ist] | sehr teuer",
+            optionen: ["aber", "denn", "oder", "dass"], loesung: ["aber"],
+            tipp: "Schön ist gut. Teuer ist nicht so gut.",
+            erklaerung_de: "Schön (gut) und teuer (nicht so gut) → Gegensatz: **aber**. Flachstein: Die Wortstellung bleibt.",
+            erklaerung_es: "«pero» → aber. El orden no cambia."
+          },
+          {
+            typ: "kleben", thema: "Warum? → ein Grund",
+            satz1: "Matías kauft zwei Empanadas.",
+            satz2: "er | [hat] | großen Hunger",
+            optionen: ["denn", "aber", "oder", "sondern"], loesung: ["denn"],
+            erklaerung_de: "**denn** nennt den Grund. „denn“ ist ein Flachstein: …, denn er **hat** großen Hunger.",
+            erklaerung_es: "«porque» → denn: el verbo queda en la posición 2."
+          },
+          {
+            typ: "kleben", thema: "nicht/kein … → Korrektur",
+            satz1: "Das ist keine Vase.",
+            satz2: "das | [ist] | ein Topf",
+            optionen: ["sondern", "aber", "oder", "dann"], loesung: ["sondern"],
+            tipp: "Im ersten Satz steht „keine“.",
+            erklaerung_de: "Nach **kein/nicht** kommt die Korrektur mit **sondern**.",
+            erklaerung_es: "«no es un jarrón, sino una olla» → keine Vase, sondern ein Topf."
+          },
+          {
+            typ: "kleben", thema: "Unter welcher Bedingung?",
+            satz1: "Wir backen heute Empanadas.",
+            satz2: "das Wetter | [ist] | schön",
+            optionen: ["wenn", "aber", "oder", "deshalb"], loesung: ["wenn"],
+            erklaerung_de: "Nur bei schönem Wetter → **wenn** (Haken): …, wenn das Wetter schön **ist**.",
+            erklaerung_es: "«si hace buen tiempo» → wenn das Wetter schön ist (verbo al final)."
+          },
+          {
+            typ: "kleben", thema: "Zuerst … danach",
+            satz1: "Zuerst knetet Sofía den Ton.",
+            satz2: "sie | [macht] | eine Schüssel",
+            optionen: ["dann", "sondern", "oder", "dass"], loesung: ["dann"],
+            erklaerung_de: "Zuerst …, **dann** … – eine Reihenfolge. Keil: Dann **macht** sie eine Schüssel.",
+            erklaerung_es: "«primero …, luego …» → zuerst …, dann … (verbo justo después)."
+          },
+          {
+            typ: "schreiben", thema: "weil → Verb ans Ende",
+            satz: "Benja trinkt viel Wasser, weil ___.",
+            hinweis: "Es ist sehr heiß.",
+            loesung: ["es sehr heiß ist"],
+            tipp: "Wo steht das Verb nach „weil“?",
+            erklaerung_de: "„weil“ ist ein Haken → Verb ans Ende: …, weil es sehr heiß **ist**.",
+            erklaerung_es: "«porque hace mucho calor» → «weil es sehr heiß **ist**»."
+          }
+        ],
+        reserve: [
+          {
+            typ: "kleben", thema: "Warum?",
+            satz1: "Sofía lacht.",
+            satz2: "der Zauberer | [ist] | so komisch",
+            optionen: ["weil", "aber", "oder", "dann"], loesung: ["weil"],
+            erklaerung_de: "Der Grund für das Lachen → **weil**: …, weil der Zauberer so komisch **ist**.",
+            erklaerung_es: "«porque» → weil, verbo al final."
+          },
+          {
+            typ: "kleben", thema: "Folge",
+            satz1: "Der Ofen ist heiß.",
+            satz2: "wir | [fassen] | ihn | nicht | [an]",
+            optionen: ["deshalb", "aber", "oder", "weil"], loesung: ["deshalb"],
+            erklaerung_de: "Heißer Ofen → wir fassen ihn nicht an. Folge: **Deshalb fassen** wir ihn nicht an.",
+            erklaerung_es: "«por eso» → deshalb + verbo."
+          },
+          {
+            typ: "kleben", thema: "Gegensatz",
+            satz1: "Matías mag den Zauberer nicht.",
+            satz2: "er | [findet] | ihn | lustig",
+            optionen: ["aber", "denn", "oder", "dass"], loesung: ["aber"],
+            erklaerung_de: "Er mag ihn nicht – findet ihn aber lustig → Gegensatz: **aber**.",
+            erklaerung_es: "«pero» → aber."
+          },
+          {
+            typ: "schreiben", thema: "deshalb → Verb direkt dahinter",
+            satz: "Es ist kalt, deshalb ___.",
+            hinweis: "Wir trinken Tee.",
+            loesung: ["trinken wir Tee"],
+            erklaerung_de: "„deshalb“ ist ein Keil → Verb direkt dahinter: …, deshalb **trinken** wir Tee.",
+            erklaerung_es: "«por eso tomamos té» → «deshalb **trinken** wir Tee»."
+          }
+        ]
+      },
+
+      /* ---------- A2 · Raum 2: Der Marktplatz ---------- */
+      {
+        name: "Der Marktplatz", szene: "markt",
+        ruf: "Das Dorf redet. Das Dorf lügt. Ihr findet nichts.",
+        thema: "Wer sagt was? – Rätsel",
+        geschichte: "Auf dem Marktplatz stehen viele Töpfe in der Sonne. Lehmann hat die zweite Scherbe in **zwei Stücke** gebrochen und versteckt.\n\nDie Leute im Dorf haben etwas gesehen. Lies genau: **aber, oder, sondern, denn** – jedes Wort ist wichtig!",
+        geschafft: "Die zwei Stücke passen zusammen: Das ist die zweite Scherbe der Tafel!",
+        scherbe: "Die Füllung: Zwiebeln und Fleisch braten, dann Gewürze dazugeben.",
+        aufgaben: [
+          {
+            typ: "raetsel", antwort: "ort", thema: "oder · aber",
+            einleitung: "Drei Leute haben gesehen, wo Lehmann das **erste Stück** versteckt hat. Alle sagen die Wahrheit.",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Das Stück ist am Brunnen oder am Empanada-Stand." },
+              { name: "Don Pedro", bild: "👴🏻", text: "Ich war den ganzen Tag am Brunnen, aber ich habe kein Stück gesehen." },
+              { name: "Pablo", bild: "👦🏽", text: "Der Zauberer hatte Hunger, denn er hat eine Empanada gekauft." }
+            ],
+            frage: "Wo ist das erste Stück?",
+            orte: ["⛲ Brunnen", "⛪ Kirche", "🔥 Töpferofen", "🥟 Empanada-Stand"],
+            loesung: "Empanada-Stand",
+            tipp: "Rosa sagt: zwei Orte sind möglich. Welcher fällt weg?",
+            erklaerung_de: "Rosa: Brunnen **oder** Empanada-Stand. Pedro war am Brunnen, **aber** er hat nichts gesehen. Also: **Empanada-Stand**. Pablo sagt, warum Lehmann dort war (**denn** er hatte Hunger).",
+            erklaerung_es: "«o» → oder; «pero» → aber; «porque» → denn."
+          },
+          {
+            typ: "raetsel", antwort: "person", thema: "Eine Person lügt",
+            einleitung: "Jetzt das **zweite Stück**. Drei Leute sprechen. Aber Achtung: **Eine Person lügt.**",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Der Zauberer war am Morgen in der Kirche, denn er wollte dort etwas verstecken." },
+              { name: "Señor Tomás", bild: "🧔🏻", text: "Der Zauberer war am Morgen nicht in der Kirche, sondern am Brunnen." },
+              { name: "Pablo", bild: "👦🏽", text: "Ich war am Morgen in der Kirche, und der Zauberer war auch da." }
+            ],
+            frage: "Wer lügt? Klick auf die Person.",
+            loesung: "Señor Tomás",
+            tipp: "Zwei Personen sagen fast dasselbe. Wer sagt etwas anderes?",
+            erklaerung_de: "Rosa und Pablo sagen: Der Zauberer war in der Kirche. Tomás sagt: nicht in der Kirche, **sondern** am Brunnen. Nur eine Person lügt – also **Señor Tomás**.",
+            erklaerung_es: "«no …, sino …» → nicht …, sondern …"
+          },
+          {
+            typ: "raetsel", antwort: "ort", thema: "denn · sondern",
+            einleitung: "Du weißt jetzt, wer lügt. Wo ist das **zweite Stück**?",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Der Zauberer war am Morgen in der Kirche, denn er wollte dort etwas verstecken." },
+              { name: "Señor Tomás", bild: "🧔🏻", text: "Der Zauberer war am Morgen nicht in der Kirche, sondern am Brunnen." },
+              { name: "Pablo", bild: "👦🏽", text: "Ich war am Morgen in der Kirche, und der Zauberer war auch da." }
+            ],
+            frage: "Wo ist das zweite Stück?",
+            orte: ["⛲ Brunnen", "⛪ Kirche", "🔥 Töpferofen", "🥟 Empanada-Stand"],
+            loesung: "Kirche",
+            erklaerung_de: "Tomás lügt. Rosa sagt die Wahrheit: Der Zauberer war in der **Kirche**, **denn** er wollte dort etwas verstecken.",
+            erklaerung_es: "Tomás miente. Rosa dice la verdad: en la iglesia."
+          }
+        ],
+        reserve: []
+      },
+
+      /* ---------- A2 · Raum 3: Die Falle des Zauberers ---------- */
+      {
+        name: "Die Falle des Zauberers", szene: "turm",
+        ruf: "Meine Steine sind schön. Nehmt sie!",
+        thema: "Welcher Stein passt zur Bedeutung?",
+        geschichte: "Im Zauberturm liegen glänzende Steine auf dem Tisch. „Nehmt doch!“, lacht Lehmann.\n\nDas Chanchito sagt leise: „Vorsicht! Alle Steine passen in den Satz – aber nur **einer** passt zur **Bedeutung**. Die falschen werden zu Lehm!“",
+        geschafft: "Die Falle ist kaputt! Unter dem Tisch liegt die dritte Scherbe.",
+        scherbe: "Dazu: ein Stück Ei und eine Olive – oder Rosinen, wenn du willst.",
+        aufgaben: [
+          {
+            typ: "falle", thema: "Nach „kein“ kommt eine Korrektur",
+            satz: "Das ist kein Teller, ___ eine Schüssel.",
+            optionen: ["sondern", "aber", "oder"], loesung: "sondern",
+            erklaerung_de: "Nach **kein** → Korrektur mit **sondern**.",
+            erklaerung_es: "«no es un plato, sino un bol» → kein …, sondern …"
+          },
+          {
+            typ: "falle", thema: "Warum isst Benja nichts?",
+            satz: "Benja isst heute nichts, ___ er keinen Hunger hat.",
+            optionen: ["weil", "dass", "ob"], loesung: "weil",
+            erklaerung_de: "Ein Grund → **weil**.",
+            erklaerung_es: "«porque» → weil. ¡No «dass»!"
+          },
+          {
+            typ: "falle", thema: "Man muss wählen",
+            satz: "Möchtest du eine Empanada ___ einen Completo? Du musst wählen!",
+            optionen: ["oder", "und", "aber"], loesung: "oder",
+            erklaerung_de: "Man muss wählen: das eine **oder** das andere.",
+            erklaerung_es: "«o» → oder; «y» → und."
+          },
+          {
+            typ: "falle", thema: "Warum ist Sofía glücklich?",
+            satz: "Sofía ist glücklich, ___ ihre Vase ist fertig.",
+            optionen: ["denn", "aber", "oder"], loesung: "denn",
+            erklaerung_de: "Der Grund für das Glück → **denn**.",
+            erklaerung_es: "«porque» → denn (verbo en posición 2)."
+          },
+          {
+            typ: "falle", thema: "Zuerst … und danach?",
+            satz: "Zuerst kneten wir den Ton. ___ formen wir eine Schüssel.",
+            optionen: ["Dann", "Deshalb", "Trotzdem"], loesung: "Dann",
+            erklaerung_de: "Eine Reihenfolge: zuerst …, **dann** …",
+            erklaerung_es: "«primero …, luego …» → zuerst …, dann …"
+          },
+          {
+            typ: "falle", thema: "Was sagt Lehmann?",
+            satz: "Lehmann sagt, ___ er sehr mächtig ist.",
+            optionen: ["dass", "wenn", "weil"], loesung: "dass",
+            erklaerung_de: "Nach **sagen** kommt der Inhalt mit **dass**.",
+            erklaerung_es: "«dice que …» → sagt, dass …"
+          },
+          {
+            typ: "falle", thema: "Unter welcher Bedingung?",
+            satz: "___ morgen die Sonne scheint, gehen wir zum Markt.",
+            optionen: ["Wenn", "Dass", "Ob"], loesung: "Wenn",
+            erklaerung_de: "Eine Bedingung → **wenn**.",
+            erklaerung_es: "«si mañana hace sol» → wenn morgen die Sonne scheint."
+          }
+        ],
+        reserve: [
+          {
+            typ: "falle", thema: "Nach „nicht“ kommt eine Korrektur",
+            satz: "Lehmann ist nicht nett, ___ böse.",
+            optionen: ["sondern", "aber", "oder"], loesung: "sondern",
+            erklaerung_de: "Nach **nicht** → Korrektur mit **sondern**.",
+            erklaerung_es: "«no es amable, sino malo» → nicht …, sondern …"
+          },
+          {
+            typ: "falle", thema: "Man muss wählen",
+            satz: "Was trinkst du lieber: Saft ___ Wasser?",
+            optionen: ["oder", "und", "aber"], loesung: "oder",
+            erklaerung_de: "„lieber“ – man wählt eins → **oder**.",
+            erklaerung_es: "«o» → oder."
+          },
+          {
+            typ: "falle", thema: "Was hoffe ich?",
+            satz: "Ich hoffe, ___ wir die Scherbe finden.",
+            optionen: ["dass", "wenn", "weil"], loesung: "dass",
+            erklaerung_de: "Nach **hoffen** kommt der Inhalt mit **dass**.",
+            erklaerung_es: "«espero que …» → ich hoffe, dass …"
+          }
+        ]
+      },
+
+      /* ---------- A2 · Raum 4: Das Wortduell ---------- */
+      {
+        name: "Das Wortduell", szene: "plaza",
+        ruf: "Deutsch ist schwer. Lernen ist doof. Ich habe recht.",
+        thema: "Eine Meinung mit Konnektoren sagen",
+        geschichte: "Auf der Plaza ruft Lehmann: „Deutsch ist doof!“ Das ganze Dorf hört zu.\n\nBaut eine Antwort, Satz für Satz. Für jeden Satz wählst du einen Stein. **Jeder Stein zerbröckelt nach dem Benutzen.** Extrapunkte gibt es für alle drei Steinformen.",
+        geschafft: "Das Dorf klatscht! Lehmann sagt nichts mehr – und die vierte Scherbe fällt aus seinem Hut.",
+        scherbe: "Den Rand gut zudrücken. Die Füllung darf nicht herauslaufen.",
+        aufgaben: [
+          {
+            typ: "kette", thema: "Grund, Gegensatz, Folge, Reihenfolge, Korrektur",
+            behauptung: "Deutsch ist schwer. Lernen ist doof. Deutsch braucht niemand.",
+            start: "Ich lerne gern Deutsch.",
+            steine: ["denn", "aber", "deshalb", "dann", "sondern", "weil", "oder", "wenn"],
+            schritte: [
+              { baustein: "Deutsch | [ist] | interessant", passend: ["denn", "weil"], funktion: "Grund",
+                erklaerung_de: "Warum lernst du gern Deutsch? → Grund: **denn** oder **weil**.",
+                erklaerung_es: "«porque» → denn / weil." },
+              { baustein: "die Grammatik | [ist] | manchmal | schwer", passend: ["aber"], funktion: "Gegensatz",
+                erklaerung_de: "Jetzt kommt etwas Negatives → Gegensatz: **aber**.",
+                erklaerung_es: "«pero» → aber." },
+              { baustein: "ich | [übe] | jeden Tag", passend: ["deshalb"], funktion: "Folge",
+                erklaerung_de: "Die Grammatik ist schwer → **deshalb** übe ich jeden Tag.",
+                erklaerung_es: "«por eso» → deshalb + verbo." },
+              { baustein: "ich | [verstehe] | bald | Filme auf Deutsch", passend: ["dann"], funktion: "Reihenfolge",
+                erklaerung_de: "Erst üben, **dann** Filme verstehen.",
+                erklaerung_es: "«luego / después» → dann + verbo." },
+              { basis: "Mein Fazit: Deutsch ist nicht doof.", baustein: "es | [macht] | Spaß", passend: ["sondern"], funktion: "Korrektur",
+                erklaerung_de: "Nach **nicht** → Korrektur: …, **sondern** es macht Spaß.",
+                erklaerung_es: "«no …, sino …» → nicht …, sondern …" }
+            ]
+          }
+        ],
+        reserve: []
+      },
+
+      /* ---------- A2 · Raum 5: Der Gegenzauber ---------- */
+      {
+        name: "Der Gegenzauber", szene: "gipfel", boss: true,
+        ruf: "Ich bin wütend. Ich kämpfe. Zerbröckel!",
+        thema: "Welche Verbindung passt?",
+        geschichte: "Auf dem Turm kommt der letzte Kampf. Lehmann ruft kurze Sätze.\n\nSchnell: Welche **Verbindung** brauchen die beiden Sätze – Grund, Folge, Gegensatz oder Bedingung? Jeder Treffer macht seinen Zauber schwächer!",
+        geschafft: "„Neeein!“ Lehmanns Zauber ist kaputt. Die letzte Scherbe fällt vom Himmel – direkt in Benjas Hände.",
+        scherbe: "Das Geheimnis: Die Empanada nicht allein essen, sondern mit Freunden teilen.",
+        aufgaben: [
+          { typ: "konter", satzpaar: "Ich bin wütend. Ihr habt meine Scherben gefunden.", loesung: "Grund", optionen: ["Grund", "Folge", "Gegensatz", "Bedingung"],
+            verbunden: "Ich bin wütend, **weil** ihr meine Scherben gefunden habt.",
+            erklaerung_de: "Der zweite Satz sagt, **warum** Lehmann wütend ist → Grund.",
+            erklaerung_es: "¿Por qué? → weil / denn." },
+          { typ: "konter", satzpaar: "Ich habe einen Zauberstab. Ich bin sehr stark.", loesung: "Folge", optionen: ["Grund", "Folge", "Gegensatz", "Bedingung"],
+            verbunden: "Ich habe einen Zauberstab. **Deshalb** bin ich sehr stark.",
+            erklaerung_de: "Zauberstab → stark. Das ist die Folge → **deshalb**.",
+            erklaerung_es: "Consecuencia: deshalb (por eso)." },
+          { typ: "konter", satzpaar: "Ihr seid klein. Ich bin groß.", loesung: "Gegensatz", optionen: ["Grund", "Folge", "Gegensatz", "Bedingung"],
+            verbunden: "Ihr seid klein, **aber** ich bin groß.",
+            erklaerung_de: "Klein ↔ groß → Gegensatz: **aber**.",
+            erklaerung_es: "Contraste: aber (pero)." },
+          { typ: "konter", satzpaar: "Vielleicht regnet es. Ich bleibe im Turm.", loesung: "Bedingung", optionen: ["Grund", "Folge", "Gegensatz", "Bedingung"],
+            verbunden: "**Wenn** es regnet, bleibe ich im Turm.",
+            erklaerung_de: "„Vielleicht“ → wir wissen es nicht. Bedingung: **wenn**.",
+            erklaerung_es: "«si llueve» → wenn es regnet." },
+          { typ: "konter", satzpaar: "Die Tafel ist kaputt. Das Dorf ist traurig.", loesung: "Folge", optionen: ["Grund", "Folge", "Gegensatz", "Bedingung"],
+            verbunden: "Die Tafel ist kaputt. **Deshalb** ist das Dorf traurig.",
+            erklaerung_de: "Zuerst die Ursache, dann das Ergebnis → Folge.",
+            erklaerung_es: "Causa → consecuencia: deshalb." },
+          { typ: "konter", satzpaar: "Ich mag keine Kinder. Ihr seid so laut.", loesung: "Grund", optionen: ["Grund", "Folge", "Gegensatz", "Bedingung"],
+            verbunden: "Ich mag keine Kinder, **denn** ihr seid so laut.",
+            erklaerung_de: "Der zweite Satz erklärt den ersten → Grund: **denn** oder **weil**.",
+            erklaerung_es: "«porque» → denn / weil." },
+          { typ: "konter", satzpaar: "Ihr habt Mut. Ich habe Angst.", loesung: "Gegensatz", optionen: ["Grund", "Folge", "Gegensatz", "Bedingung"],
+            verbunden: "Ihr habt Mut, **aber** ich habe Angst.",
+            erklaerung_de: "Mut ↔ Angst → Gegensatz: **aber**.",
+            erklaerung_es: "Contraste: aber." }
+        ],
+        reserve: [
+          { typ: "konter", satzpaar: "Der Turm ist hoch. Niemand kommt hinauf.", loesung: "Folge", optionen: ["Grund", "Folge", "Gegensatz", "Bedingung"],
+            verbunden: "Der Turm ist hoch. **Deshalb** kommt niemand hinauf.",
+            erklaerung_de: "Ursache → Ergebnis: Folge.",
+            erklaerung_es: "«por eso» → deshalb." },
+          { typ: "konter", satzpaar: "Ich spreche nur kurze Sätze. Ich habe alle Konnektoren kaputt gemacht.", loesung: "Grund", optionen: ["Grund", "Folge", "Gegensatz", "Bedingung"],
+            verbunden: "Ich spreche nur kurze Sätze, **weil** ich alle Konnektoren kaputt gemacht habe.",
+            erklaerung_de: "Der zweite Satz sagt, warum → Grund.",
+            erklaerung_es: "«porque» → weil." }
+        ]
+      }
+    ]
+  },
+
+  /* =================================================================
+     B2
+     ================================================================= */
+  B2: {
+    titel: "Der Zauber der Argumente",
+    schwerpunkt: "dennoch, folglich, hingegen, je … desto, weder … noch, indem, falls, zwar … aber, trotz/wegen + Genitiv",
+    intro: "Pomaire, ein Dorf westlich von Santiago, ist für zweierlei bekannt: für seine Töpferkunst und für Empanadas, die so groß sind wie ein Teller. Das Rezept der legendären Super-Empanada war auf einer jahrhundertealten Tontafel festgehalten – bis gestern Nacht.\n\n**Magister Lehmann**, ein ebenso eitler wie boshafter Zauberer, hat die Tafel zerschlagen und die Scherben im ganzen Dorf verteilt. Mit seinem Fluch „Zerbröckel!“ hat er zudem jede Verbindung zwischen Sätzen gelöst: Wer in Pomaire spricht, reiht nur noch Hauptsätze aneinander.\n\nSofía, Matías und Benja nehmen den Kampf auf. An ihrer Seite: das **Chanchito de greda**, Pomaires dreibeiniges Glücksschwein. Es kennt Lehmanns einzige Schwäche – gut verknüpfte Sätze.",
+    schluss: "Lehmann sinkt auf die Knie – und zum ersten Mal hört man ihn in vollständigen Satzgefügen sprechen:\n\n„**Zwar** habe ich eure Sätze zerbrochen, **aber** ihr habt sie **dennoch** wieder verbunden. **Je** länger ich euch zugehört habe, **desto** schwächer wurde mein Zauber. **Folglich** bleibt mir nichts anderes übrig, als euch die Tafel zurückzugeben – **falls** ihr mir verzeiht.“\n\nDie Tafel ist wieder vollständig. Am Abend duftet ganz Pomaire nach Super-Empanadas, und das Chanchito bekommt selbstverständlich das erste Stück. 🥟",
+    raeume: [
+
+      /* ---------- B2 · Raum 1: Die Töpferei ---------- */
+      {
+        name: "Die Töpferei", szene: "toepferei",
+        ruf: "Der Ton trocknet. Eure Zeit läuft ab.",
+        thema: "Sätze mit Konnektor-Steinen kleben",
+        geschichte: "In der Töpferei türmen sich zerbrochene Sätze. Unter ihnen liegt die erste Scherbe der Tafel.\n\nWähle jeweils den Stein, der die beiden Aussagen sinnvoll verbindet, und bau aus den Scherben einen korrekten Satz. Aber Vorsicht: **Der Ton trocknet!**",
+        geschafft: "Sämtliche Sätze sind wieder verbunden – und unter dem letzten kommt die erste Scherbe zum Vorschein.",
+        scherbe: "Der Teig: 1 kg Mehl, 150 g Schmalz und warmes Salzwasser so lange kneten, bis er geschmeidig ist.",
+        aufgaben: [
+          {
+            typ: "kleben", thema: "Einräumung: entgegen der Erwartung",
+            satz1: "Der Ton war viel zu nass.",
+            satz2: "die Töpferin | [hat] | eine perfekte Vase | [geformt]",
+            optionen: ["dennoch", "folglich", "weil", "hingegen"], loesung: ["dennoch"],
+            tipp: "Was erwartet man, wenn der Ton zu nass ist?",
+            erklaerung_de: "Man erwartet bei nassem Ton ein schlechtes Ergebnis – die Vase ist **dennoch** perfekt. Keil: Dennoch **hat** die Töpferin …"
+          },
+          {
+            typ: "kleben", thema: "Folge",
+            satz1: "Lehmann hat alle Konnektoren zerbröckelt.",
+            satz2: "niemand im Dorf | [kann] | noch | verbundene Sätze | [bilden]",
+            optionen: ["folglich", "dennoch", "obwohl", "indem"], loesung: ["folglich"],
+            erklaerung_de: "Ursache → Ergebnis: **folglich** (= deshalb, eher schriftlich). Keil: Folglich **kann** niemand …"
+          },
+          {
+            typ: "kleben", thema: "Auf welche Weise? (Mittel/Methode)",
+            satz1: "Man macht den Ton weich.",
+            satz2: "man | [knetet] | ihn | lange",
+            optionen: ["indem", "sodass", "falls", "obwohl"], loesung: ["indem"],
+            tipp: "Wie macht man den Ton weich?",
+            erklaerung_de: "**indem** nennt das Mittel: Wie? – …, indem man ihn lange **knetet**. „sodass“ würde eine Folge ausdrücken."
+          },
+          {
+            typ: "kleben", thema: "Bedingung",
+            satz1: "Ruft mich sofort an.",
+            satz2: "ihr | [findet] | die Scherbe",
+            optionen: ["falls", "obwohl", "indem", "damit"], loesung: ["falls"],
+            erklaerung_de: "Nur unter einer Bedingung → **falls** (= wenn): …, falls ihr die Scherbe **findet**."
+          },
+          {
+            typ: "kleben", thema: "Gegensatz zwischen zwei Personen",
+            satz1: "Sofía arbeitet sehr ordentlich.",
+            satz2: "Benja | [macht] | überall | Flecken",
+            optionen: ["hingegen", "während", "folglich", "indem"], loesung: ["hingegen", "während"],
+            erklaerung_de: "Zwei Personen werden gegenübergestellt → **hingegen** (Keil: Hingegen **macht** Benja …) oder **während** (Haken: …, während Benja überall Flecken **macht**). Beides ist richtig."
+          },
+          {
+            typ: "kleben", thema: "Einräumung im Nebensatz",
+            satz1: "Die Kinder geben nicht auf.",
+            satz2: "der Weg | [ist] | anstrengend",
+            optionen: ["obwohl", "dennoch", "folglich", "falls"], loesung: ["obwohl"],
+            erklaerung_de: "Trotz des anstrengenden Weges geben sie nicht auf → **obwohl**. „Dennoch ist der Weg anstrengend“ würde die Logik umdrehen."
+          },
+          {
+            typ: "kleben", thema: "Vorzeitigkeit",
+            satz1: "Die Vase kam in den Ofen.",
+            satz2: "sie | [war] | eine Woche lang | [getrocknet]",
+            optionen: ["nachdem", "bevor", "während", "indem"], loesung: ["nachdem"],
+            erklaerung_de: "Zuerst trocknen, dann brennen → **nachdem** + Plusquamperfekt: …, nachdem sie eine Woche lang getrocknet **war**."
+          },
+          {
+            typ: "schreiben", thema: "Nebensatz → wegen + Genitiv",
+            satz: "___ wurde das Fest verschoben.",
+            hinweis: "Forme mit „wegen“ um: Weil es stark regnete, wurde das Fest verschoben.",
+            loesung: ["Wegen des starken Regens", "Wegen starken Regens"],
+            tipp: "wegen + Genitiv: der Regen → des Regens",
+            erklaerung_de: "**Wegen des starken Regens** wurde das Fest verschoben. „wegen“ verlangt den Genitiv: der starke Regen → des starken Regens."
+          }
+        ],
+        reserve: [
+          {
+            typ: "kleben", thema: "Einräumung",
+            satz1: "Lehmann hat die Tafel zerschlagen.",
+            satz2: "das Dorf | [gibt] | nicht | [auf]",
+            optionen: ["dennoch", "folglich", "indem", "falls"], loesung: ["dennoch"],
+            erklaerung_de: "Gegen die Erwartung → **Dennoch gibt** das Dorf nicht auf."
+          },
+          {
+            typ: "kleben", thema: "Mittel/Methode",
+            satz1: "Benja beruhigt das Chanchito.",
+            satz2: "er | [streichelt] | es",
+            optionen: ["indem", "sodass", "falls", "dennoch"], loesung: ["indem"],
+            erklaerung_de: "Wie beruhigt er es? → **indem** er es **streichelt**."
+          },
+          {
+            typ: "kleben", thema: "Folge",
+            satz1: "Der Ofen war zu heiß.",
+            satz2: "die Schüssel | [ist] | [gesprungen]",
+            optionen: ["folglich", "dennoch", "obwohl", "hingegen"], loesung: ["folglich"],
+            erklaerung_de: "Ursache → Ergebnis: **Folglich ist** die Schüssel gesprungen."
+          },
+          {
+            typ: "schreiben", thema: "Nebensatz → trotz + Genitiv",
+            satz: "___ ging Benja zur Töpferei.",
+            hinweis: "Forme mit „trotz“ und dem Nomen „Krankheit“ um: Obwohl er krank war, ging Benja zur Töpferei.",
+            loesung: ["Trotz seiner Krankheit"],
+            erklaerung_de: "**Trotz seiner Krankheit** ging Benja zur Töpferei. trotz + Genitiv: seine Krankheit → seiner Krankheit."
+          }
+        ]
+      },
+
+      /* ---------- B2 · Raum 2: Der Marktplatz ---------- */
+      {
+        name: "Der Marktplatz", szene: "markt",
+        ruf: "Alle reden. Einer lügt. Ihr scheitert.",
+        thema: "Logikrätsel mit Konnektoren",
+        geschichte: "Auf dem Marktplatz herrscht reges Treiben. Lehmann hat die zweite Scherbe in **drei Stücke** gebrochen und versteckt.\n\nDie Dorfbewohner haben Beobachtungen gemacht – doch nur, wer jeden Konnektor genau versteht, findet die Verstecke: **weder … noch, zwar … aber, falls, trotz, wegen**.",
+        geschafft: "Die drei Stücke fügen sich zusammen: die zweite Scherbe der Tafel!",
+        scherbe: "Die Füllung: Zwiebeln glasig dünsten, das Rindfleisch dazugeben und erst würzen, nachdem es Farbe angenommen hat.",
+        aufgaben: [
+          {
+            typ: "raetsel", antwort: "ort", thema: "weder … noch · zwar … aber · falls",
+            einleitung: "Wo hat Lehmann das **erste Stück** versteckt? Alle sagen die Wahrheit.",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Das Stück liegt weder am Brunnen noch in der Kirche." },
+              { name: "Don Pedro", bild: "👴🏻", text: "Zwar war der Zauberer an der Bushaltestelle, aber er hat dort nur auf den Bus gewartet und nichts versteckt." },
+              { name: "Pablo", bild: "👦🏽", text: "Falls das Stück am Töpferofen läge, hätte der Töpfer es längst gefunden – er arbeitet dort den ganzen Tag und hat nichts gefunden." }
+            ],
+            frage: "Wo ist das erste Stück?",
+            orte: ["⛲ Brunnen", "⛪ Kirche", "🔥 Töpferofen", "🥟 Empanada-Stand", "🚏 Bushaltestelle"],
+            loesung: "Empanada-Stand",
+            tipp: "Streiche alle Orte, die eine Aussage ausschließt.",
+            erklaerung_de: "Rosa schließt Brunnen **und** Kirche aus (**weder … noch**). Pedro: **zwar** an der Bushaltestelle, **aber** dort nichts versteckt. Pablo: Am Töpferofen hätte man es gefunden (**falls** …). Es bleibt der **Empanada-Stand**."
+          },
+          {
+            typ: "raetsel", antwort: "person", thema: "Genau eine Person lügt",
+            einleitung: "Das **zweite Stück**: Benja hat schon überall gesucht – nur im Töpferofen und in der Kirche noch nicht. Es muss also an einem dieser beiden Orte sein. **Genau eine Person lügt.**",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Das Stück ist im Töpferofen oder in der Kirche." },
+              { name: "Señor Tomás", bild: "🧔🏻", text: "Das Stück ist weder im Töpferofen noch in der Kirche." },
+              { name: "Pablo", bild: "👦🏽", text: "Das Stück liegt nicht im Töpferofen, sondern in der Kirche." }
+            ],
+            frage: "Wer lügt? Klick auf die Person.",
+            loesung: "Señor Tomás",
+            erklaerung_de: "Benja weiß: Das Stück ist im Töpferofen **oder** in der Kirche. **Weder … noch** ist also sicher falsch – **Señor Tomás** lügt. Da nur er lügt, sagt Pablo die Wahrheit."
+          },
+          {
+            typ: "raetsel", antwort: "ort", thema: "nicht …, sondern …",
+            einleitung: "Du weißt, wer lügt. Wo ist das **zweite Stück**?",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Das Stück ist im Töpferofen oder in der Kirche." },
+              { name: "Señor Tomás", bild: "🧔🏻", text: "Das Stück ist weder im Töpferofen noch in der Kirche." },
+              { name: "Pablo", bild: "👦🏽", text: "Das Stück liegt nicht im Töpferofen, sondern in der Kirche." }
+            ],
+            frage: "Wo ist das zweite Stück?",
+            orte: ["⛲ Brunnen", "⛪ Kirche", "🔥 Töpferofen", "🥟 Empanada-Stand", "🚏 Bushaltestelle"],
+            loesung: "Kirche",
+            erklaerung_de: "Pablo sagt die Wahrheit: **nicht** im Töpferofen, **sondern** in der **Kirche**."
+          },
+          {
+            typ: "raetsel", antwort: "ort", thema: "wegen · trotz · zwar … aber",
+            einleitung: "Das **letzte Stück**. Alle sagen die Wahrheit.",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Wegen der vielen Touristen konnte der Zauberer in der Kirche nichts verstecken." },
+              { name: "Señor Tomás", bild: "🧔🏻", text: "Trotz meiner schlechten Augen habe ich gesehen, wie er etwas in den Brunnen geworfen hat." },
+              { name: "Don Pedro", bild: "👴🏻", text: "Im Brunnen ist zwar viel Wasser, aber Ton schwimmt nicht weg – man findet das Stück sicher am Grund." }
+            ],
+            frage: "Wo ist das letzte Stück?",
+            orte: ["⛲ Brunnen", "⛪ Kirche", "🔥 Töpferofen", "🥟 Empanada-Stand", "🚏 Bushaltestelle"],
+            loesung: "Brunnen",
+            erklaerung_de: "Tomás hat **trotz** schlechter Augen gesehen, wie Lehmann etwas in den Brunnen warf; Pedro bestätigt: **zwar** viel Wasser, **aber** das Stück liegt am Grund. Die Kirche fällt **wegen** der Touristen weg. → **Brunnen**."
+          }
+        ],
+        reserve: []
+      },
+
+      /* ---------- B2 · Raum 3: Die Falle des Zauberers ---------- */
+      {
+        name: "Die Falle des Zauberers", szene: "turm",
+        ruf: "Meine Steine glänzen. Meine Steine lügen. Nehmt sie!",
+        thema: "Bedeutungsnuancen erkennen",
+        geschichte: "Im Zauberturm präsentiert Lehmann seine „verzauberten“ Steine. Sie klingen fast richtig – aber eben nur fast.\n\nDas Chanchito warnt: „Grammatisch passen sie alle. Entscheidend ist allein die **Bedeutung**. Ein falscher Stein verwandelt sich in Lehm!“",
+        geschafft: "Lehmanns Falle ist durchschaut. Hinter seinem Thron liegt die dritte Scherbe.",
+        scherbe: "Dazu: Auf die Füllung kommen ein Viertel Ei, eine Olive und – falls gewünscht – ein paar Rosinen.",
+        aufgaben: [
+          {
+            typ: "falle", thema: "Grund oder Gegengrund?",
+            satz: "___ des Regens fand der Markt statt.",
+            optionen: ["Trotz", "Wegen", "Statt"], loesung: "Trotz",
+            erklaerung_de: "Regen spricht eigentlich gegen den Markt → **Trotz** des Regens (Einräumung)."
+          },
+          {
+            typ: "falle", thema: "Mittel oder Folge?",
+            satz: "Matías verbesserte seine Vase, ___ er den Rand glättete.",
+            optionen: ["indem", "sodass", "obwohl"], loesung: "indem",
+            erklaerung_de: "Das Glätten ist das **Mittel** der Verbesserung → **indem**. „sodass“ würde das Glätten zur Folge machen."
+          },
+          {
+            typ: "falle", thema: "Beides, keines oder eines?",
+            satz: "Lehmann mag ___ Empanadas ___ Completos – er isst nur Lehm.",
+            optionen: ["weder … noch", "entweder … oder", "sowohl … als auch"], loesung: "weder … noch",
+            erklaerung_de: "Er isst **nur** Lehm → keines von beiden: **weder … noch**."
+          },
+          {
+            typ: "falle", thema: "Was bedeutet „je … desto“?",
+            frage: "Welcher Satz bedeutet dasselbe?",
+            satz: "Je länger der Ton trocknet, desto härter wird er.",
+            optionen: ["Wenn der Ton länger trocknet, wird er härter.", "Der Ton trocknet lange, obwohl er hart ist.", "Der Ton wird hart, damit er lange trocknet."],
+            loesung: "Wenn der Ton länger trocknet, wird er härter.",
+            erklaerung_de: "**je … desto** verbindet zwei Steigerungen: mehr Trocknen → mehr Härte."
+          },
+          {
+            typ: "falle", thema: "während: Zeit oder Gegensatz?",
+            frage: "Was bedeutet „während“ in diesem Satz?",
+            satz: "Während die Töpfer in Pomaire auf Handarbeit setzen, produzieren viele Fabriken in Serie.",
+            optionen: ["einen Gegensatz", "eine Gleichzeitigkeit", "einen Grund"], loesung: "einen Gegensatz",
+            erklaerung_de: "Zwei Arbeitsweisen werden einander gegenübergestellt → **adversatives** „während“ (= wohingegen)."
+          },
+          {
+            typ: "falle", thema: "Gleiche Bedeutung?",
+            frage: "Welcher Satz sagt dasselbe?",
+            satz: "Die Super-Empanada ist riesig und schmeckt fantastisch.",
+            optionen: ["Sie ist nicht nur riesig, sondern schmeckt auch fantastisch.", "Sie ist zwar riesig, aber sie schmeckt fantastisch.", "Sie ist weder riesig, noch schmeckt sie fantastisch."],
+            loesung: "Sie ist nicht nur riesig, sondern schmeckt auch fantastisch.",
+            erklaerung_de: "„und“ addiert zwei positive Eigenschaften → **nicht nur … sondern auch**. „zwar … aber“ würde einen Gegensatz einführen, den es hier nicht gibt."
+          },
+          {
+            typ: "falle", thema: "Bedingung oder Einräumung?",
+            satz: "Bring einen Regenschirm mit, ___ es regnet.",
+            optionen: ["falls", "obwohl", "indem"], loesung: "falls",
+            erklaerung_de: "Für den Fall, dass es regnet → **falls** (Bedingung)."
+          }
+        ],
+        reserve: [
+          {
+            typ: "falle", thema: "Gegensatz oder Folge?",
+            satz: "Sofía liebt die Arbeit mit Ton,",
+            optionen: ["während Matías sie langweilig findet.", "sodass Matías sie langweilig findet.", "indem Matías sie langweilig findet."],
+            loesung: "während Matías sie langweilig findet.",
+            erklaerung_de: "Zwei Personen, zwei Haltungen → Gegensatz mit **während**."
+          },
+          {
+            typ: "falle", thema: "Grund oder Gegengrund?",
+            satz: "___ seiner Erkältung blieb Benja zu Hause.",
+            optionen: ["Wegen", "Trotz", "Statt"], loesung: "Wegen",
+            erklaerung_de: "Die Erkältung ist der Grund → **wegen** + Genitiv."
+          },
+          {
+            typ: "falle", thema: "so …, dass …",
+            satz: "Der Ofen war so heiß, ___ die Schüssel zersprang.",
+            optionen: ["dass", "damit", "indem"], loesung: "dass",
+            erklaerung_de: "**so … dass** drückt eine Folge aus. „damit“ wäre ein Zweck – der Ofen hatte aber kein Ziel."
+          }
+        ]
+      },
+
+      /* ---------- B2 · Raum 4: Das Wortduell ---------- */
+      {
+        name: "Das Wortduell", szene: "plaza",
+        ruf: "Töpferei ist altmodisch. Fabriken sind besser. Niemand braucht Handwerk.",
+        thema: "Erörterung: Argumente verknüpfen",
+        geschichte: "Auf der Plaza fordert Lehmann euch zu einer öffentlichen Debatte heraus: „Töpferei ist altmodisch!“\n\nBaut Schritt für Schritt eine Erörterung. Jeder Stein lässt sich nur **einmal** verwenden. Wer alle drei Steinformen einsetzt, erhält einen Bonus.",
+        geschafft: "Tosender Applaus! Lehmann gehen die Argumente aus – und die vierte Scherbe fällt aus seinem Ärmel.",
+        scherbe: "Den Rand sorgfältig umschlagen und andrücken, damit beim Backen keine Füllung austritt.",
+        aufgaben: [
+          {
+            typ: "kette", thema: "Grund, Gegensatz, Einräumung, Folge, Mittel, Bedingung",
+            behauptung: "Töpferei ist altmodisch. Fabriken sind besser. Niemand braucht Handwerk.",
+            start: "Die Töpferei in Pomaire ist keineswegs altmodisch.",
+            steine: ["denn", "hingegen", "dennoch", "folglich", "indem", "falls", "obwohl", "während"],
+            schritte: [
+              { baustein: "sie | [verbindet] | Tradition | mit Kreativität", passend: ["denn"], funktion: "Grund",
+                erklaerung_de: "Begründung der These → **denn**." },
+              { baustein: "Fabriken | [produzieren] | schneller und billiger", passend: ["hingegen", "während"], funktion: "Gegensatz",
+                erklaerung_de: "Die Gegenseite → **hingegen** oder **während** (adversativ)." },
+              { baustein: "viele Kunden | [kaufen] | lieber | Handgemachtes", passend: ["dennoch", "obwohl"], funktion: "Einräumung",
+                erklaerung_de: "Obwohl Fabriken billiger sind → **dennoch** kaufen viele Handgemachtes." },
+              { baustein: "die Töpfer | [können] | von ihrer Arbeit | [leben]", passend: ["folglich"], funktion: "Folge",
+                erklaerung_de: "Konsequenz → **folglich** können die Töpfer davon leben." },
+              { basis: "Wir alle können das Handwerk schützen.", baustein: "wir | [besuchen] | lokale Märkte", passend: ["indem"], funktion: "Mittel",
+                erklaerung_de: "Auf welche Weise? → **indem** wir lokale Märkte besuchen." },
+              { basis: "Mein Fazit: Die Töpferei hat Zukunft.", baustein: "die Menschen | [schätzen] | Qualität", passend: ["falls"], funktion: "Bedingung",
+                erklaerung_de: "Das Fazit mit Bedingung → **falls** die Menschen Qualität schätzen." }
+            ]
+          }
+        ],
+        reserve: []
+      },
+
+      /* ---------- B2 · Raum 5: Der Gegenzauber ---------- */
+      {
+        name: "Der Gegenzauber", szene: "gipfel", boss: true,
+        ruf: "Ich bin unbesiegbar. Ihr seid nichts. Zerbröckel!",
+        thema: "Logische Beziehungen erkennen",
+        geschichte: "Auf dem Dach des Zauberturms kommt es zum Showdown. Lehmann schleudert euch zerhackte Satzpaare entgegen.\n\nKontert blitzschnell: Welche **logische Beziehung** besteht zwischen den beiden Sätzen? Jeder Treffer schwächt seinen Zauber.",
+        geschafft: "Ein letzter Blitz – dann ist Lehmanns Zauber gebrochen. Die fünfte Scherbe schwebt sanft zu Boden.",
+        scherbe: "Das Geheimnis: im Lehmofen backen, bis der Teig goldbraun ist – und die Empanada niemals allein essen, sondern stets mit Freunden teilen.",
+        aufgaben: [
+          { typ: "konter", satzpaar: "Euer Dorf ist klein. Es ist erstaunlich stark.", loesung: ["Einräumung", "Gegensatz"],
+            verbunden: "**Obwohl** euer Dorf klein ist, ist es erstaunlich stark.",
+            erklaerung_de: "Man erwartet bei einem kleinen Dorf Schwäche → am genauesten **Einräumung** (obwohl, dennoch). Ein einfacher Gegensatz (aber) ist ebenfalls möglich." },
+          { typ: "konter", satzpaar: "Ich habe die Tafel zerschlagen. Das Rezept ist verloren.", loesung: "Folge",
+            verbunden: "Ich habe die Tafel zerschlagen. **Folglich** ist das Rezept verloren.",
+            erklaerung_de: "Ursache → Ergebnis: **Folge**." },
+          { typ: "konter", satzpaar: "Ich hasse Empanadas. Sie erinnern mich an meine Niederlagen.", loesung: "Grund",
+            verbunden: "Ich hasse Empanadas, **da** sie mich an meine Niederlagen erinnern.",
+            erklaerung_de: "Der zweite Satz begründet den ersten → **Grund**." },
+          { typ: "konter", satzpaar: "Möglicherweise wird es dunkel. Ich verschwinde in meinem Turm.", loesung: "Bedingung",
+            verbunden: "**Falls** es dunkel wird, verschwinde ich in meinem Turm.",
+            erklaerung_de: "„Möglicherweise“ → nicht sicher → **Bedingung** (falls)." },
+          { typ: "konter", satzpaar: "Ich spreche ganz leise. Niemand soll meinen Zauberspruch hören.", loesung: ["Zweck", "Grund"],
+            verbunden: "Ich spreche ganz leise, **damit** niemand meinen Zauberspruch hört.",
+            erklaerung_de: "„soll“ zeigt eine Absicht → am genauesten **Zweck** (damit). Als **Grund** formuliert („weil niemand … hören soll“) ist es ebenfalls korrekt." },
+          { typ: "konter", satzpaar: "Sofía erklärt geduldig. Lehmann schreit nur herum.", loesung: "Gegensatz",
+            verbunden: "Sofía erklärt geduldig, **während** Lehmann nur herumschreit.",
+            erklaerung_de: "Zwei Personen, zwei Verhaltensweisen → **Gegensatz** (während, hingegen)." },
+          { typ: "konter", satzpaar: "Meine Zauberkraft wird schwächer. Ihr verwendet immer mehr Konnektoren.", loesung: "Grund",
+            verbunden: "Meine Zauberkraft wird schwächer, **weil** ihr immer mehr Konnektoren verwendet.",
+            erklaerung_de: "Der zweite Satz liefert die Ursache → **Grund**." },
+          { typ: "konter", satzpaar: "Die Kinder lachen über mich. Ich verliere meine Würde.", loesung: "Folge",
+            verbunden: "Die Kinder lachen über mich. **Folglich** verliere ich meine Würde.",
+            erklaerung_de: "Ursache → Ergebnis: **Folge**." }
+        ],
+        reserve: [
+          { typ: "konter", satzpaar: "Mein Turm ist uralt. Er steht noch immer.", loesung: ["Einräumung", "Gegensatz"],
+            verbunden: "**Obwohl** mein Turm uralt ist, steht er noch immer.",
+            erklaerung_de: "Gegen die Erwartung → **Einräumung** (Gegensatz ebenfalls möglich)." },
+          { typ: "konter", satzpaar: "Es regnet. Mein Zauber wirkt schlechter.", loesung: "Folge",
+            verbunden: "Es regnet. **Folglich** wirkt mein Zauber schlechter.",
+            erklaerung_de: "Ursache → Ergebnis: **Folge**." }
+        ]
+      }
+    ]
+  },
+
+  /* =================================================================
+     C1
+     ================================================================= */
+  C1: {
+    titel: "Die Rhetorik des Zauberers",
+    schwerpunkt: "zumal, sofern, wohingegen, demzufolge, nichtsdestotrotz, es sei denn, geschweige denn · Verbal- und Nominalstil",
+    intro: "Pomaire, berühmt für seine Töpfertradition und seine monumentalen Empanadas, steht unter Schock: Die jahrhundertealte Tontafel mit dem Rezept der Super-Empanada wurde in der Nacht zerschlagen, ihre Scherben im ganzen Ort verstreut.\n\nUrheber ist **Magister Lehmann**, ein Zauberer von ausgeprägter Eitelkeit. Sein Fluch „Zerbröckel!“ hat sämtliche logischen Verknüpfungen aufgelöst; seither verständigen sich die Bewohner nur noch in unverbundenen Hauptsätzen – was jede Argumentation im Keim erstickt.\n\nSofía, Matías und Benja stellen sich ihm entgegen, begleitet vom **Chanchito de greda**, dem dreibeinigen Glücksschwein Pomaires. Ihre Waffe: präzise gesetzte Konnektoren.",
+    schluss: "Lehmann senkt den Zauberstab. Mit hörbarer Mühe – und zum ersten Mal in kunstvoll verknüpften Sätzen – ergreift er das Wort:\n\n„Ich gestehe meine Niederlage ein, **zumal** ihr mich mit meinen eigenen Waffen geschlagen habt. **Nichtsdestotrotz** bin ich nicht unglücklich: **Sofern** ihr mich einladet, backe ich künftig mit – **es sei denn**, ihr verbietet mir, Lehm in den Teig zu mischen.“\n\nDie Tafel ist wiederhergestellt. Am Abend riecht ganz Pomaire nach Super-Empanadas, und das Chanchito erhält – wie es sich gehört – das erste Stück. 🥟",
+    raeume: [
+
+      /* ---------- C1 · Raum 1: Die Töpferei ---------- */
+      {
+        name: "Die Töpferei", szene: "toepferei",
+        ruf: "Der Ton trocknet. Eure Zeit verrinnt.",
+        thema: "Präzise Verknüpfungen und Nominalstil",
+        geschichte: "In der Töpferei liegen die Satzfragmente kreuz und quer. Darunter verbirgt sich die erste Scherbe.\n\nWähle den Stein, der die logische Beziehung präzise ausdrückt, und setze den Satz korrekt zusammen. Bei den Umformungen ist Nominalstil gefragt. **Der Ton trocknet!**",
+        geschafft: "Sämtliche Fragmente sind wieder verbunden. Zum Vorschein kommt die erste Scherbe der Tafel.",
+        scherbe: "Der Teig: Mehl, Schmalz und lauwarmes Salzwasser zu einem geschmeidigen Teig verarbeiten, der nicht mehr an den Händen klebt.",
+        aufgaben: [
+          {
+            typ: "kleben", thema: "zusätzlicher, verstärkender Grund",
+            satz1: "Die Kinder wollten nicht aufgeben.",
+            satz2: "das ganze Dorf | [setzte] | seine Hoffnung | auf sie",
+            optionen: ["zumal", "sofern", "wohingegen", "demzufolge"], loesung: ["zumal"],
+            tipp: "Gesucht ist ein Grund, der besonders schwer wiegt.",
+            erklaerung_de: "**zumal** = „vor allem, weil“ – ein zusätzlicher, gewichtiger Grund: …, zumal das ganze Dorf seine Hoffnung auf sie **setzte**."
+          },
+          {
+            typ: "kleben", thema: "einschränkende Bedingung",
+            satz1: "Die Tafel lässt sich nur restaurieren.",
+            satz2: "alle Scherben | [werden] | [gefunden]",
+            optionen: ["sofern", "zumal", "indem", "nichtsdestotrotz"], loesung: ["sofern"],
+            erklaerung_de: "„nur“ verlangt eine Bedingung → **sofern** (= vorausgesetzt, dass): …, sofern alle Scherben gefunden **werden**."
+          },
+          {
+            typ: "kleben", thema: "Gegenüberstellung",
+            satz1: "Lehmann bevorzugt abgehackte Sätze.",
+            satz2: "die Dorfbewohner | [lieben] | lange Erzählungen",
+            optionen: ["wohingegen", "zumal", "demzufolge", "sofern"], loesung: ["wohingegen"],
+            erklaerung_de: "Zwei Vorlieben werden kontrastiert → **wohingegen** (Haken): …, wohingegen die Dorfbewohner lange Erzählungen **lieben**."
+          },
+          {
+            typ: "kleben", thema: "Schlussfolgerung",
+            satz1: "Die Ofentemperatur war zu niedrig.",
+            satz2: "die Glasur | [ist] | nicht | [geschmolzen]",
+            optionen: ["demzufolge", "nichtsdestotrotz", "zumal", "wohingegen"], loesung: ["demzufolge"],
+            erklaerung_de: "Ursache → Folge: **demzufolge** (Keil): Demzufolge **ist** die Glasur nicht geschmolzen."
+          },
+          {
+            typ: "kleben", thema: "Einräumung (gehobener Stil)",
+            satz1: "Die Lage schien aussichtslos.",
+            satz2: "die Kinder | [suchten] | unermüdlich | weiter",
+            optionen: ["nichtsdestotrotz", "demzufolge", "sofern", "indem"], loesung: ["nichtsdestotrotz"],
+            erklaerung_de: "Entgegen der Erwartung → **nichtsdestotrotz** (= dennoch): Nichtsdestotrotz **suchten** die Kinder weiter."
+          },
+          {
+            typ: "kleben", thema: "Mittel/Methode",
+            satz1: "Benja gewann Lehmanns Vertrauen.",
+            satz2: "er | [lobte] | dessen Zauberhut",
+            optionen: ["indem", "sodass", "sofern", "wohingegen"], loesung: ["indem"],
+            erklaerung_de: "Auf welche Weise? → **indem** er dessen Zauberhut **lobte**."
+          },
+          {
+            typ: "schreiben", thema: "Verbalstil → Nominalstil (aufgrund)",
+            satz: "___ verzögerte sich die Suche.",
+            hinweis: "Forme mit „aufgrund“ und dem Nomen „Schneefall“ um: Weil es stark schneite, verzögerte sich die Suche.",
+            loesung: ["Aufgrund des starken Schneefalls", "Aufgrund starken Schneefalls"],
+            tipp: "aufgrund + Genitiv: der starke Schneefall → des starken Schneefalls",
+            erklaerung_de: "**Aufgrund des starken Schneefalls** verzögerte sich die Suche. Aus „weil es stark schneite“ wird eine Nominalgruppe im Genitiv."
+          },
+          {
+            typ: "schreiben", thema: "Verbalstil → Nominalstil (trotz)",
+            satz: "___ setzten die Kinder ihre Suche fort.",
+            hinweis: "Forme mit „trotz“ und dem Nomen „Müdigkeit“ um: Obwohl sie müde waren, setzten die Kinder ihre Suche fort.",
+            loesung: ["Trotz ihrer Müdigkeit"],
+            erklaerung_de: "**Trotz ihrer Müdigkeit** setzten die Kinder ihre Suche fort. obwohl + Adjektiv → trotz + Nomen im Genitiv."
+          }
+        ],
+        reserve: [
+          {
+            typ: "kleben", thema: "zusätzlicher Grund",
+            satz1: "Sofía wollte sofort losgehen.",
+            satz2: "es | [wurde] | bereits | dunkel",
+            optionen: ["zumal", "sofern", "demzufolge", "wohingegen"], loesung: ["zumal"],
+            erklaerung_de: "Ein gewichtiger zusätzlicher Grund → **zumal** es bereits dunkel **wurde**."
+          },
+          {
+            typ: "kleben", thema: "Gegenüberstellung",
+            satz1: "Benja handelt impulsiv.",
+            satz2: "Sofía | [plant] | jeden Schritt",
+            optionen: ["wohingegen", "zumal", "sofern", "demzufolge"], loesung: ["wohingegen"],
+            erklaerung_de: "Kontrast zweier Personen → **wohingegen** Sofía jeden Schritt **plant**."
+          },
+          {
+            typ: "kleben", thema: "einschränkende Bedingung",
+            satz1: "Lehmann gibt die Scherbe nur zurück.",
+            satz2: "die Kinder | [lösen] | sein Rätsel",
+            optionen: ["sofern", "zumal", "wohingegen", "nichtsdestotrotz"], loesung: ["sofern"],
+            erklaerung_de: "„nur“ → Bedingung: **sofern** die Kinder sein Rätsel **lösen**."
+          },
+          {
+            typ: "schreiben", thema: "Verbalstil → Nominalstil (wegen)",
+            satz: "___ wurde das Fest abgesagt.",
+            hinweis: "Forme mit „wegen“ und dem Nomen „Sturm“ um: Weil ein Sturm aufzog, wurde das Fest abgesagt.",
+            loesung: ["Wegen des Sturms", "Wegen des Sturmes", "Wegen eines Sturms", "Wegen eines Sturmes", "Wegen des aufziehenden Sturms", "Wegen eines aufziehenden Sturms"],
+            erklaerung_de: "**Wegen des (aufziehenden) Sturms** wurde das Fest abgesagt. wegen + Genitiv."
+          }
+        ]
+      },
+
+      /* ---------- C1 · Raum 2: Der Marktplatz ---------- */
+      {
+        name: "Der Marktplatz", szene: "markt",
+        ruf: "Gerüchte. Lügen. Verwirrung. Ihr verliert.",
+        thema: "Logische Schlüsse aus Konnektoren",
+        geschichte: "Auf dem Marktplatz kursieren widersprüchliche Aussagen. Lehmann hat die zweite Scherbe in **drei Stücke** zerbrochen.\n\nNur wer die Konnektoren – **es sei denn, geschweige denn, sofern, zumal** – logisch exakt auswertet, findet die Verstecke.",
+        geschafft: "Die drei Stücke fügen sich nahtlos zusammen: die zweite Scherbe!",
+        scherbe: "Die Füllung: Zwiebeln und Rindfleisch anbraten; Kreuzkümmel und Paprika erst hinzufügen, sobald das Fleisch gebräunt ist.",
+        aufgaben: [
+          {
+            typ: "raetsel", antwort: "ort", thema: "es sei denn · geschweige denn · zumal",
+            einleitung: "Wo befindet sich das **erste Stück**? Alle Aussagen sind wahr.",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Das Stück liegt in der Kirche – es sei denn, der Pfarrer hat es bereits gefunden." },
+              { name: "Don Pedro", bild: "👴🏻", text: "Der Pfarrer hat heute nicht einmal seine Brille gefunden, geschweige denn eine Scherbe." },
+              { name: "Pablo", bild: "👦🏽", text: "Am Brunnen kann es nicht liegen, zumal dort den ganzen Tag Kinder spielen." }
+            ],
+            frage: "Wo ist das erste Stück?",
+            orte: ["⛲ Brunnen", "⛪ Kirche", "🔥 Töpferofen", "🥟 Empanada-Stand", "🚏 Bushaltestelle"],
+            loesung: "Kirche",
+            tipp: "„es sei denn“ nennt die einzige Ausnahme. Trifft sie zu?",
+            erklaerung_de: "Rosa: in der Kirche – **es sei denn**, der Pfarrer hat es gefunden (einzige Ausnahme). Pedro: Der Pfarrer hat nichts gefunden (**geschweige denn** eine Scherbe). Die Ausnahme tritt also nicht ein → **Kirche**."
+          },
+          {
+            typ: "raetsel", antwort: "person", thema: "Genau eine Person lügt",
+            einleitung: "Das **zweite Stück**. Diesmal gilt: **Genau eine Person lügt.**",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Lehmann kann sich seit heute Morgen kaum auf den Beinen halten, geschweige denn rennen. Er hat sich lange am Empanada-Stand ausgeruht." },
+              { name: "Señor Tomás", bild: "🧔🏻", text: "Ich habe gesehen, wie Lehmann zur Bushaltestelle gerannt ist. Dort hat er das Stück versteckt." },
+              { name: "Pablo", bild: "👦🏽", text: "Lehmann hat sich heute Morgen den Fuß verstaucht; seitdem humpelt er." }
+            ],
+            frage: "Wer lügt? Klick auf die Person.",
+            loesung: "Señor Tomás",
+            tipp: "Wer verstaucht ist und kaum stehen kann, kann der rennen?",
+            erklaerung_de: "Rosa und Pablo stimmen überein: Lehmann kann kaum laufen (**geschweige denn** rennen). Tomás behauptet, er sei gerannt – das widerspricht beiden. Da nur eine Person lügt, ist es **Señor Tomás**."
+          },
+          {
+            typ: "raetsel", antwort: "ort", thema: "Schlussfolgern",
+            einleitung: "Du kennst nun den Lügner. Wo ist das **zweite Stück**?",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Lehmann kann sich seit heute Morgen kaum auf den Beinen halten, geschweige denn rennen. Er hat sich lange am Empanada-Stand ausgeruht." },
+              { name: "Señor Tomás", bild: "🧔🏻", text: "Ich habe gesehen, wie Lehmann zur Bushaltestelle gerannt ist. Dort hat er das Stück versteckt." },
+              { name: "Pablo", bild: "👦🏽", text: "Lehmann hat sich heute Morgen den Fuß verstaucht; seitdem humpelt er." }
+            ],
+            frage: "Wo ist das zweite Stück?",
+            orte: ["⛲ Brunnen", "⛪ Kirche", "🔥 Töpferofen", "🥟 Empanada-Stand", "🚏 Bushaltestelle"],
+            loesung: "Empanada-Stand",
+            erklaerung_de: "Die Bushaltestelle stammt vom Lügner. Laut Rosa hat sich Lehmann lange am **Empanada-Stand** ausgeruht – dort konnte er das Stück verstecken."
+          },
+          {
+            typ: "raetsel", antwort: "ort", thema: "sofern · zumal · es sei denn",
+            einleitung: "Das **letzte Stück**. Alle Aussagen sind wahr.",
+            personen: [
+              { name: "Pablo", bild: "👦🏽", text: "Das letzte Stück liegt im Töpferofen, sofern dieser heute nicht angeheizt wurde." },
+              { name: "Doña Rosa", bild: "👵🏽", text: "Der Ofen ist heute kalt geblieben, zumal der Töpfer krank im Bett liegt." },
+              { name: "Señor Tomás", bild: "🧔🏻", text: "Am Brunnen ist es nicht – es sei denn, jemand hätte es nachts dorthin gebracht. Nachts war aber niemand dort." }
+            ],
+            frage: "Wo ist das letzte Stück?",
+            orte: ["⛲ Brunnen", "⛪ Kirche", "🔥 Töpferofen", "🥟 Empanada-Stand", "🚏 Bushaltestelle"],
+            loesung: "Töpferofen",
+            erklaerung_de: "Pablos Bedingung (**sofern** nicht angeheizt) ist laut Rosa erfüllt: Der Ofen blieb kalt. Tomás' Ausnahme (**es sei denn** …) trifft nicht zu. → **Töpferofen**."
+          }
+        ],
+        reserve: []
+      },
+
+      /* ---------- C1 · Raum 3: Die Falle des Zauberers ---------- */
+      {
+        name: "Die Falle des Zauberers", szene: "turm",
+        ruf: "Feine Unterschiede. Grobe Fehler. Wählt!",
+        thema: "Feine Bedeutungsunterschiede",
+        geschichte: "Lehmann hat seine raffiniertesten Steine ausgelegt. Sie unterscheiden sich nur in Nuancen.\n\nDas Chanchito mahnt: „Grammatisch ist alles korrekt. Entscheidend ist die **exakte Bedeutung** – und im Zweifel der Kontext.“",
+        geschafft: "Die Falle ist entschärft. In Lehmanns Bibliothek liegt die dritte Scherbe.",
+        scherbe: "Dazu: Ei, Olive und – sofern gewünscht – Rosinen auf der Füllung verteilen.",
+        aufgaben: [
+          {
+            typ: "falle", thema: "Tatsache oder Bedingung?",
+            satz: "Wir sollten die Suche abbrechen, ___ es bereits dunkel wird.",
+            optionen: ["zumal", "sofern", "wohingegen"], loesung: "zumal",
+            erklaerung_de: "„bereits“ zeigt eine Tatsache, kein „vorausgesetzt, dass“ → **zumal** (zusätzlicher Grund)."
+          },
+          {
+            typ: "falle", thema: "Was bedeutet „es sei denn“?",
+            frage: "Welcher Satz bedeutet dasselbe?",
+            satz: "Lehmann gibt nicht auf, es sei denn, man besiegt ihn mit Konnektoren.",
+            optionen: ["Lehmann gibt nur auf, wenn man ihn mit Konnektoren besiegt.", "Lehmann gibt auf, obwohl man ihn mit Konnektoren besiegt.", "Lehmann gibt nicht auf, weil man ihn mit Konnektoren besiegt."],
+            loesung: "Lehmann gibt nur auf, wenn man ihn mit Konnektoren besiegt.",
+            erklaerung_de: "**es sei denn** = „außer wenn“: Die einzige Ausnahme ist der Sieg mit Konnektoren."
+          },
+          {
+            typ: "falle", thema: "Steigerung nach einer Verneinung",
+            satz: "Benja kann kaum einen Teller formen, ___ eine Vase mit Henkeln.",
+            optionen: ["geschweige denn", "sondern auch", "zumal"], loesung: "geschweige denn",
+            erklaerung_de: "Nach einer (Quasi-)Verneinung („kaum“) folgt das noch Unwahrscheinlichere → **geschweige denn**."
+          },
+          {
+            typ: "falle", thema: "Gegenüberstellung oder Begründung?",
+            satz: "In Pomaire wird Ton von Hand geformt, ___ in Fabriken Maschinen die Arbeit übernehmen.",
+            optionen: ["wohingegen", "zumal", "sofern"], loesung: "wohingegen",
+            erklaerung_de: "Zwei Produktionsweisen werden kontrastiert → **wohingegen**."
+          },
+          {
+            typ: "falle", thema: "Folge oder Einräumung?",
+            satz: "Die Glasur enthält Blei. ___ dürfen diese Teller nicht für Lebensmittel verwendet werden.",
+            optionen: ["Demzufolge", "Nichtsdestotrotz", "Hingegen"], loesung: "Demzufolge",
+            erklaerung_de: "Blei → Verbot: Schlussfolgerung mit **demzufolge**."
+          },
+          {
+            typ: "falle", thema: "Nominalisierung",
+            frage: "Welche Umformung ist bedeutungsgleich?",
+            satz: "Obwohl er sich sehr bemühte, scheiterte Lehmann.",
+            optionen: ["Trotz großer Bemühungen scheiterte Lehmann.", "Wegen großer Bemühungen scheiterte Lehmann.", "Aufgrund großer Bemühungen scheiterte Lehmann."],
+            loesung: "Trotz großer Bemühungen scheiterte Lehmann.",
+            erklaerung_de: "obwohl (Einräumung) → **trotz** + Genitiv. „wegen“ und „aufgrund“ wären kausal."
+          },
+          {
+            typ: "falle", thema: "Einräumung oder Folge?",
+            satz: "Lehmanns Zauber war mächtig. ___ gelang es den Kindern, ihn zu brechen.",
+            optionen: ["Nichtsdestotrotz", "Folglich", "Demzufolge"], loesung: "Nichtsdestotrotz",
+            erklaerung_de: "Ein mächtiger Zauber spricht gegen den Erfolg → **nichtsdestotrotz**."
+          }
+        ],
+        reserve: [
+          {
+            typ: "falle", thema: "Bedingung oder Gegenüberstellung?",
+            satz: "Die Empanadas gelingen, ___ der Ofen die richtige Temperatur hat.",
+            optionen: ["sofern", "wohingegen", "nachdem"], loesung: "sofern",
+            erklaerung_de: "Voraussetzung für das Gelingen → **sofern**."
+          },
+          {
+            typ: "falle", thema: "Nominalisierung",
+            frage: "Welche Umformung ist bedeutungsgleich?",
+            satz: "Weil die Nachfrage gestiegen ist, produzieren die Töpfer mehr.",
+            optionen: ["Aufgrund der gestiegenen Nachfrage produzieren die Töpfer mehr.", "Trotz der gestiegenen Nachfrage produzieren die Töpfer mehr.", "Statt der gestiegenen Nachfrage produzieren die Töpfer mehr."],
+            loesung: "Aufgrund der gestiegenen Nachfrage produzieren die Töpfer mehr.",
+            erklaerung_de: "weil (kausal) → **aufgrund** + Genitiv."
+          },
+          {
+            typ: "falle", thema: "Ausnahme, Bedingung oder Grund?",
+            satz: "Wir fahren morgen nach Pomaire,",
+            optionen: ["es sei denn, es regnet in Strömen.", "sofern es in Strömen regnet.", "zumal es in Strömen regnet."],
+            loesung: "es sei denn, es regnet in Strömen.",
+            erklaerung_de: "Nur Starkregen würde die Fahrt verhindern → Ausnahme mit **es sei denn** (danach Verbzweitstellung!)."
+          }
+        ]
+      },
+
+      /* ---------- C1 · Raum 4: Das Wortduell ---------- */
+      {
+        name: "Das Wortduell", szene: "plaza",
+        ruf: "Handwerk ist überflüssig. Der Staat soll sparen. Tradition ist Zeitverschwendung.",
+        thema: "Stellungnahme: differenziert argumentieren",
+        geschichte: "Lehmann lädt zur Podiumsdiskussion: „Handwerk ist überflüssig!“ Das Dorf erwartet eine fundierte Stellungnahme.\n\nVerknüpft die Argumente zu einem kohärenten Text. Jeder Stein ist nur **einmal** verwendbar; Vielfalt der Steinformen wird belohnt.",
+        geschafft: "Lehmann verstummt – seine Thesen sind widerlegt. Die vierte Scherbe gleitet aus seinem Mantel.",
+        scherbe: "Den Rand umschlagen und fest andrücken, damit die Füllung beim Backen nicht austritt.",
+        aufgaben: [
+          {
+            typ: "kette", thema: "Grund, Gegenüberstellung, Einräumung, Folge, Bedingung",
+            behauptung: "Handwerk ist überflüssig. Der Staat soll sparen. Tradition ist Zeitverschwendung.",
+            start: "Traditionelle Handwerksberufe sollten staatlich gefördert werden.",
+            steine: ["denn", "wohingegen", "nichtsdestotrotz", "zumal", "demzufolge", "sofern", "indem", "obwohl"],
+            schritte: [
+              { baustein: "sie | [bewahren] | ein kulturelles Erbe", passend: ["denn", "zumal"], funktion: "Grund",
+                erklaerung_de: "Begründung der These → **denn** (oder verstärkend **zumal**)." },
+              { baustein: "Industrieprodukte | [sind] | beliebig austauschbar", passend: ["wohingegen"], funktion: "Gegenüberstellung",
+                erklaerung_de: "Kontrast Handwerk ↔ Industrie → **wohingegen**." },
+              { basis: "Kritiker wenden ein, dass eine Förderung teuer ist.", baustein: "sie | [lohnt] | sich | langfristig", passend: ["nichtsdestotrotz", "obwohl"], funktion: "Einräumung",
+                erklaerung_de: "Das Gegenargument wird eingeräumt und entkräftet → **Nichtsdestotrotz** lohnt sie sich." },
+              { baustein: "der Tourismus | [profitiert] | davon", passend: ["zumal", "denn"], funktion: "zusätzlicher Grund",
+                erklaerung_de: "Ein weiterer gewichtiger Grund → **zumal** (oder **denn**)." },
+              { baustein: "regionale Wirtschaftskreisläufe | [werden] | [gestärkt]", passend: ["demzufolge", "zumal"], funktion: "Folge",
+                erklaerung_de: "Schlussfolgerung → **Demzufolge** werden regionale Kreisläufe gestärkt." },
+              { basis: "Mein Fazit: Der Staat sollte das Handwerk unterstützen.", baustein: "die Mittel | [werden] | gezielt | [eingesetzt]", passend: ["sofern"], funktion: "Bedingung",
+                erklaerung_de: "Einschränkende Bedingung im Fazit → **sofern** die Mittel gezielt eingesetzt werden." }
+            ]
+          }
+        ],
+        reserve: []
+      },
+
+      /* ---------- C1 · Raum 5: Der Gegenzauber ---------- */
+      {
+        name: "Der Gegenzauber", szene: "gipfel", boss: true,
+        ruf: "Logik ist Schwäche. Zerbröckel!",
+        thema: "Logische Relationen bestimmen",
+        geschichte: "Auf der Zinne des Zauberturms entscheidet sich alles. Lehmann feuert unverbundene Satzpaare ab.\n\nBestimmt im Bruchteil einer Sekunde die **logische Relation** – jeder Treffer zehrt an seiner Zauberkraft.",
+        geschafft: "Lehmanns letzter Fluch verpufft. Die fünfte Scherbe sinkt herab und vervollständigt die Tafel.",
+        scherbe: "Das Geheimnis: im Lehmofen goldbraun backen – und die Empanada nie allein genießen, sondern stets mit anderen teilen.",
+        aufgaben: [
+          { typ: "konter", satzpaar: "Ich habe jahrhundertelang studiert. Ihr habt mich in einer Woche besiegt.", loesung: ["Einräumung", "Gegensatz"],
+            verbunden: "**Obwohl** ich jahrhundertelang studiert habe, habt ihr mich in einer Woche besiegt.",
+            erklaerung_de: "Erwartung (lange Studien → Überlegenheit) wird enttäuscht → **Einräumung**; ein Gegensatz ist ebenfalls vertretbar." },
+          { typ: "konter", satzpaar: "Meine Zaubersprüche bestehen nur aus Hauptsätzen. Ihnen fehlt jede Überzeugungskraft.", loesung: "Folge",
+            verbunden: "Meine Zaubersprüche bestehen nur aus Hauptsätzen. **Demzufolge** fehlt ihnen jede Überzeugungskraft.",
+            erklaerung_de: "Ursache → Konsequenz: **Folge**." },
+          { typ: "konter", satzpaar: "Ich kehre nur zurück. Ihr ladet mich ausdrücklich ein.", loesung: "Bedingung",
+            verbunden: "Ich kehre nur zurück, **sofern** ihr mich ausdrücklich einladet.",
+            erklaerung_de: "„nur“ → einschränkende **Bedingung** (sofern)." },
+          { typ: "konter", satzpaar: "Ich verberge meine Notizen. Niemand soll meine Schwächen erkennen.", loesung: ["Zweck", "Grund"],
+            verbunden: "Ich verberge meine Notizen, **damit** niemand meine Schwächen erkennt.",
+            erklaerung_de: "„soll“ markiert eine Absicht → am präzisesten **Zweck**; als **Grund** („weil niemand … erkennen soll“) ebenfalls korrekt." },
+          { typ: "konter", satzpaar: "Ihr argumentiert differenziert. Ich wiederhole nur Parolen.", loesung: "Gegensatz",
+            verbunden: "Ihr argumentiert differenziert, **wohingegen** ich nur Parolen wiederhole.",
+            erklaerung_de: "Zwei Argumentationsweisen werden gegenübergestellt → **Gegensatz**." },
+          { typ: "konter", satzpaar: "Ich verliere an Macht. Ihr verbindet jeden meiner Sätze.", loesung: "Grund",
+            verbunden: "Ich verliere an Macht, **zumal** ihr jeden meiner Sätze verbindet.",
+            erklaerung_de: "Der zweite Satz nennt die Ursache → **Grund**." },
+          { typ: "konter", satzpaar: "Die Tafel ist wiederhergestellt. Das Dorf kann wieder backen.", loesung: "Folge",
+            verbunden: "Die Tafel ist wiederhergestellt. **Demzufolge** kann das Dorf wieder backen.",
+            erklaerung_de: "Ursache → Ergebnis: **Folge**." },
+          { typ: "konter", satzpaar: "Ich respektiere euch. Ihr habt fair gekämpft.", loesung: "Grund",
+            verbunden: "Ich respektiere euch, **da** ihr fair gekämpft habt.",
+            erklaerung_de: "Begründung des Respekts → **Grund**." }
+        ],
+        reserve: [
+          { typ: "konter", satzpaar: "Ich bin uralt. Ich lerne noch dazu.", loesung: ["Einräumung", "Gegensatz"],
+            verbunden: "**Obwohl** ich uralt bin, lerne ich noch dazu.",
+            erklaerung_de: "Gegen die Erwartung → **Einräumung** (Gegensatz ebenfalls vertretbar)." },
+          { typ: "konter", satzpaar: "Meine Sätze sind abgehackt. Niemand hört mir zu.", loesung: "Folge",
+            verbunden: "Meine Sätze sind abgehackt. **Demzufolge** hört mir niemand zu.",
+            erklaerung_de: "Ursache → Ergebnis: **Folge**." }
+        ]
+      }
+    ]
+  }
 };
 </script>
 
