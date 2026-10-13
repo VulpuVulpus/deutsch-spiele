@@ -365,6 +365,11 @@ kbd{display:inline-block;background:#fff;color:#111;border-radius:6px;padding:0 
 .fullin{width:100%}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#fff;color:#222;border-radius:12px;padding:.5em 1em;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:60;max-width:90vw}
 @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important} }
+/* eingebettet (Google Sites) und Bestätigungsfenster */
+.eingebettet .homelink{display:none}
+.confirmbox{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1em}
+.confirmbox .cb{background:var(--panel);color:var(--text);border:2px solid var(--line);border-radius:16px;padding:1em 1.2em;max-width:520px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.confirmbox .cbrow{display:flex;gap:.6em;justify-content:flex-end;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -405,6 +410,23 @@ function fmtTime(ms){ const s=Math.max(0,Math.round(ms/1000)); return String(Mat
 function fmtDate(d){ const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear(); }
 let toastT=null;
 function toast(msg,ms){ const t=$('#toast'); t.innerHTML=fmt(msg); t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; }, ms||2500); }
+
+/* ---------- Eingebettet (z. B. Google Sites) ----------
+   In Google Sites läuft das Spiel in einem Rahmen. Dort funktionieren
+   Bestätigungsfenster des Browsers nicht – deshalb ein eigenes Fenster.
+   Der Link „← Alle Spiele“ wird im Rahmen ausgeblendet. */
+const EINGEBETTET = (()=>{ try { return window.self!==window.top; } catch(e){ return true; } })();
+if(EINGEBETTET) document.documentElement.classList.add('eingebettet');
+function bestaetigen(msg, ok){
+  const d=document.createElement('div'); d.className='confirmbox'; d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true');
+  d.innerHTML='<div class="cb"><p></p><div class="cbrow"><button type="button" class="cbno">Abbrechen</button><button type="button" class="primary cbyes">Ja</button></div></div>';
+  d.querySelector('p').textContent=msg; document.body.appendChild(d);
+  const close=()=>d.remove();
+  d.querySelector('.cbno').addEventListener('click',close);
+  d.querySelector('.cbyes').addEventListener('click',()=>{ close(); ok(); });
+  d.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); close(); } });
+  d.querySelector('.cbno').focus();
+}
 
 /* ---------- Sätze lesen ---------- */
 function satzText(s){ return typeof s==='string' ? s : (s && s.satz) || ''; }

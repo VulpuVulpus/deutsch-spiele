@@ -1750,6 +1750,11 @@ pre.code{background:#0e1a2c;border:2px solid var(--line);border-radius:10px;padd
   .p-karte::after{width:40px;height:50px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* eingebettet (Google Sites) und Bestätigungsfenster */
+.eingebettet .homelink{display:none}
+.confirmbox{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1em}
+.confirmbox .cb{background:var(--panel);color:var(--text);border:2px solid var(--line);border-radius:16px;padding:1em 1.2em;max-width:520px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.confirmbox .cbrow{display:flex;gap:.6em;justify-content:flex-end;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -1808,6 +1813,23 @@ function sceneSVG(S){ return typeof S.svg==='function' ? S.svg() : S.svg; }
 function pos(r){ return 'left:'+(r[0]/10)+'%;top:'+(r[1]/5.6)+'%;width:'+(r[2]/10)+'%;height:'+(r[3]/5.6)+'%'; }
 let toastT = null;
 function toast(msg, ms){ const t=$('#toast'); t.innerHTML=fmt(msg); t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; }, ms||3200); }
+
+/* ---------- Eingebettet (z. B. Google Sites) ----------
+   In Google Sites läuft das Spiel in einem Rahmen. Dort funktionieren
+   Bestätigungsfenster des Browsers nicht – deshalb ein eigenes Fenster.
+   Der Link „← Alle Spiele“ wird im Rahmen ausgeblendet. */
+const EINGEBETTET = (()=>{ try { return window.self!==window.top; } catch(e){ return true; } })();
+if(EINGEBETTET) document.documentElement.classList.add('eingebettet');
+function bestaetigen(msg, ok){
+  const d=document.createElement('div'); d.className='confirmbox'; d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true');
+  d.innerHTML='<div class="cb"><p></p><div class="cbrow"><button type="button" class="cbno">Abbrechen</button><button type="button" class="primary cbyes">Ja</button></div></div>';
+  d.querySelector('p').textContent=msg; document.body.appendChild(d);
+  const close=()=>d.remove();
+  d.querySelector('.cbno').addEventListener('click',close);
+  d.querySelector('.cbyes').addEventListener('click',()=>{ close(); ok(); });
+  d.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); close(); } });
+  d.querySelector('.cbno').focus();
+}
 
 /* ---------- Antworten vergleichen ---------- */
 function canon(s){
@@ -2248,12 +2270,11 @@ function renderHUD(){
 }
 function updateSoundBtn(){ const b=$('#btnSound'); b.textContent = settings.sound ? '🔊 Ton an' : '🔇 Ton aus'; b.setAttribute('aria-pressed', String(settings.sound)); }
 $('#btnSound').addEventListener('click', () => { settings.sound=!settings.sound; lsSet(LS_SET, JSON.stringify(settings)); updateSoundBtn(); sound('tick'); });
-$('#btnRestart').addEventListener('click', () => {
-  if(!window.confirm('Willst du wirklich neu starten? Dein Fortschritt wird gelöscht.')) return;
+$('#btnRestart').addEventListener('click', () => bestaetigen('Willst du wirklich neu starten? Dein Fortschritt wird gelöscht.', () => {
   closeObject(true); lsDel(LS_GAME); state=null; view='start';
   if(location.hash) history.replaceState(null,'',location.pathname+location.search);
   render();
-});
+}));
 
 /* =====================================================================
    BILDSCHIRME
@@ -2287,8 +2308,8 @@ function renderStart(){
   app.innerHTML = h;
   const c=$('#btnContinue'); if(c) c.addEventListener('click', () => { view='game'; render(); });
   $$('.level').forEach(b => b.addEventListener('click', () => {
-    if(state && state.phase!=='end' && !window.confirm('Du hast ein gespeichertes Spiel. Wenn du ein neues Spiel startest, wird es gelöscht. Weiter?')) return;
-    newGame(b.dataset.l, $('#chkChallenge').checked); view='game'; render();
+    const go=()=>{ newGame(b.dataset.l, $('#chkChallenge').checked); view='game'; render(); };
+    if(state && state.phase!=='end') bestaetigen('Du hast ein gespeichertes Spiel. Wenn du ein neues Spiel startest, wird es gelöscht. Weiter?', go); else go();
   }));
 }
 
@@ -2733,7 +2754,7 @@ function renderEnd(){
   h += state.wrong.length ? '<ol class="wronglist">'+state.wrong.map(w=>'<li><span class="muted small">'+esc(w.raum)+' · '+esc(w.thema)+'</span><br>'+esc(w.aufgabe)+'<br><span class="badline">✗ Deine Antwort: '+esc(w.deine)+'</span><br><span class="okline">✓ Richtig: '+esc(w.loesung)+'</span></li>').join('')+'</ol>' : '<p class="okline">✓ Keine Fehler – super!</p>';
   app.innerHTML=h+'</section>';
   $('#btnCopy').addEventListener('click',()=>copyText(resultText(code,s,d)));
-  $('#btnNew').addEventListener('click',()=>{ if(!window.confirm('Neues Spiel starten? Dieses Ergebnis wird gelöscht. Hast du schon einen Screenshot gemacht?')) return; lsDel(LS_GAME); state=null; view='start'; render(); });
+  $('#btnNew').addEventListener('click',()=>bestaetigen('Neues Spiel starten? Dieses Ergebnis wird gelöscht. Hast du schon einen Screenshot gemacht?', ()=>{ lsDel(LS_GAME); state=null; view='start'; render(); }));
   focusEl('#btnCopy');
 }
 function resultText(code,s,d){

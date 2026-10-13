@@ -81,6 +81,8 @@ const EINSTELLUNGEN = {
   spanischeHilfe: { A2: true, B1: true, B2: false, C1: false },
   hoerenWiederholungen: 2,                          // wie oft man den Hörtext hören darf
   audioOrdner: "audio/",
+  // Wenn das Spiel eingebettet ist (z. B. Google Sites), werden die MP3s hier gesucht:
+  audioOrdnerEingebettet: "https://vulpuvulpus.github.io/deutsch-spiele/audio/",
   computerstimmeTempo: { A2: 0.85, B1: 0.95, B2: 1.0, C1: 1.05 }
 };
 
@@ -1228,6 +1230,11 @@ main{max-width:1180px;margin:0 auto;padding:.6em 1em 1.5em}
 code,pre{font-family:"Courier New",monospace}
 @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important} }
 @media (max-width:700px){ body{font-size:18px} }
+/* eingebettet (Google Sites) und Bestätigungsfenster */
+.eingebettet .homelink{display:none}
+.confirmbox{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1em}
+.confirmbox .cb{background:var(--panel);color:var(--text);border:2px solid var(--line);border-radius:16px;padding:1em 1.2em;max-width:520px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.confirmbox .cbrow{display:flex;gap:.6em;justify-content:flex-end;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -1290,6 +1297,23 @@ function joinWords(arr){ return arr.join(' ').replace(/\s+([,.!?])/g,'$1'); }
 function focusEl(sel){ const el = sel ? $(sel) : null; (el||app).focus({preventScroll:true}); }
 let toastT=null;
 function toast(msg, ms){ const t=$('#toast'); t.innerHTML=fmt(msg); t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; }, ms||3000); }
+
+/* ---------- Eingebettet (z. B. Google Sites) ----------
+   In Google Sites läuft das Spiel in einem Rahmen. Dort funktionieren
+   Bestätigungsfenster des Browsers nicht – deshalb ein eigenes Fenster.
+   Der Link „← Alle Spiele“ wird im Rahmen ausgeblendet. */
+const EINGEBETTET = (()=>{ try { return window.self!==window.top; } catch(e){ return true; } })();
+if(EINGEBETTET) document.documentElement.classList.add('eingebettet');
+function bestaetigen(msg, ok){
+  const d=document.createElement('div'); d.className='confirmbox'; d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true');
+  d.innerHTML='<div class="cb"><p></p><div class="cbrow"><button type="button" class="cbno">Abbrechen</button><button type="button" class="primary cbyes">Ja</button></div></div>';
+  d.querySelector('p').textContent=msg; document.body.appendChild(d);
+  const close=()=>d.remove();
+  d.querySelector('.cbno').addEventListener('click',close);
+  d.querySelector('.cbyes').addEventListener('click',()=>{ close(); ok(); });
+  d.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); close(); } });
+  d.querySelector('.cbno').focus();
+}
 function spanish(){ return state && E.spanischeHilfe[state.level]; }
 
 /* ---------- Daten vorbereiten ---------- */
@@ -1602,7 +1626,7 @@ function renderStart(){
   h+='<p class="small center"><a href="#lehrer">Für Lehrkräfte: Prüfcode kontrollieren · Audio-Dateien prüfen</a></p>';
   app.innerHTML=h;
   if($('#btnCont')) $('#btnCont').addEventListener('click',()=>{ state=saved; view='game'; ui={}; render(); });
-  if($('#btnDiscard')) $('#btnDiscard').addEventListener('click',()=>{ if(!window.confirm('Das gespeicherte Spiel wird gelöscht. Wirklich neu beginnen?')) return; lsDel(LS_GAME); state=null; render(); });
+  if($('#btnDiscard')) $('#btnDiscard').addEventListener('click',()=>bestaetigen('Das gespeicherte Spiel wird gelöscht. Wirklich neu beginnen?', ()=>{ lsDel(LS_GAME); state=null; render(); }));
   $$('[data-mode]').forEach(b=>b.addEventListener('click',()=>{ readNames(); startSel.mode=b.dataset.mode; render(); }));
   $$('.level[data-l]').forEach(b=>b.addEventListener('click',()=>{
     readNames();
@@ -1873,7 +1897,8 @@ function renderTor(t, el, onNext){
 
 /* ---------- Hören ---------- */
 let audio=null, audioOk=null, tts=false, playing=false, audioLevel=null;
-function audioSrc(){ return E.audioOrdner + curStation().st.hoertext.datei; }
+function audioBase(){ return (EINGEBETTET && E.audioOrdnerEingebettet) ? E.audioOrdnerEingebettet : E.audioOrdner; }
+function audioSrc(){ return audioBase() + curStation().st.hoertext.datei; }
 function prepareAudio(){
   if(audio && audioLevel===state.level) return;
   stopAudio(); audioLevel=state.level; audioOk=null;
@@ -1899,7 +1924,14 @@ function hvPlay(){
   if(playsLeft()<=0) return;
   state.plays[state.station]=(state.plays[state.station]||0)+1; save();
   playing=true;
-  if(audioOk!==false){ tts=false; try{ audio.currentTime=0; }catch(e){} audio.play().then(()=>{ audioOk=true; updatePlayer(); }).catch(()=>{ audioOk=false; speak(); }); }
+  if(audioOk!==false){
+    tts=false; try{ audio.currentTime=0; }catch(e){}
+    let done=false;
+    // Ist die Datei gesperrt (z. B. Schul-WLAN), hängt das Laden – nach 4 s Computerstimme
+    const fallback=setTimeout(()=>{ if(done) return; done=true; try{ audio.pause(); }catch(e){} audioOk=false; speak(); }, 4000);
+    audio.play().then(()=>{ if(done){ try{ audio.pause(); }catch(e){} return; } done=true; clearTimeout(fallback); audioOk=true; updatePlayer(); })
+      .catch(()=>{ if(done) return; done=true; clearTimeout(fallback); audioOk=false; speak(); });
+  }
   else speak();
   updatePlayer();
 }
@@ -2022,7 +2054,7 @@ function renderResult(){
   h += state.wrong.length ? '<ol class="wronglist">'+state.wrong.map(w=>'<li><span class="muted small">'+esc(w.station)+'</span><br>'+esc(w.aufgabe)+'<br><span class="badline">✗ Deine Antwort: '+esc(w.deine)+'</span><br><span class="okline">✓ Richtig: '+esc(w.loesung)+'</span></li>').join('')+'</ol>' : '<p class="okline">✓ Keine Fehler – ¡bacán!</p>';
   app.innerHTML=h+'</section>';
   $('#btnCopy').addEventListener('click',()=>copyText(resultText(code,s,d,name)));
-  $('#btnNew').addEventListener('click',()=>{ if(!window.confirm('Neues Spiel starten? Dieses Ergebnis wird gelöscht. Hast du schon einen Screenshot gemacht?')) return; lsDel(LS_GAME); state=null; view='start'; render(); });
+  $('#btnNew').addEventListener('click',()=>bestaetigen('Neues Spiel starten? Dieses Ergebnis wird gelöscht. Hast du schon einen Screenshot gemacht?', ()=>{ lsDel(LS_GAME); state=null; view='start'; render(); }));
   focusEl('#btnCopy');
 }
 function resultText(code,s,d,name){
@@ -2042,11 +2074,11 @@ function copyText(t){
 /* ---------- Lehrkraft ---------- */
 function backToGame(){ history.replaceState(null,'',location.pathname+location.search); view = state ? view : 'start'; render(); }
 function renderTeacher(){
-  const files=[]; LEVELS.forEach(lv=>{ const S=SPIEL[lv]; if(!S) return; S.stationen.forEach(st=>{ if(st.art==='hoeren' && st.hoertext) files.push([lv, E.audioOrdner+st.hoertext.datei]); }); });
+  const files=[]; LEVELS.forEach(lv=>{ const S=SPIEL[lv]; if(!S) return; S.stationen.forEach(st=>{ if(st.art==='hoeren' && st.hoertext) files.push([lv, audioBase()+st.hoertext.datei]); }); });
   app.innerHTML='<section class="card narrow"><h1>🔎 Prüfcode kontrollieren</h1><p class="muted">Für Lehrkräfte. Name so eingeben, wie er im Ergebnis steht (bei Paaren z. B. „Ana & Luis“). Groß-/Kleinschreibung, Akzente und Leerzeichen sind egal.</p>'+
     '<p><label for="tName">Name</label><br><input '+INPUT_ATTR+' id="tName" class="fullin"></p><p><label for="tCode">Prüfcode</label><br><input '+INPUT_ATTR+' id="tCode" class="fullin" placeholder="z. B. A2-75-081026-K7QFM"></p>'+
     '<div class="row"><button type="button" class="primary" id="tCheck">Prüfen</button><span class="spacer"></span><button type="button" id="tBack">← Zurück zum Spiel</button></div><div id="tRes" role="status" aria-live="polite" style="margin-top:.8em"></div></section>'+
-    '<section class="card narrow"><h2>🎧 Audio-Dateien</h2><p class="small muted">Fehlt eine Datei, liest die Computerstimme vor. Dateien in den Ordner „'+esc(E.audioOrdner)+'“ hochladen.</p><ul id="aList">'+files.map((f,i)=>'<li>'+esc(f[0])+': <code>'+esc(f[1])+'</code> <span id="af'+i+'">… wird geprüft</span></li>').join('')+'</ul></section>';
+    '<section class="card narrow"><h2>🎧 Audio-Dateien</h2><p class="small muted">Fehlt eine Datei, liest die Computerstimme vor. Dateien in den Ordner „'+esc(E.audioOrdner)+'“ hochladen.'+(EINGEBETTET?' Eingebettet (Google Sites) werden sie von GitHub geladen – ist GitHub gesperrt, liest die Computerstimme vor.':'')+'</p><ul id="aList">'+files.map((f,i)=>'<li>'+esc(f[0])+': <code>'+esc(f[1])+'</code> <span id="af'+i+'">… wird geprüft</span></li>').join('')+'</ul></section>';
   files.forEach((f,i)=>{ const a=new Audio(); a.preload='metadata';
     a.addEventListener('loadedmetadata',()=>{ const s=$('#af'+i); if(s) s.innerHTML='<span class="okline">✓ gefunden ('+Math.round(a.duration)+' s)</span>'; });
     a.addEventListener('error',()=>{ const s=$('#af'+i); if(s) s.innerHTML='<span class="badline">✗ fehlt – Computerstimme</span>'; }); a.src=f[1]; });
