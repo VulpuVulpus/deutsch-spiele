@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magister Lehmann und die Super-Empanada – Konnektoren-Escape-Room</title>
+<script>
+/* =====================================================================
+   MAGISTER LEHMANN UND DIE SUPER-EMPANADA · Konnektoren-Escape-Room
+   =====================================================================
+
+   ANLEITUNG FÜR LEHRKRÄFTE
+   ---------------------------------------------------------------------
+   Alles, was Sie ändern können, steht in diesem ersten Abschnitt
+   (EINSTELLUNGEN, STEINE, FUNKTIONEN, SPIEL). Die Spiel-Logik weiter
+   unten müssen Sie nicht anfassen.
+
+   AUFBAU
+   SPIEL → Niveau (A2, B1 …) → raeume → aufgaben (+ reserve)
+   Jeder Raum bringt eine Scherbe der Rezept-Tontafel.
+
+   FELDER EINES RAUMS
+     name, szene     : Name / Bild oben: "toepferei" | "markt" | "turm" |
+                       "plaza" | "gipfel"
+     ruf             : Was Lehmann beim Betreten sagt (Sprechblase)
+     thema           : „Das trainierst du hier“
+     geschichte      : Text beim Betreten (\n\n = neuer Absatz)
+     geschafft       : Text, wenn der Raum gelöst ist
+     scherbe         : Rezeptzeile auf der gewonnenen Scherbe
+     boss            : true → Lebensbalken von Lehmann (Finale)
+     aufgaben        : Liste der Aufgaben
+     reserve         : Ersatzaufgaben. Läuft beim ersten Versuch die Zeit
+                       ab („der Ton trocknet“), bekommt die Scherbe einen
+                       Riss, und es kommt eine Ersatzaufgabe desselben Typs
+                       (ohne Zeit, höchstens 5 Punkte).
+
+   FELDER, DIE JEDE AUFGABE HAT
+     typ            : siehe AUFGABENTYPEN
+     thema          : Denkhilfe nach dem 1. Fehlversuch
+     tipp           : Tipp vom Chanchito (kostet Punkte, verrät nicht die Lösung)
+     erklaerung_de  : Erklärung nach der Antwort
+     erklaerung_es  : „Ayuda en español“ – nur A2 und B1
+
+   AUFGABENTYPEN
+     kleben   – zwei Satzscherben mit einem Konnektor-Stein verbinden und den
+                zweiten Satz in die richtige Reihenfolge klicken (mit Zeit).
+                satz1    : erster Satz
+                satz2    : zweiter Satz in Satzgliedern, getrennt mit |,
+                           in normaler Reihenfolge (Subjekt – Verb – Rest).
+                           Verbteile in [eckigen Klammern]; das ERSTE
+                           eingeklammerte Verb ist das konjugierte.
+                           Kleinschreibung wie mitten im Satz: "er | [hat] | Fieber"
+                optionen : die Steine zur Auswahl
+                loesung  : alle passenden Steine als Liste ["weil", "denn"]
+                Die richtige Wortstellung berechnet das Spiel selbst aus der
+                Form des Steins. Sonderfälle (z. B. trennbare Verben) mit
+                nebensatz: "er ankommt" bzw. keil: "kommt er an".
+     schreiben – Lücke mit Texteingabe (Umlaut-Leiste):
+                satz     : Satz mit ___
+                hinweis  : (optional) Info in Klammern darunter
+                loesung  : alle richtigen Varianten als Liste
+     raetsel  – Logikrätsel auf dem Marktplatz:
+                einleitung, personen: [{ name, bild, text }], frage,
+                antwort  : "ort" (Ort auf der Karte anklicken) oder
+                           "person" (Person anklicken, z. B. „Wer lügt?“)
+                orte     : ["⛲ Brunnen", "⛪ Kirche", …] (Emoji + Name)
+                loesung  : Name des Orts bzw. der Person (ohne Emoji)
+     falle    – Lehmanns verzauberte Steine. ALLE Antworten sind
+                grammatisch richtig, nur die Bedeutung entscheidet (mit Zeit).
+                satz     : Satz mit ___ (bei zweiteiligen Konnektoren
+                           zweimal ___ und Optionen wie "entweder … oder")
+                frage    : (optional) Frage über dem Satz
+                optionen, loesung (Text oder Liste)
+     kette    – Wortduell: eine Argumentationskette (ohne Zeit).
+                behauptung : was Lehmann behauptet
+                start      : erster Satz der Kette
+                steine     : verfügbare Steine (jeder nur EINMAL benutzbar)
+                schritte   : [{ baustein: "man | [kann] | … | [nachschlagen]",
+                                passend: ["denn", "weil"], funktion: "Grund",
+                                basis: (optional) neuer Hauptsatz davor }]
+                Jeder Schritt zählt wie eine Aufgabe. Bonus: 5 Punkte pro
+                verwendeter Steinform (Flachstein, Keil, Haken).
+     konter   – Finale: Lehmann sagt zwei abgehackte Sätze; man wählt die
+                passende Funktion (mit Zeit).
+                satzpaar : "Satz A. Satz B."
+                loesung  : Funktion oder Liste ["Einräumung", "Gegensatz"]
+                optionen : (optional) Auswahl aus FUNKTIONEN; sonst alle
+                verbunden: der verbundene Satz (wird danach gezeigt)
+
+   REGELN
+     · Texte immer in "Anführungszeichen"; im Text selbst „…“ verwenden.
+     · Nach jedem Feld und jeder } ein Komma.
+     · **Wort** = fett.
+     · Fehler in den Daten zeigt die Startseite als gelben Hinweis an.
+     · Wenn Sie die Zahl der Aufgaben ändern, beginnen gespeicherte
+       Spiele dieses Niveaus von vorn.
+
+   OHNE ZEITDRUCK (Nachteilsausgleich)
+     · Für alle: unten zeitdruck: false eintragen.
+     · Für einzelne Lernende: Link mit ?ohnezeit verschicken, z. B.
+       …/super-empanada.html?ohnezeit  (der Prüfcode enthält dann ein „O“)
+   ===================================================================== */
+
+const EINSTELLUNGEN = {
+  geheimwort: "Empanada-Pomaire-2026",   // für die Prüfcodes
+  punkteErsterVersuch: 10,
+  punkteZweiterVersuch: 5,
+  tippKosten: 3,
+  tippsProRaum: 3,
+  kettenBonusProForm: 5,
+  zeitdruck: true,                      // false = nirgends Zeitdruck
+  sekunden: {                           // Zeit beim 1. Versuch
+    kleben: { A2: 70, B1: 55, B2: 45, C1: 40 },
+    falle:  { A2: 35, B1: 28, B2: 24, C1: 20 },
+    konter: { A2: 22, B1: 18, B2: 15, C1: 12 }
+  },
+  spanischeHilfe: { A2: true, B1: true, B2: false, C1: false }
+};
+
+/* ---------------------------------------------------------------------
+   STEINE – welche Konnektoren welche Form haben
+   --------------------------------------------------------------------- */
+const STEINE = {
+  flach: ["und", "aber", "oder", "denn", "sondern", "doch"],
+  keil:  ["deshalb", "deswegen", "darum", "trotzdem", "dennoch", "dann", "danach", "sonst", "folglich", "also", "außerdem", "stattdessen", "hingegen", "demzufolge", "nichtsdestotrotz", "zudem"],
+  haken: ["weil", "da", "obwohl", "dass", "wenn", "falls", "damit", "während", "bevor", "nachdem", "als", "ob", "indem", "sofern", "zumal", "wohingegen", "sodass", "seit", "bis"]
+};
+const FORMEN = {
+  flach: { name: "Flachstein", kurz: "Platz 0 – die Wortstellung bleibt",
+           de: "**Flachstein** (und, aber, oder, denn, sondern) liegt auf Platz 0. Danach geht der Satz ganz normal weiter: …, denn er **hat** Fieber.",
+           es: "Igual que en español: después de und/aber/denn el orden no cambia." },
+  keil:  { name: "Keil", kurz: "Platz 1 – das Verb kommt direkt dahinter",
+           de: "**Keil** (deshalb, trotzdem, dann, sonst …) steht selbst auf Platz 1. Darum kommt **sofort das Verb**: Deshalb **können** wir …",
+           es: "«Por eso nosotros podemos» → «Deshalb **können** wir» – ¡el verbo va justo después!" },
+  haken: { name: "Haken", kurz: "Nebensatz – das Verb geht ans Ende",
+           de: "**Haken** (weil, obwohl, dass, damit, während …) hängt einen Nebensatz an. Das konjugierte Verb geht **ans Ende**: …, weil sie krank **ist**.",
+           es: "«porque está enferma» → «weil sie krank **ist**» – el verbo va al final." }
+};
+const FUNKTIONEN = {
+  "Grund":      { beispiele: "weil, denn, da",            frage: "Warum?" },
+  "Folge":      { beispiele: "deshalb, darum, folglich",  frage: "Was passiert dann deswegen?" },
+  "Gegensatz":  { beispiele: "aber, während, sondern",    frage: "Was ist anders?" },
+  "Einräumung": { beispiele: "obwohl, trotzdem",          frage: "Was passiert, obwohl man etwas anderes erwartet?" },
+  "Bedingung":  { beispiele: "wenn, falls, sonst",        frage: "Unter welcher Bedingung?" },
+  "Zweck":      { beispiele: "damit, um … zu",            frage: "Wozu? Mit welchem Ziel?" }
+};
+
+/* ---------------------------------------------------------------------
+   SPIEL
+   --------------------------------------------------------------------- */
+const SPIEL = {
+
+  /* =================================================================
+     B1
+     ================================================================= */
+  B1: {
+    titel: "Die zerbrochene Tafel",
+    schwerpunkt: "weil/denn, obwohl/trotzdem, damit/um … zu, während, bevor/nachdem, sonst, entweder … oder, nicht nur … sondern auch",
+    intro: "Pomaire ist berühmt für zwei Dinge: Töpferei und riesige Empanadas. Das Rezept der Super-Empanada stand auf einer alten Tontafel. Aber heute Nacht kam **Magister Lehmann**, ein böser Zauberer. Er hat die Tafel zerschlagen und die Scherben im Dorf versteckt.\n\nMit seinem Zauberspruch „Zerbröckel!“ zerbricht er jede Verbindung zwischen Sätzen. Seitdem reden alle im Dorf nur noch in kurzen, abgehackten Sätzen.\n\nSofía, Matías und Benja wollen die Tafel retten. Zum Glück hilft ihnen das **Chanchito de greda**, das dreibeinige Glücksschwein aus Pomaire. Es kennt Lehmanns Schwäche: **Konnektoren!**",
+    schluss: "Lehmann taumelt. Und dann passiert etwas Seltsames: Er spricht zum ersten Mal in verbundenen Sätzen.\n\n„Ihr habt gewonnen, **weil** ihr meine Sätze verbunden habt. **Obwohl** ich ein mächtiger Zauberer bin, konnte ich euch nicht aufhalten. **Deshalb** gebe ich euch die Tafel zurück – und **wenn** ihr wollt, backe ich nächstes Jahr mit.“\n\nDie Tontafel ist wieder ganz. Am Abend backt ganz Pomaire die Super-Empanada – und das Chanchito bekommt das erste Stück. 🥟",
+    raeume: [
+
+      /* ---------- B1 · Raum 1: Die Töpferei ---------- */
+      {
+        name: "Die Töpferei", szene: "toepferei",
+        ruf: "Der Ton trocknet. Ihr seid langsam. Ha!",
+        thema: "Sätze mit Konnektor-Steinen kleben",
+        geschichte: "In der Töpferei liegen überall zerbrochene Sätze. Die erste Scherbe der Tafel klebt unter einem Haufen nasser Tonsätze fest.\n\nVerbinde jeweils zwei Satzscherben mit dem passenden Stein. Danach klickst du den zweiten Satz in die richtige Reihenfolge. Aber beeil dich: **Der Ton trocknet!**",
+        geschafft: "Alle Sätze kleben – und unter dem letzten Tonsatz liegt die erste Scherbe der Tafel!",
+        scherbe: "Der Teig: 1 kg Mehl, 150 g Schmalz und warmes Salzwasser. So lange kneten, bis der Teig weich ist.",
+        aufgaben: [
+          {
+            typ: "kleben", thema: "Grund oder Gegensatz?",
+            satz1: "Die Töpferin arbeitet heute nicht.",
+            satz2: "sie | [ist] | krank",
+            optionen: ["weil", "obwohl", "deshalb", "aber"], loesung: ["weil"],
+            tipp: "Warum arbeitet sie nicht? Du suchst einen Grund.",
+            erklaerung_de: "**weil** nennt den Grund: Die Töpferin arbeitet heute nicht, weil sie krank **ist**. „weil“ ist ein Haken – das Verb geht ans Ende.",
+            erklaerung_es: "«porque» → weil (verbo al final) o denn (verbo en posición 2). «obwohl» significa «aunque»: aquí no tiene sentido."
+          },
+          {
+            typ: "kleben", thema: "Folge",
+            satz1: "Der Ton ist noch sehr nass.",
+            satz2: "wir | [können] | die Schüssel | noch nicht | [brennen]",
+            optionen: ["deshalb", "trotzdem", "denn", "obwohl"], loesung: ["deshalb"],
+            tipp: "Was ist hier der Grund, was die Folge?",
+            erklaerung_de: "Der nasse Ton ist der Grund, das Nicht-Brennen die Folge → **deshalb**. „deshalb“ ist ein Keil: Deshalb **können** wir die Schüssel noch nicht brennen.",
+            erklaerung_es: "«por eso» → deshalb. ¡Ojo! Después de deshalb viene el verbo: «Deshalb können wir…», no «Deshalb wir können…»."
+          },
+          {
+            typ: "kleben", thema: "Einräumung: etwas passiert gegen die Erwartung",
+            satz1: "Benja hat zwei linke Hände.",
+            satz2: "er | [will] | eine Vase | [töpfern]",
+            optionen: ["trotzdem", "deshalb", "weil", "sondern"], loesung: ["trotzdem"],
+            tipp: "„Zwei linke Hände haben“ heißt: Man ist ungeschickt. Was erwartet man dann?",
+            erklaerung_de: "Man erwartet: Wer ungeschickt ist, töpfert lieber nicht. Benja will es **trotzdem**. Keil: Trotzdem **will** er eine Vase töpfern.",
+            erklaerung_es: "«sin embargo / aun así» → trotzdem (verbo justo después). «aunque» → obwohl (verbo al final)."
+          },
+          {
+            typ: "kleben", thema: "Zweck: mit welchem Ziel?",
+            satz1: "Sofía formt den Ton ganz vorsichtig.",
+            satz2: "die Figur | [zerbricht] | nicht",
+            optionen: ["damit", "denn", "sonst", "obwohl"], loesung: ["damit"],
+            tipp: "Was will Sofía erreichen?",
+            erklaerung_de: "Sofía hat ein Ziel → **damit** (Zweck). Haken: …, damit die Figur nicht **zerbricht**.",
+            erklaerung_es: "«para que» → damit (verbo al final). «para + infinitivo» → um … zu."
+          },
+          {
+            typ: "kleben", thema: "Zeit: vorher oder nachher?",
+            satz1: "Die Kinder essen endlich eine Empanada.",
+            satz2: "sie | [haben] | drei Stunden | [gearbeitet]",
+            optionen: ["nachdem", "bevor", "damit", "oder"], loesung: ["nachdem"],
+            tipp: "Was passiert zuerst: die Arbeit oder das Essen? Achte auf „endlich“.",
+            erklaerung_de: "Zuerst arbeiten, dann **endlich** essen. Die Arbeit ist vorher → **nachdem** + Perfekt: …, nachdem sie drei Stunden gearbeitet **haben**.",
+            erklaerung_es: "«después de que» → nachdem; «antes de que» → bevor."
+          },
+          {
+            typ: "kleben", thema: "Zwei Dinge gleichzeitig",
+            satz1: "Sofía bemalt die Teller.",
+            satz2: "Matías | [putzt] | die Werkstatt",
+            optionen: ["während", "sondern", "damit", "deshalb"], loesung: ["während"],
+            tipp: "Die beiden Tätigkeiten passieren zur gleichen Zeit.",
+            erklaerung_de: "Zwei Dinge passieren gleichzeitig → **während** (Haken): …, während Matías die Werkstatt **putzt**.",
+            erklaerung_es: "«mientras» → während: igual que en español puede ser temporal o de contraste. Verbo al final."
+          },
+          {
+            typ: "kleben", thema: "nicht/kein … → Korrektur",
+            satz1: "Magister Lehmann ist kein Freund von Pomaire.",
+            satz2: "er | [ist] | sein größter Feind",
+            optionen: ["sondern", "aber", "trotzdem", "dass"], loesung: ["sondern"],
+            tipp: "Im ersten Satz steht „kein“. Der zweite Satz korrigiert ihn.",
+            erklaerung_de: "Nach **kein/nicht** folgt eine Korrektur → **sondern** (Flachstein, die Wortstellung bleibt): …, sondern er **ist** sein größter Feind.",
+            erklaerung_es: "«no … sino» → nicht/kein … sondern; «pero» → aber. ¡Aquí el español ayuda!"
+          },
+          {
+            typ: "schreiben", thema: "obwohl → Verb ans Ende",
+            satz: "Benja fasst den Ofen an, obwohl ___.",
+            hinweis: "Der Ofen ist heiß.",
+            loesung: ["er heiß ist", "der Ofen heiß ist"],
+            tipp: "„obwohl“ ist ein Haken. Wo steht dann das Verb?",
+            erklaerung_de: "„obwohl“ ist ein Haken → Verb ans Ende: Benja fasst den Ofen an, obwohl er heiß **ist**.",
+            erklaerung_es: "«aunque está caliente» → «obwohl er heiß **ist**» – el verbo va al final."
+          }
+        ],
+        reserve: [
+          {
+            typ: "kleben", thema: "Folge",
+            satz1: "Der Brennofen ist kaputt.",
+            satz2: "die Töpfer | [können] | heute nicht | [arbeiten]",
+            optionen: ["deshalb", "obwohl", "weil", "oder"], loesung: ["deshalb"],
+            erklaerung_de: "Der kaputte Ofen ist der Grund → Folge mit **deshalb**: Deshalb **können** die Töpfer heute nicht arbeiten.",
+            erklaerung_es: "«por eso» → deshalb + verbo."
+          },
+          {
+            typ: "kleben", thema: "Einräumung",
+            satz1: "Matías mag keine Oliven.",
+            satz2: "er | [isst] | die ganze Empanada",
+            optionen: ["trotzdem", "denn", "damit", "deshalb"], loesung: ["trotzdem"],
+            erklaerung_de: "In der Empanada ist eine Olive. Matías isst sie **trotzdem** ganz: Trotzdem **isst** er die ganze Empanada.",
+            erklaerung_es: "«aun así» → trotzdem + verbo."
+          },
+          {
+            typ: "kleben", thema: "Zweck",
+            satz1: "Sofía arbeitet schnell.",
+            satz2: "der Ton | [trocknet] | nicht",
+            optionen: ["damit", "nachdem", "sondern", "obwohl"], loesung: ["damit"],
+            erklaerung_de: "Sofías Ziel: Der Ton soll nicht trocknen → **damit**: …, damit der Ton nicht **trocknet**.",
+            erklaerung_es: "«para que» → damit, verbo al final."
+          },
+          {
+            typ: "schreiben", thema: "sonst → Verb direkt dahinter",
+            satz: "Wir müssen uns beeilen, sonst ___.",
+            hinweis: "Der Ton trocknet.",
+            loesung: ["trocknet der Ton"],
+            erklaerung_de: "„sonst“ ist ein Keil → Verb direkt dahinter: …, sonst **trocknet** der Ton.",
+            erklaerung_es: "«si no, se seca la arcilla» → «sonst **trocknet** der Ton»."
+          }
+        ]
+      },
+
+      /* ---------- B1 · Raum 2: Der Marktplatz ---------- */
+      {
+        name: "Der Marktplatz", szene: "markt",
+        ruf: "Das Dorf redet. Das Dorf lügt. Ihr findet nichts.",
+        thema: "Wer sagt was? – Logikrätsel",
+        geschichte: "Auf dem Marktplatz von Pomaire stehen Töpferwaren in der Sonne. Lehmann hat die zweite Scherbe in **drei Stücke** zerbrochen und versteckt.\n\nDie Leute im Dorf haben etwas gesehen. Lies genau: **sondern, sonst, obwohl, entweder … oder** – jedes Wort ist wichtig!",
+        geschafft: "Die drei Stücke passen zusammen: Das ist die zweite Scherbe der Tafel!",
+        scherbe: "Die Füllung: Zwiebeln und Rindfleisch braten, bevor man Kreuzkümmel und Paprika dazugibt.",
+        aufgaben: [
+          {
+            typ: "raetsel", antwort: "ort", thema: "sondern · sonst · aber",
+            einleitung: "Drei Leute aus dem Dorf haben gesehen, wo Lehmann das **erste Stück** versteckt hat. Alle sagen die Wahrheit.",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Das erste Stück liegt nicht an der Bushaltestelle, sondern in der Nähe von Wasser oder Feuer." },
+              { name: "Don Pedro", bild: "👴🏻", text: "Ich sitze den ganzen Tag am Brunnen. Dort ist das Stück nicht, sonst hätte ich es gesehen." },
+              { name: "Pablo", bild: "👦🏽", text: "Mit dem ersten Stück wollte der Zauberer zum Töpferofen, aber dort waren zu viele Leute. Deshalb ist er umgekehrt." }
+            ],
+            frage: "Wo ist das erste Stück?",
+            orte: ["⛲ Brunnen", "⛪ Kirche", "🔥 Töpferofen", "🥟 Empanada-Stand mit Holzofen", "🚏 Bushaltestelle"],
+            loesung: "Empanada-Stand mit Holzofen",
+            tipp: "Streiche Schritt für Schritt alle Orte durch, die nicht möglich sind.",
+            erklaerung_de: "Rosa: nicht an der Bushaltestelle, **sondern** bei Wasser (Brunnen) oder Feuer (Töpferofen, Holzofen) – die Kirche fällt also auch weg. Pedro: nicht am Brunnen, **sonst** hätte er es gesehen. Pablo: Lehmann ist am Töpferofen umgekehrt. Es bleibt nur der **Empanada-Stand mit Holzofen**.",
+            erklaerung_es: "«no … sino» → nicht … sondern; «si no, / de lo contrario» → sonst; «pero» → aber."
+          },
+          {
+            typ: "raetsel", antwort: "person", thema: "Genau eine Person lügt",
+            einleitung: "Jetzt das **zweite Stück**. Benja hat am Brunnen schon gesucht – dort ist es nicht. Wieder sprechen drei Leute. Aber Vorsicht: **Genau eine Person lügt.**",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Das Stück ist in der Kirche oder am Brunnen." },
+              { name: "Señor Tomás", bild: "🧔🏻", text: "Das Stück ist nicht in der Kirche, obwohl der Zauberer dort war." },
+              { name: "Pablo", bild: "👦🏽", text: "Das Stück ist nicht am Brunnen, sondern in der Kirche." }
+            ],
+            frage: "Wer lügt? Klick auf die Person.",
+            loesung: "Señor Tomás",
+            tipp: "Stell dir vor, das Stück ist NICHT in der Kirche. Wie viele Personen lügen dann?",
+            erklaerung_de: "Wäre das Stück **nicht** in der Kirche, hätten Rosa **und** Pablo gelogen – das wären zwei Lügner. Also ist es in der Kirche, und nur **Señor Tomás** lügt.",
+            erklaerung_es: "«o» → oder; «aunque» → obwohl; «no … sino» → nicht … sondern."
+          },
+          {
+            typ: "raetsel", antwort: "ort", thema: "oder · sondern",
+            einleitung: "Du weißt jetzt, wer lügt. Wo ist das **zweite Stück**? (Am Brunnen ist es nicht – dort hat Benja schon gesucht.)",
+            personen: [
+              { name: "Doña Rosa", bild: "👵🏽", text: "Das Stück ist in der Kirche oder am Brunnen." },
+              { name: "Señor Tomás", bild: "🧔🏻", text: "Das Stück ist nicht in der Kirche, obwohl der Zauberer dort war." },
+              { name: "Pablo", bild: "👦🏽", text: "Das Stück ist nicht am Brunnen, sondern in der Kirche." }
+            ],
+            frage: "Wo ist das zweite Stück?",
+            orte: ["⛲ Brunnen", "⛪ Kirche", "🔥 Töpferofen", "🥟 Empanada-Stand mit Holzofen", "🚏 Bushaltestelle"],
+            loesung: "Kirche",
+            erklaerung_de: "Rosa und Pablo sagen die Wahrheit: in der Kirche **oder** am Brunnen – nicht am Brunnen, **sondern** in der **Kirche**.",
+            erklaerung_es: "«no en la fuente, sino en la iglesia» → nicht am Brunnen, sondern in der Kirche."
+          },
+          {
+            typ: "raetsel", antwort: "ort", thema: "entweder … oder · nicht nur … sondern auch",
+            einleitung: "Das **letzte Stück**! Alle sagen die Wahrheit.",
+            personen: [
+              { name: "Pablo", bild: "👦🏽", text: "Das letzte Stück liegt entweder an der Bushaltestelle oder am Töpferofen." },
+              { name: "Señor Tomás", bild: "🧔🏻", text: "Ich habe nicht nur an der Bushaltestelle gewartet, sondern auch dort jeden Stein umgedreht. Da war nichts." },
+              { name: "Doña Rosa", bild: "👵🏽", text: "Bevor der Zauberer verschwunden ist, hatte er ganz schwarze Hände – wie von Ruß." }
+            ],
+            frage: "Wo ist das letzte Stück?",
+            orte: ["⛲ Brunnen", "⛪ Kirche", "🔥 Töpferofen", "🥟 Empanada-Stand mit Holzofen", "🚏 Bushaltestelle"],
+            loesung: "Töpferofen",
+            tipp: "„entweder … oder“ lässt nur zwei Orte übrig.",
+            erklaerung_de: "**entweder … oder**: nur einer von zwei Orten. Tomás hat **nicht nur** gewartet, **sondern auch** gesucht – an der Bushaltestelle ist nichts. Also: **Töpferofen**. Dazu passen die schwarzen Hände.",
+            erklaerung_es: "«o … o» → entweder … oder; «no solo … sino también» → nicht nur … sondern auch."
+          }
+        ],
+        reserve: []
+      },
+
+      /* ---------- B1 · Raum 3: Die Falle des Zauberers ---------- */
+      {
+        name: "Die Falle des Zauberers", szene: "turm",
+        ruf: "Meine Steine sind schön. Meine Steine sind verzaubert. Nehmt sie!",
+        thema: "Welcher Stein passt zur Bedeutung?",
+        geschichte: "Im Zauberturm wartet Lehmann. Auf seinem Tisch liegen glänzende Steine. „Nehmt doch!“, lacht er.\n\nDas Chanchito flüstert: „Vorsicht! Alle Steine passen in den Satz – aber nur **einer** passt zur **Bedeutung**. Die falschen werden zu Lehm!“",
+        geschafft: "Lehmanns Falle ist zerbrochen. Unter dem Tisch liegt die dritte Scherbe!",
+        scherbe: "Dazu: Auf die Füllung kommen ein Stück Ei, eine Olive und – wenn man will – Rosinen.",
+        aufgaben: [
+          {
+            typ: "falle", thema: "Grund – oder passiert etwas gegen die Erwartung?",
+            satz: "Benja geht ohne Jacke raus, ___ es stark regnet.",
+            optionen: ["obwohl", "weil", "damit"], loesung: "obwohl",
+            tipp: "Was macht man normalerweise, wenn es regnet?",
+            erklaerung_de: "Man erwartet: Bei Regen nimmt man eine Jacke. Benja macht es nicht → **obwohl** (Einräumung).",
+            erklaerung_es: "«aunque llueve» → obwohl. ¡No confundir con «porque» (weil)!"
+          },
+          {
+            typ: "falle", thema: "Nach „keine“ kommt eine Korrektur",
+            satz: "Das ist keine normale Empanada, ___ eine Super-Empanada.",
+            optionen: ["sondern", "aber", "oder"], loesung: "sondern",
+            erklaerung_de: "Nach **keine** kommt die Korrektur → **sondern**.",
+            erklaerung_es: "«no es una empanada normal, sino…» → keine … sondern."
+          },
+          {
+            typ: "falle", thema: "Was ist der Grund, was die Folge?",
+            satz: "Der Ton ist zu trocken. ___ kann man ihn nicht mehr formen.",
+            optionen: ["Deshalb", "Trotzdem", "Sonst"], loesung: "Deshalb",
+            erklaerung_de: "Der trockene Ton ist der Grund, das Nicht-Formen die Folge → **Deshalb**.",
+            erklaerung_es: "«por eso» → deshalb; «sin embargo» → trotzdem; «si no» → sonst."
+          },
+          {
+            typ: "falle", thema: "während: Zeit oder Gegensatz?",
+            frage: "Was bedeutet „während“ in diesem Satz?",
+            satz: "Sofía mag süße Empanadas, während Matías lieber Empanadas mit Fleisch isst.",
+            optionen: ["einen Gegensatz (wie „aber“)", "eine Zeit (zur gleichen Zeit)", "einen Grund (wie „weil“)"],
+            loesung: "einen Gegensatz (wie „aber“)",
+            tipp: "Essen Sofía und Matías gerade jetzt gleichzeitig? Oder wird etwas verglichen?",
+            erklaerung_de: "Hier werden zwei Personen verglichen: Sofía mag süß, Matías mag Fleisch → **Gegensatz**. „während“ kann auch Zeit bedeuten: Während Sofía malt, putzt Matías.",
+            erklaerung_es: "Igual que «mientras (que)» en español: puede ser temporal o de contraste."
+          },
+          {
+            typ: "falle", thema: "Einmal in der Vergangenheit oder immer wieder?",
+            satz: "___ ich klein war, habe ich in Pomaire töpfern gelernt.",
+            optionen: ["Als", "Wenn", "Ob"], loesung: "Als",
+            tipp: "Wie oft war man „klein“?",
+            erklaerung_de: "Eine Zeit in der Vergangenheit, die es nur **einmal** gab → **als**. Bei Wiederholung oder in der Gegenwart/Zukunft → **wenn**.",
+            erklaerung_es: "«cuando» → als (una sola vez en el pasado) / wenn (repetido, presente o futuro)."
+          },
+          {
+            typ: "falle", thema: "Wer soll etwas verstehen – dieselbe Person oder eine andere?",
+            satz: "Die Töpferin erklärt alles ganz langsam, ___",
+            optionen: ["damit die Kinder sie verstehen.", "um die Kinder zu verstehen.", "weil die Kinder sie verstehen."],
+            loesung: "damit die Kinder sie verstehen.",
+            tipp: "Wer soll etwas verstehen – die Töpferin oder die Kinder?",
+            erklaerung_de: "Die **Kinder** sollen verstehen – das ist eine andere Person als die Töpferin → **damit**. „um … zu“ hieße: Die Töpferin will die Kinder verstehen.",
+            erklaerung_es: "«para que los niños entiendan» → damit; «para entender» → um … zu (mismo sujeto)."
+          },
+          {
+            typ: "falle", thema: "Nur einer von zwei Orten – oder beide?",
+            satz: "Lehmann versteckt die letzte Scherbe ___ im Turm ___ im Brunnen – aber nicht an beiden Orten.",
+            optionen: ["entweder … oder", "nicht nur … sondern auch", "sowohl … als auch"], loesung: "entweder … oder",
+            erklaerung_de: "Nur **einer** von zwei Orten → **entweder … oder**. „nicht nur … sondern auch“ und „sowohl … als auch“ bedeuten: beide.",
+            erklaerung_es: "«o … o» → entweder … oder; «no solo … sino también» → nicht nur … sondern auch."
+          }
+        ],
+        reserve: [
+          {
+            typ: "falle", thema: "Einmal oder jedes Mal?",
+            satz: "Immer ___ Lehmann „Zerbröckel!“ ruft, zerbricht ein Satz.",
+            optionen: ["wenn", "als", "ob"], loesung: "wenn",
+            erklaerung_de: "**Immer**, also jedes Mal → **wenn**.",
+            erklaerung_es: "«cada vez que» → (immer) wenn."
+          },
+          {
+            typ: "falle", thema: "Geht es um ein Ziel?",
+            satz: "Matías spart Geld, ___ er eine Vase kaufen kann.",
+            optionen: ["damit", "dass", "ob"], loesung: "damit",
+            erklaerung_de: "Ein Ziel → **damit**. „dass“ hat keine Bedeutung „Ziel“.",
+            erklaerung_es: "«para que» → damit, ¡no «dass»!"
+          },
+          {
+            typ: "falle", thema: "Was passiert zuerst: trocknen oder bemalen?",
+            satz: "Man darf die Schüssel erst bemalen, ___ sie ganz getrocknet ist.",
+            optionen: ["nachdem", "bevor", "während"], loesung: "nachdem",
+            erklaerung_de: "Zuerst trocknen, dann bemalen → **nachdem**.",
+            erklaerung_es: "«después de que» → nachdem."
+          },
+          {
+            typ: "falle", thema: "Was passiert sonst?",
+            satz: "Wir müssen uns beeilen, ___ ist der Laden zu.",
+            optionen: ["sonst", "deshalb", "trotzdem"], loesung: "sonst",
+            erklaerung_de: "Wenn wir uns nicht beeilen, ist der Laden zu → **sonst**.",
+            erklaerung_es: "«si no / de lo contrario» → sonst."
+          }
+        ]
+      },
+
+      /* ---------- B1 · Raum 4: Das Wortduell ---------- */
+      {
+        name: "Das Wortduell", szene: "plaza",
+        ruf: "Handys sind schlecht. Schüler brauchen keine Handys. Ich habe recht.",
+        thema: "Argumentieren mit Konnektoren",
+        geschichte: "Auf der Plaza fordert Lehmann euch zum Wortduell heraus. Das ganze Dorf schaut zu.\n\nBaut eine Argumentation, Satz für Satz. Für jeden Schritt wählst du einen Stein. **Jeder Stein zerbröckelt nach dem Benutzen** – du kannst ihn nur einmal verwenden. Extrapunkte gibt es, wenn du alle drei Steinformen benutzt.",
+        geschafft: "Das Dorf jubelt! Lehmann hat keine Antwort mehr – und lässt die vierte Scherbe fallen.",
+        scherbe: "Schließen: Den Rand gut andrücken, damit die Füllung nicht herausläuft.",
+        aufgaben: [
+          {
+            typ: "kette", thema: "Grund, Gegensatz, Folge, Zweck, Einräumung",
+            behauptung: "Handys sind schlecht. Schüler brauchen keine Handys. Handys gehören nicht in die Schule.",
+            start: "Handys können in der Schule nützlich sein.",
+            steine: ["denn", "aber", "deshalb", "damit", "trotzdem", "obwohl", "weil", "sonst"],
+            schritte: [
+              { baustein: "man | [kann] | schnell | Wörter | [nachschlagen]", passend: ["denn", "weil"], funktion: "Grund",
+                erklaerung_de: "Warum sind Handys nützlich? → Grund: **denn** oder **weil**.",
+                erklaerung_es: "«porque» → denn (verbo en posición 2) o weil (verbo al final)." },
+              { baustein: "viele Schüler | [spielen] | im Unterricht | heimlich | Spiele", passend: ["aber"], funktion: "Gegensatz",
+                erklaerung_de: "Jetzt kommt die andere Seite → Gegensatz: **aber**.",
+                erklaerung_es: "«pero» → aber." },
+              { baustein: "die Schule | [braucht] | klare Regeln", passend: ["deshalb"], funktion: "Folge",
+                erklaerung_de: "Weil Schüler heimlich spielen, braucht die Schule Regeln → Folge: **deshalb**.",
+                erklaerung_es: "«por eso» → deshalb + verbo." },
+              { baustein: "alle | [können] | ruhig | [lernen]", passend: ["damit"], funktion: "Zweck",
+                erklaerung_de: "Wozu braucht man Regeln? → Zweck: **damit** alle ruhig lernen können.",
+                erklaerung_es: "«para que todos puedan aprender» → damit … lernen können." },
+              { baustein: "Handys | [sind] | in der Pause | kein Problem", passend: ["trotzdem", "aber"], funktion: "Einräumung",
+                erklaerung_de: "Regeln sind nötig – **trotzdem** sind Handys in der Pause kein Problem.",
+                erklaerung_es: "«aun así» → trotzdem + verbo." },
+              { basis: "Mein Fazit: Handys gehören in die Schule.", baustein: "sie | [haben] | auch Nachteile", passend: ["obwohl", "aber", "trotzdem"], funktion: "Einräumung",
+                erklaerung_de: "Das Fazit nennt beide Seiten: Handys gehören in die Schule, **obwohl** sie auch Nachteile haben.",
+                erklaerung_es: "«aunque» → obwohl (verbo al final)." }
+            ]
+          }
+        ],
+        reserve: []
+      },
+
+      /* ---------- B1 · Raum 5: Der Gegenzauber ---------- */
+      {
+        name: "Der Gegenzauber", szene: "gipfel", boss: true,
+        ruf: "Ich bin wütend. Ich kämpfe. Zerbröckel!",
+        thema: "Welche Funktion hat der Konnektor?",
+        geschichte: "Auf dem Dach des Zauberturms kommt es zum letzten Kampf. Lehmann schleudert euch abgehackte Sätze entgegen.\n\nKontert schnell: Welche **Verbindung** brauchen die beiden Sätze – Grund, Folge, Gegensatz, Einräumung, Bedingung oder Zweck? Jeder Treffer schwächt seinen Zauber!",
+        geschafft: "„Neeein!“ Lehmanns Zauber ist gebrochen. Die letzte Scherbe fällt vom Himmel – direkt in Benjas Hände.",
+        scherbe: "Das Geheimnis: Im Lehmofen backen – und die Empanada nie allein essen, sondern immer mit Freunden teilen.",
+        aufgaben: [
+          { typ: "konter", satzpaar: "Das Dorf ist traurig. Die Tafel ist zerbrochen.", loesung: "Grund",
+            verbunden: "Das Dorf ist traurig, **weil** die Tafel zerbrochen ist.",
+            erklaerung_de: "Der zweite Satz sagt, **warum** das Dorf traurig ist → Grund.",
+            erklaerung_es: "¿Por qué? → weil / denn (porque)." },
+          { typ: "konter", satzpaar: "Die Tafel ist zerbrochen. Niemand kennt das Rezept.", loesung: "Folge",
+            verbunden: "Die Tafel ist zerbrochen. **Deshalb** kennt niemand das Rezept.",
+            erklaerung_de: "Zuerst die Ursache, dann das Ergebnis → Folge.",
+            erklaerung_es: "Causa → consecuencia: deshalb (por eso)." },
+          { typ: "konter", satzpaar: "Ihr sagt noch ein Wort. Ich verwandle euch in Lehm.", loesung: "Bedingung",
+            verbunden: "**Wenn** ihr noch ein Wort sagt, verwandle ich euch in Lehm.",
+            erklaerung_de: "Das passiert nur unter einer Bedingung → **wenn**.",
+            erklaerung_es: "«si» (condición) → wenn." },
+          { typ: "konter", satzpaar: "Ich verstecke die Scherben. Niemand soll sie finden.", loesung: "Zweck",
+            verbunden: "Ich verstecke die Scherben, **damit** niemand sie findet.",
+            erklaerung_de: "„soll“ zeigt ein Ziel → Zweck: **damit**.",
+            erklaerung_es: "«para que nadie las encuentre» → damit." },
+          { typ: "konter", satzpaar: "Ihr liebt Empanadas. Ich hasse Empanadas.", loesung: "Gegensatz",
+            verbunden: "Ihr liebt Empanadas, **während** ich sie hasse.",
+            erklaerung_de: "Zwei Personen werden verglichen → Gegensatz: **während** oder **aber**.",
+            erklaerung_es: "Contraste: «mientras que» → während; «pero» → aber." },
+          { typ: "konter", satzpaar: "Ihr seid klein. Ihr gebt nicht auf.", loesung: ["Einräumung", "Gegensatz"],
+            verbunden: "**Obwohl** ihr klein seid, gebt ihr nicht auf.",
+            erklaerung_de: "Man erwartet: Wer klein ist, gibt auf. Sie tun es nicht → am genauesten: **Einräumung** (obwohl, trotzdem). „aber“ (Gegensatz) geht auch.",
+            erklaerung_es: "«aunque» → obwohl; «sin embargo» → trotzdem." },
+          { typ: "konter", satzpaar: "Ich spreche ohne Konnektoren. Ich habe sie alle zerbröckelt.", loesung: "Grund",
+            verbunden: "Ich spreche ohne Konnektoren, **denn** ich habe sie alle zerbröckelt.",
+            erklaerung_de: "Der zweite Satz erklärt den ersten → Grund: **denn** oder **weil**.",
+            erklaerung_es: "«porque» → denn / weil." },
+          { typ: "konter", satzpaar: "Ich rufe meinen Zauberspruch. Alle Sätze sollen zerbrechen.", loesung: "Zweck",
+            verbunden: "Ich rufe meinen Zauberspruch, **damit** alle Sätze zerbrechen.",
+            erklaerung_de: "Lehmann hat ein Ziel („sollen“) → Zweck: **damit**.",
+            erklaerung_es: "«para que» → damit." }
+        ],
+        reserve: [
+          { typ: "konter", satzpaar: "Ihr habt keine Zauberkraft. Ihr seid gefährlich.", loesung: ["Einräumung", "Gegensatz"],
+            verbunden: "**Obwohl** ihr keine Zauberkraft habt, seid ihr gefährlich.",
+            erklaerung_de: "Gegen die Erwartung → Einräumung (obwohl). „aber“ geht auch.",
+            erklaerung_es: "«aunque» → obwohl." },
+          { typ: "konter", satzpaar: "Mein Turm ist hoch. Niemand kommt hinauf.", loesung: "Folge",
+            verbunden: "Mein Turm ist hoch. **Deshalb** kommt niemand hinauf.",
+            erklaerung_de: "Ursache → Ergebnis: Folge.",
+            erklaerung_es: "«por eso» → deshalb." }
+        ]
+      }
+    ]
+  },
+
+  /* A2, B2 und C1 folgen. Solange hier null steht, zeigt die Startseite „kommt bald“. */
+  A2: null,
+  B2: null,
+  C1: null
+};
+</script>
+
+<style>
+:root{
+  --bg:#1b120c; --panel:#2a1c13; --panel2:#3a281b; --line:#7a5638;
+  --text:#fbf3ea; --muted:#e0cdbb; --accent:#ffc94a; --accent-text:#1a1a1a;
+  --ok:#5ee08f; --ok-bg:#103a26; --bad:#ff8a8a; --bad-bg:#4a1a1f;
+  --focus:#ffe066; --btn:#5a3b26; --btnh:#6e4a31;
+  --flach:#cfc6ba; --keil:#e0905e; --haken:#7b4a2e; --clay:#b5774a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);background-image:radial-gradient(ellipse at 15% 0%,#4a2a18 0%,transparent 55%),radial-gradient(ellipse at 90% 100%,#2b1d3d 0%,transparent 50%);background-attachment:fixed;color:var(--text);font-family:Roboto,Arial,"Segoe UI",system-ui,sans-serif;font-size:19px;line-height:1.45;min-height:100vh}
+h1,h2,h3{line-height:1.2;margin:.2em 0 .5em} h1{font-size:1.7em} h2{font-size:1.25em} h3{font-size:1.05em}
+p{margin:.4em 0 .8em} a{color:var(--accent)}
+button{font:inherit;color:var(--text);cursor:pointer;border-radius:12px;border:2px solid #9a7353;background:var(--btn);padding:.35em .9em;min-height:46px;touch-action:manipulation}
+button:hover:not(:disabled){background:var(--btnh)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.primary:hover:not(:disabled){background:#ffd978}
+input[type=text]{font:inherit;color:#111;background:#fff;border:3px solid #d0a77f;border-radius:10px;padding:.25em .45em;min-height:46px}
+.muted{color:var(--muted)} .small{font-size:.85em} .center{text-align:center}
+.row{display:flex;gap:.6em;flex-wrap:wrap;align-items:center} .spacer{flex:1}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:1em 1.3em;box-shadow:0 8px 24px rgba(0,0,0,.35);margin-bottom:.9em}
+.narrow{max-width:920px;margin-left:auto;margin-right:auto}
+.chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.05em .7em;font-size:.85em;color:var(--muted)}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.1em .7em;white-space:nowrap;font-size:.9em}
+.warnbox{background:#4a3a00;border:2px solid var(--accent);border-radius:12px;padding:.6em 1em;margin:.6em 0;font-size:.85em}
+.warnbox ul{margin:.3em 0 0;padding-left:1.2em}
+.okline{color:var(--ok)} .badline{color:var(--bad)}
+.tipbox{background:#3a3214;border:2px solid #b89a3a;border-radius:12px;padding:.5em .9em;margin-top:.6em}
+.tipbox.es{background:#13324a;border-color:#4f8fc0}
+.tipbox.ok{background:var(--ok-bg);border-color:var(--ok)}
+.tipbox.bad{background:var(--bad-bg);border-color:var(--bad)}
+.tipbox.pig{background:#2d2236;border-color:#c88fd6}
+.tipbox p{margin:.25em 0}
+
+#top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.6em;flex-wrap:wrap;padding:.3em .8em;background:rgba(27,18,12,.96);border-bottom:2px solid var(--line)}
+#top .brand{font-weight:800;white-space:nowrap}
+#hud{display:flex;gap:.5em;flex-wrap:wrap;align-items:center;flex:1}
+#top .tools{display:flex;gap:.4em}
+#top .tools button{min-height:40px;padding:.2em .7em;font-size:.9em}
+.homelink{color:var(--muted);text-decoration:none;font-size:.85em;border:1px solid var(--line);border-radius:999px;padding:.15em .7em;white-space:nowrap}
+.homelink:hover{color:var(--text);border-color:var(--accent)}
+main{max-width:1180px;margin:0 auto;padding:.6em 1em 1.5em}
+
+/* Start */
+.hero .herorow{display:flex;gap:1em;align-items:center;flex-wrap:wrap}
+.hero .herorow > div:first-child{flex:1 1 420px}
+.heroart{flex:0 1 260px;display:flex;gap:.4em;align-items:flex-end;justify-content:center}
+.heroart svg{height:150px;width:auto}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8em;margin:.6em 0 .2em}
+.level{display:flex;flex-direction:column;align-items:flex-start;gap:.15em;text-align:left;padding:.8em 1em;border-radius:16px;min-height:130px}
+.level .lv{font-size:1.6em;font-weight:800;color:var(--accent)} .level .lt{font-weight:700}
+.level .lo{font-size:.8em;color:var(--muted)}
+
+/* Bühne */
+.stage{position:relative;container-type:inline-size;width:min(100%, calc(30vh * 1000 / 300));min-width:min(100%,520px);aspect-ratio:1000/300;margin:0 auto .7em;border-radius:16px;overflow:hidden;border:3px solid var(--line);background:#000;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.stage.compact{width:min(100%, calc(22vh * 1000 / 300))}
+.stage svg.bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.fig{position:absolute;transform:translate(-50%,-100%);pointer-events:none;filter:drop-shadow(0 3px 2px rgba(0,0,0,.45))}
+.fig svg{width:100%;height:auto;display:block}
+.fig.emoji{font-size:calc(var(--s,5) * 1cqw);line-height:1}
+.bob{animation:bob 1.8s ease-in-out infinite alternate}
+@keyframes bob{to{margin-top:-.6cqw}}
+.bubble{position:absolute;max-width:42%;background:#fff;color:#222;border:3px solid #333;border-radius:16px;padding:.3em .7em;font-size:max(13px,1.9cqw);font-weight:700;animation:pop .45s ease-out both;z-index:3}
+.bubble.pig{border-color:#8a4c9a;background:#fbefff}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.hpbar{position:absolute;left:3%;right:3%;top:4%;height:7%;background:rgba(0,0,0,.55);border:2px solid #fff;border-radius:8px;overflow:hidden;z-index:4}
+.hpbar > div{height:100%;background:linear-gradient(90deg,#8e44ad,#d35400);transition:width .8s ease}
+.hpbar span{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:max(11px,1.5cqw);font-weight:800;color:#fff;text-shadow:0 1px 2px #000}
+.zap{position:absolute;inset:0;background:radial-gradient(circle at 70% 50%,rgba(255,240,150,.85),transparent 60%);animation:zap .7s ease-out forwards;z-index:5;pointer-events:none}
+@keyframes zap{from{opacity:1}to{opacity:0}}
+.glow{animation:glow 1.6s ease-in-out infinite alternate}
+@keyframes glow{to{opacity:.35}}
+.smoke{animation:smoke 4s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.smoke.s2{animation-delay:1.3s} .smoke.s3{animation-delay:2.6s}
+@keyframes smoke{0%{transform:translate(0,0) scale(.6);opacity:.9}100%{transform:translate(20px,-60px) scale(1.8);opacity:0}}
+.twinkle{animation:tw 2.4s ease-in-out infinite alternate}
+@keyframes tw{to{opacity:.25}}
+
+/* Panel */
+.panelhead{display:flex;gap:.6em;align-items:center;flex-wrap:wrap;margin-bottom:.3em}
+.dots{display:flex;gap:6px}
+.dots span{width:14px;height:14px;border-radius:50%;background:#5d4a3c;border:2px solid #9a7353}
+.dots span.ok{background:var(--ok);border-color:var(--ok)} .dots span.bad{background:var(--bad);border-color:var(--bad)} .dots span.cur{background:var(--accent);border-color:var(--accent)} .dots span.crack{background:#c9a36b;border-color:#fff}
+.auftrag{font-size:1.08em;font-weight:700;margin:.2em 0 .5em}
+.feucht{display:flex;align-items:center;gap:.6em;margin:.1em 0 .6em;font-size:.85em;color:var(--muted)}
+.feucht .bar{flex:1;height:14px;border-radius:7px;background:#4a3527;overflow:hidden;border:2px solid #7a5638}
+.feucht .bar > div{height:100%;width:100%;background:linear-gradient(90deg,#8a5a34,#4aa3df);transition:width .1s linear}
+.crackmsg{background:#4a3220;border:2px dashed #c9a36b;border-radius:12px;padding:.4em .8em;margin-bottom:.6em}
+
+/* Steine */
+.stones{display:flex;flex-wrap:wrap;gap:.9em 1.4em;margin:.3em 0 .8em;align-items:flex-start}
+.stein{position:relative;font-weight:800;min-height:46px;padding:.25em 1em;border-radius:10px;color:#241a12;border:3px solid rgba(0,0,0,.45);box-shadow:inset 0 3px 0 rgba(255,255,255,.35),inset 0 -4px 0 rgba(0,0,0,.2),0 4px 0 rgba(0,0,0,.35)}
+.stein,.stein:hover:not(:disabled){background:var(--sc)}
+.stein:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-2px)}
+.stein.flach{--sc:linear-gradient(180deg,#e2dbd0,#b9b0a3);border-radius:22px;min-height:40px;padding:.15em 1.1em}
+.stein.keil{--sc:linear-gradient(180deg,#f0a576,#c9744a);margin-right:16px;border-radius:10px 0 0 10px}
+.stein.keil::after{content:"";position:absolute;right:-19px;top:-3px;bottom:-3px;width:0;border-top:26px solid transparent;border-bottom:26px solid transparent;border-left:18px solid #c9744a}
+.stein.haken{--sc:linear-gradient(180deg,#9a6342,#6e3f24);color:#fff;border-radius:10px 10px 0 10px;margin-bottom:14px}
+.stein.haken::after{content:"";position:absolute;right:-3px;bottom:-17px;width:16px;height:16px;background:#6e3f24;border:3px solid rgba(0,0,0,.45);border-top:none;border-radius:0 0 8px 8px}
+.stein.sel{outline:4px solid var(--accent);outline-offset:3px}
+.stein.burnt,.stein.burnt:disabled{opacity:.35;text-decoration:line-through;filter:grayscale(1)}
+.stein.crumble{animation:crumble .7s forwards}
+@keyframes crumble{60%{transform:rotate(8deg) scale(.9)}100%{transform:translateY(20px) scale(.6);opacity:0}}
+.stein.lehm,.stein.lehm:disabled,.opt.lehm,.opt.lehm:disabled{--sc:#6b4a33;background:#6b4a33;color:#d8c2ae;text-decoration:line-through;opacity:.8;animation:melt .7s ease-out;border-color:#3a281b}
+@keyframes melt{0%{transform:scale(1)}40%{transform:scale(1.05,0.8);border-radius:40%}100%{transform:scale(1)}}
+.stein.right,.stein.right:disabled{outline:4px solid var(--ok);outline-offset:3px;opacity:1}
+.sw{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px}
+.formtag{display:inline-block;font-size:.72em;font-weight:700;color:var(--muted);padding-left:.3em}
+.slot .stein:disabled{opacity:1;cursor:default}
+.kunde{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8em;margin:.6em 0}
+.kunde > div{background:var(--panel2);border-radius:14px;padding:.6em .8em}
+.kunde .stein{pointer-events:none;margin-bottom:.4em}
+
+/* Scherben */
+.shards{display:flex;flex-wrap:wrap;gap:.6em;align-items:center;margin:.3em 0 .6em}
+.shard{background:linear-gradient(180deg,#d39b6a,#a8693d);color:#2a1206;font-weight:600;padding:.5em .9em;border:3px solid #6e3f24;clip-path:polygon(0 8%,6% 0,94% 4%,100% 18%,97% 88%,90% 100%,8% 96%,0 84%);min-height:52px;display:flex;align-items:center;gap:.3em;flex-wrap:wrap}
+.slot{min-width:110px;min-height:48px;border:3px dashed #d0a77f;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.85em;padding:0 .4em}
+.answer{display:flex;flex-wrap:wrap;gap:.4em;align-items:center;min-height:62px;padding:.5em .6em;border:3px dashed #a98a6d;border-radius:14px;background:rgba(255,255,255,.04);margin-bottom:.5em}
+.answer .lbl{color:var(--muted);font-size:.85em}
+.answer.ok{border-style:solid;border-color:var(--ok)}
+.pool{display:flex;flex-wrap:wrap;gap:.45em;min-height:50px;margin-bottom:.5em}
+.tile{font-weight:600;color:#241a12;border-radius:10px;border:3px solid rgba(0,0,0,.35);padding:.15em .7em;min-height:46px;box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.tile,.tile:hover:not(:disabled){background:#f3dcc3}
+.tile.v,.tile.v:hover:not(:disabled){background:linear-gradient(180deg,#ffd27a,#e59a3a);border-color:#7a4a1c}
+.tile:disabled{opacity:1;cursor:default}
+.preview{background:#fffaf0;color:#2a2018;border-radius:12px;padding:.5em .9em;margin:.3em 0 .6em;font-family:Georgia,serif}
+.preview .kon{font-weight:800;color:#8e3a12}
+
+/* Auswahl, Rätsel */
+.opts{display:flex;flex-direction:column;gap:.45em}
+.opt{text-align:left}
+.opt.right,.opt.right:disabled{background:var(--ok-bg);border-color:var(--ok);opacity:1}
+.opt.wrong,.opt.wrong:disabled{background:var(--bad-bg);border-color:var(--bad)}
+.satz{font-size:1.12em;margin:.3em 0 .6em}
+.satz .gap{display:inline-block;min-width:4.5em;border-bottom:3px solid var(--accent);text-align:center;font-weight:800;color:var(--accent)}
+.people{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:.7em;margin:.4em 0 .7em}
+.person{display:flex;gap:.6em;align-items:flex-start;text-align:left;padding:.6em .8em;border-radius:14px;background:var(--panel2);border:2px solid var(--line)}
+button.person{cursor:pointer}
+.person .face{font-size:2.2em;line-height:1}
+.person .said{background:#fff;color:#222;border-radius:12px;padding:.35em .6em;font-size:.92em;position:relative}
+.person .said::before{content:"";position:absolute;left:-8px;top:12px;border:6px solid transparent;border-right-color:#fff}
+.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.6em;margin:.4em 0 .6em}
+.place{display:flex;flex-direction:column;align-items:center;gap:.1em;padding:.6em .5em;border-radius:14px;background:linear-gradient(180deg,#e9d3b5,#cdae88);color:#2a1a0e;font-weight:700;border-color:#7a5638}
+.place .sym{font-size:2em}
+.place:hover:not(:disabled){background:linear-gradient(180deg,#f3e2c8,#dcbd96)}
+.place.wrong,.place.wrong:disabled{background:#6b4a33;color:#d8c2ae;opacity:.7}
+.place.right,.place.right:disabled{outline:4px solid var(--ok);opacity:1}
+
+/* Kette */
+.claim{background:#3a1f3f;border:2px solid #b07ab8;border-radius:14px;padding:.5em .9em;margin:.2em 0 .6em}
+.text{background:#fffaf0;color:#2a2018;border-radius:12px;padding:.6em 1em;font-family:Georgia,serif;margin:.2em 0 .6em;line-height:1.6}
+.text .new{background:#ffe9a8;border-radius:4px;padding:0 .15em}
+.text .kon{font-weight:800;color:#8e3a12}
+
+/* Konter */
+.pair{font-size:1.15em;font-weight:700;background:#3a1f3f;border:2px solid #b07ab8;border-radius:14px;padding:.5em .9em;margin:.2em 0 .6em}
+.types{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.55em}
+.type{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:.45em .8em;border-radius:14px}
+.type .tn{font-weight:800} .type .tb{font-size:.78em;color:var(--muted)}
+.type.right,.type.right:disabled{background:var(--ok-bg);border-color:var(--ok);opacity:1}
+.type.wrong,.type.wrong:disabled{background:var(--bad-bg);border-color:var(--bad)}
+
+/* Tafel */
+.tafelbox{display:flex;gap:1em;align-items:center;flex-wrap:wrap}
+.tafelbox svg{width:190px;height:auto;flex:0 0 auto}
+.rezept{flex:1 1 300px}
+.rezept li{margin-bottom:.35em}
+.ingpop{animation:ing 1s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes ing{from{transform:scale(0) rotate(-30deg)}to{transform:scale(1) rotate(0)}}
+
+.umlauts{display:flex;gap:.35em;flex-wrap:wrap;align-items:center;margin:.3em 0}
+.umlauts button{min-width:46px;font-weight:700;padding:.2em .5em}
+.restable{border-collapse:collapse;margin:.5em 0} .restable th,.restable td{text-align:left;padding:.2em .8em .2em 0;border-bottom:1px solid var(--line)}
+.bigcode{font-family:"Courier New",monospace;font-size:1.6em;font-weight:800;letter-spacing:.06em;background:#fff;color:#111;border-radius:12px;padding:.2em .6em;display:inline-block;margin:.2em 0}
+.wronglist li{margin-bottom:.6em}
+.fullin{width:100%}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#fff;color:#222;border-radius:12px;padding:.5em 1em;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:60;max-width:90vw}
+code{font-family:"Courier New",monospace;background:#00000055;padding:0 .3em;border-radius:4px}
+.eingebettet .homelink{display:none}
+.confirmbox{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1em}
+.confirmbox .cb{background:var(--panel);color:var(--text);border:2px solid var(--line);border-radius:16px;padding:1em 1.2em;max-width:520px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.confirmbox .cbrow{display:flex;gap:.6em;justify-content:flex-end;flex-wrap:wrap}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important} }
+@media (max-width:700px){ body{font-size:17px} }
+</style>
+</head>
+<body>
+<header id="top">
+  <a class="homelink" href="index.html" title="Zur Startseite mit allen Spielen">← Alle Spiele</a>
+  <span class="brand">🥟 Super-Empanada</span>
+  <div id="hud" aria-live="polite"></div>
+  <div class="tools">
+    <button type="button" id="btnMenu" title="Zum Menü">☰ Menü</button>
+    <button type="button" id="btnSound" aria-pressed="false" title="Ton an/aus">🔇 Ton aus</button>
+  </div>
+</header>
+<main id="app" tabindex="-1"></main>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+/* =====================================================================
+   AB HIER: SPIEL-LOGIK (muss nicht geändert werden)
+   ===================================================================== */
+const E = EINSTELLUNGEN;
+const LEVELS = ['A2','B1','B2','C1'];
+const LS_GAME = 'superempanada.spiel.v1', LS_SET = 'superempanada.einstellungen.v1';
+const TYPEN = ['kleben','schreiben','raetsel','falle','kette','konter'];
+const GETIMT = ['kleben','falle','konter'];
+const SZENEN = ['toepferei','markt','turm','plaza','gipfel'];
+const OHNEZEIT_PARAM = /[?&]ohnezeit(=|&|$)/i.test(location.search);
+const INPUT_ATTR = 'type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"';
+
+const app = document.getElementById('app');
+let state=null, view='start', ui={}, settings={ sound:false };
+const optOrder={};
+
+/* ---------- Speicher ---------- */
+function lsGet(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { window.localStorage.setItem(k,v); } catch(e){} }
+function lsDel(k){ try { window.localStorage.removeItem(k); } catch(e){} }
+function save(){ if(state) lsSet(LS_GAME, JSON.stringify(state)); }
+
+/* ---------- Hilfen ---------- */
+const $  = (s,r) => (r||document).querySelector(s);
+const $$ = (s,r) => Array.from((r||document).querySelectorAll(s));
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+function plain(s){ return String(s==null?'':s).replace(/\*\*/g,''); }
+function paras(s){ return String(s||'').split(/\n\s*\n/).map(p => '<p>'+fmt(p)+'</p>').join(''); }
+function asList(x){ return x==null ? [] : (Array.isArray(x) ? x : [x]); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function range(n){ return Array.from({length:n},(_,i)=>i); }
+function cap(s){ s=String(s); return s.charAt(0).toUpperCase()+s.slice(1); }
+function fmtTime(ms){ const s=Math.max(0,Math.round(ms/1000)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function fmtDate(d){ const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear(); }
+function focusEl(sel){ const el = sel ? $(sel) : null; (el||app).focus({preventScroll:true}); }
+let toastT=null;
+function toast(msg, ms){ const t=$('#toast'); t.innerHTML=fmt(msg); t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; }, ms||3000); }
+function spanish(){ return state && E.spanischeHilfe[state.level]; }
+
+/* ---------- Eingebettet (z. B. Google Sites) ---------- */
+const EINGEBETTET = (()=>{ try { return window.self!==window.top; } catch(e){ return true; } })();
+if(EINGEBETTET) document.documentElement.classList.add('eingebettet');
+function bestaetigen(msg, ok){
+  const d=document.createElement('div'); d.className='confirmbox'; d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true');
+  d.innerHTML='<div class="cb"><p></p><div class="cbrow"><button type="button" class="cbno">Abbrechen</button><button type="button" class="primary cbyes">Ja</button></div></div>';
+  d.querySelector('p').textContent=msg; document.body.appendChild(d);
+  const close=()=>d.remove();
+  d.querySelector('.cbno').addEventListener('click',close);
+  d.querySelector('.cbyes').addEventListener('click',()=>{ close(); ok(); });
+  d.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); close(); } });
+  d.querySelector('.cbno').focus();
+}
+
+/* ---------- Antworten vergleichen (ae/oe/ue/ss werden akzeptiert) ---------- */
+function canon(s){
+  return String(s==null?'':s).normalize('NFC').toLowerCase().replace(/[„“”‟"«»‚‘’']/g,' ').replace(/[.,!?;:…–-]/g,' ')
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/\s+/g,' ').trim();
+}
+
+/* ---------- Steine ---------- */
+function formOf(k){ const w=String(k||'').toLowerCase().trim(); for(const f of ['flach','keil','haken']) if(STEINE[f].includes(w)) return f; return null; }
+function steinHTML(k, cls, attrs){ const f=formOf(k)||'flach'; return '<button type="button" class="stein '+f+(cls?' '+cls:'')+'" '+(attrs||'')+' title="'+esc(FORMEN[f].name+': '+FORMEN[f].kurz)+'">'+esc(k)+'</button>'; }
+function steinWrap(k, cls, attrs){ return '<span class="sw">'+steinHTML(k,cls,attrs)+steinTag(k)+'</span>'; }
+function steinTag(k){ const f=formOf(k); return f ? '<span class="formtag">'+(f==='flach'?'▬':f==='keil'?'◢':'⌐')+' '+esc(FORMEN[f].name)+'</span>' : ''; }
+
+/* Satzglieder lesen: "er | [hat] | Fieber" */
+function parseGlieder(s){ return String(s||'').split('|').map(b=>b.trim()).filter(Boolean).map(b=>{ const m=b.match(/^\[(.+)\](.*)$/); return m?{t:m[1]+m[2],v:true}:{t:b,v:false}; }); }
+/* Reihenfolge nach Steinform */
+function orderFor(toks, form){
+  const idx=range(toks.length), fin=toks.findIndex(x=>x.v);
+  if(form==='flach' || fin<0) return idx;
+  const rest=idx.filter(i=>i!==fin);
+  return form==='keil' ? [fin].concat(rest) : rest.concat([fin]);
+}
+function satz2Text(t, conn){
+  const f=formOf(conn);
+  if(f==='haken' && t.nebensatz) return t.nebensatz;
+  if(f==='keil' && t.keil) return t.keil;
+  return orderFor(t.toks, f).map(i=>t.toks[i].t).join(' ');
+}
+function verbinden(s1, conn, s2, opts){
+  const f=formOf(conn), a=String(s1).trim().replace(/[.!?]$/,''), K=opts&&opts.html ? '<span class="kon">'+esc(conn)+'</span>' : conn, KC=opts&&opts.html ? '<span class="kon">'+esc(cap(conn))+'</span>' : cap(conn);
+  const A=opts&&opts.html?esc(a):a, B=opts&&opts.html?esc(s2):s2;
+  if(f==='keil') return A+'. '+KC+' '+B+'.';
+  if(f==='flach' && (conn==='und'||conn==='oder')) return A+' '+K+' '+B+'.';
+  return A+', '+K+' '+B+'.';
+}
+
+/* ---------- Daten vorbereiten ---------- */
+function ortName(o){ const m=String(o).match(/^(\p{Extended_Pictographic}[️‍\p{Extended_Pictographic}]*)\s+(.*)$/u); return m?m[2]:String(o); }
+function ortSym(o){ const m=String(o).match(/^(\p{Extended_Pictographic}[️‍\p{Extended_Pictographic}]*)\s+/u); return m?m[1]:'📍'; }
+function normTask(a, id, ri){
+  const t=Object.assign({}, a, { id, ri });
+  if(t.typ==='kleben') t.toks=parseGlieder(t.satz2);
+  return t;
+}
+function normRoom(R, r){
+  let tasks=[];
+  asList(R.aufgaben).forEach((a,i)=>{
+    if(a.typ==='kette'){ asList(a.schritte).forEach((s,k)=>{ tasks.push(Object.assign({}, s, { typ:'kette', id:r+'.'+i+'.'+k, kette:r+'.'+i, k, n:a.schritte.length, K:a, toks:parseGlieder(s.baustein) })); }); }
+    else tasks.push(normTask(a, r+'.'+i));
+  });
+  const reserve=asList(R.reserve).map((a,i)=>normTask(a,'r'+r+'.'+i,i));
+  tasks.forEach((t,i)=>{ t.r=r; t.ti=i; });
+  return { R, tasks, reserve };
+}
+const DATA={};
+function D(level){ level=level||state.level; if(!DATA[level]) DATA[level]=SPIEL[level].raeume.map(normRoom); return DATA[level]; }
+function allTasks(level){ return D(level).reduce((a,x)=>a.concat(x.tasks),[]); }
+function signature(level){ return D(level).map(x=>x.tasks.map(t=>t.typ.charAt(0)).join('')+'/'+x.reserve.length).join('|'); }
+function L(){ return SPIEL[state.level]; }
+function kettenAnzahl(level){ return SPIEL[level].raeume.reduce((n,R)=>n+asList(R.aufgaben).filter(a=>a.typ==='kette').length,0); }
+
+/* ---------- Daten prüfen ---------- */
+function kettenLoesbar(K){
+  // Gibt es eine Zuordnung, bei der jeder Stein nur einmal benutzt wird?
+  const steps=K.schritte.map(s=>asList(s.passend).filter(p=>K.steine.includes(p)));
+  const used=new Set();
+  const go=i=>{ if(i===steps.length) return true; for(const p of steps[i]){ if(!used.has(p)){ used.add(p); if(go(i+1)) return true; used.delete(p); } } return false; };
+  return go(0);
+}
+function checkTask(a, where, w, lv){
+  const tw=where+': ';
+  if(!TYPEN.includes(a.typ)){ w.push(tw+'unbekannter typ „'+a.typ+'“.'); return; }
+  if(a.typ==='kleben'){
+    if(!a.satz1||!a.satz2) w.push(tw+'satz1 oder satz2 fehlt.');
+    if(!parseGlieder(a.satz2).some(x=>x.v)) w.push(tw+'In satz2 fehlt das Verb in [eckigen Klammern].');
+    asList(a.optionen).forEach(o=>{ if(!formOf(o)) w.push(tw+'Stein „'+o+'“ steht nicht in STEINE.'); });
+    asList(a.loesung).forEach(o=>{ if(!asList(a.optionen).includes(o)) w.push(tw+'loesung „'+o+'“ steht nicht in optionen.'); });
+  }
+  if(a.typ==='schreiben'){ if(!String(a.satz||'').includes('___')) w.push(tw+'satz braucht ___ als Lücke.'); if(!asList(a.loesung).length) w.push(tw+'loesung fehlt.'); }
+  if(a.typ==='falle'){ asList(a.loesung).forEach(o=>{ if(!asList(a.optionen).includes(o)) w.push(tw+'loesung steht nicht genau so in optionen.'); }); }
+  if(a.typ==='raetsel'){
+    if(asList(a.personen).length<2) w.push(tw+'Es braucht mindestens zwei personen.');
+    if(a.antwort==='person'){ if(!asList(a.personen).some(p=>p.name===a.loesung)) w.push(tw+'loesung ist kein Name aus personen.'); }
+    else if(!asList(a.orte).map(ortName).includes(a.loesung)) w.push(tw+'loesung ist kein Ort aus orte.');
+  }
+  if(a.typ==='kette'){
+    if(!asList(a.schritte).length) w.push(tw+'schritte fehlen.');
+    asList(a.schritte).forEach((s,k)=>{ asList(s.passend).forEach(p=>{ if(!asList(a.steine).includes(p)) w.push(tw+'Schritt '+(k+1)+': „'+p+'“ ist nicht in steine.'); if(!formOf(p)) w.push(tw+'Schritt '+(k+1)+': „'+p+'“ steht nicht in STEINE.'); }); if(!parseGlieder(s.baustein).some(x=>x.v)) w.push(tw+'Schritt '+(k+1)+': Verb in [ ] fehlt.'); });
+    if(asList(a.schritte).length && !kettenLoesbar(a)) w.push(tw+'Die Kette ist nicht lösbar, wenn jeder Stein nur einmal benutzt wird.');
+  }
+  if(a.typ==='konter'){ const opts=asList(a.optionen).length?asList(a.optionen):Object.keys(FUNKTIONEN); asList(a.loesung).forEach(l=>{ if(!opts.includes(l)) w.push(tw+'loesung „'+l+'“ ist keine Funktion aus FUNKTIONEN.'); }); }
+  if(a.typ!=='kette' && a.typ!=='raetsel' && !a.erklaerung_de) w.push(tw+'erklaerung_de fehlt.');
+}
+function dataWarnings(){
+  const w=[];
+  LEVELS.forEach(lv=>{ const S=SPIEL[lv]; if(S==null) return;
+    if(!Array.isArray(S.raeume)||!S.raeume.length){ w.push(lv+': „raeume“ fehlt.'); return; }
+    S.raeume.forEach((R,r)=>{
+      const where=lv+' · Raum '+(r+1)+' ('+(R.name||'?')+')';
+      if(!SZENEN.includes(R.szene)) w.push(where+': unbekannte szene „'+R.szene+'“.');
+      if(!asList(R.aufgaben).length) w.push(where+': keine Aufgaben.');
+      asList(R.aufgaben).forEach((a,i)=>checkTask(a, where+', Aufgabe '+(i+1), w, lv));
+      asList(R.reserve).forEach((a,i)=>checkTask(a, where+', Reserve '+(i+1), w, lv));
+    });
+  });
+  return w;
+}
+
+/* ---------- Prüfcode ---------- */
+function cyrb53(str){ let h1=0xdeadbeef, h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909); return 4294967296*(2097151&h2)+(h1>>>0); }
+const B32='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function normName(n){ return String(n||'').replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]/g,''); }
+function checksum(level,o,pct,d,name){ let n=cyrb53([level,o?'O':'Z',pct,d,normName(name),E.geheimwort].join('|')); let s=''; for(let i=0;i<5;i++){ s+=B32[n%32]; n=Math.floor(n/32); } return s; }
+function makeCode(level,o,pct,date,name){ const p=n=>String(n).padStart(2,'0'); const d=p(date.getDate())+p(date.getMonth()+1)+p(date.getFullYear()%100); return level+(o?'O':'')+'-'+pct+'-'+d+'-'+checksum(level,o,pct,d,name); }
+function verifyCode(code,name){
+  const m=String(code||'').toUpperCase().replace(/\s+/g,'').match(/^(A2|B1|B2|C1)(O?)-(\d{1,3})-(\d{6})-([A-Z0-9]{5})$/);
+  if(!m) return { valid:false, reason:'Das Format stimmt nicht. Beispiel: B1-85-131026-K7QFM' };
+  return { valid: checksum(m[1],!!m[2],+m[3],m[4],name)===m[5], level:m[1], ohnezeit:!!m[2], pct:+m[3], date:m[4].slice(0,2)+'.'+m[4].slice(2,4)+'.20'+m[4].slice(4) };
+}
+
+/* ---------- Ton ---------- */
+let actx=null;
+const SND={ ok:[[660,.12],[880,.2]], bad:[[220,.28]], crack:[[180,.08],[120,.2]], piece:[[784,.1],[988,.1],[1175,.18]], zap:[[1200,.05],[900,.05],[600,.15]], burn:[[300,.06],[200,.12]], fanfare:[[523,.15],[659,.15],[784,.15],[1047,.4]] };
+function sound(n){ if(!settings.sound) return; try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); let t=actx.currentTime;
+  SND[n].forEach(([f,d])=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type='triangle'; o.frequency.value=f; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.16,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+d); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d+0.03); t+=d*0.9; }); }catch(e){} }
+
+/* =====================================================================
+   ZEICHNUNGEN
+   ===================================================================== */
+function lehmannSVG(){
+  return '<svg viewBox="0 0 120 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
+    '<path d="M60 4 L88 62 L32 62 Z" fill="#4b2a6b" stroke="#22102f" stroke-width="3"/><circle cx="58" cy="30" r="3" fill="#ffd86b"/><circle cx="68" cy="45" r="2.5" fill="#ffd86b"/><path d="M22 62 Q60 52 98 62 L98 68 Q60 60 22 68 Z" fill="#3a1f55" stroke="#22102f" stroke-width="2"/>'+
+    '<ellipse cx="60" cy="84" rx="20" ry="19" fill="#c08354" stroke="#5a3218" stroke-width="3"/>'+
+    '<path d="M44 76 L54 80 M76 76 L66 80" stroke="#2a1206" stroke-width="3.5" stroke-linecap="round"/><circle cx="52" cy="85" r="2.6" fill="#2a1206"/><circle cx="68" cy="85" r="2.6" fill="#2a1206"/>'+
+    '<path d="M42 92 Q60 140 78 92 Q60 102 42 92 Z" fill="#d9cfc4" stroke="#8a7f74" stroke-width="2"/><path d="M52 95 Q60 99 68 95" stroke="#5a3218" stroke-width="2.5" fill="none"/>'+
+    '<path d="M30 110 Q60 100 90 110 L102 168 L18 168 Z" fill="#8a5232" stroke="#4a2810" stroke-width="3"/><path d="M50 120 L46 160 M70 120 L74 160" stroke="#6b3d22" stroke-width="2"/>'+
+    '<path d="M96 118 L114 90" stroke="#5a3218" stroke-width="5" stroke-linecap="round"/><circle cx="114" cy="88" r="5" fill="#ffd86b" class="glow"/></svg>';
+}
+function chanchitoSVG(){
+  return '<svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
+    '<ellipse cx="58" cy="44" rx="40" ry="28" fill="#1d1a1a" stroke="#000" stroke-width="2"/><ellipse cx="46" cy="32" rx="16" ry="7" fill="#ffffff" opacity=".18"/>'+
+    '<ellipse cx="98" cy="46" rx="11" ry="9" fill="#2a2525" stroke="#000" stroke-width="2"/><circle cx="95" cy="45" r="2" fill="#000"/><circle cx="101" cy="45" r="2" fill="#000"/>'+
+    '<path d="M76 20 L84 8 L88 24 Z" fill="#1d1a1a" stroke="#000" stroke-width="2"/><circle cx="82" cy="34" r="3" fill="#fff"/><circle cx="83" cy="34" r="1.5" fill="#000"/>'+
+    '<rect x="32" y="64" width="9" height="18" rx="3" fill="#1d1a1a"/><rect x="56" y="66" width="9" height="16" rx="3" fill="#1d1a1a"/><rect x="78" y="64" width="9" height="18" rx="3" fill="#1d1a1a"/>'+
+    '<path d="M18 40 q-10 -4 -6 -12" stroke="#1d1a1a" stroke-width="3" fill="none"/>'+
+    '<g fill="#ff7aa8"><circle cx="40" cy="48" r="3"/><circle cx="46" cy="44" r="3"/><circle cx="46" cy="52" r="3"/><circle cx="52" cy="48" r="3"/></g><circle cx="46" cy="48" r="2.4" fill="#ffd86b"/>'+
+    '<g fill="#7ad0ff"><circle cx="64" cy="56" r="2.4"/><circle cx="69" cy="53" r="2.4"/><circle cx="69" cy="59" r="2.4"/><circle cx="74" cy="56" r="2.4"/></g></svg>';
+}
+function tafelSVG(n, cls){
+  const cx=100, cy=100, R=86; let s='';
+  for(let i=0;i<5;i++){
+    const a0=-Math.PI/2+i*2*Math.PI/5, a1=a0+2*Math.PI/5, g=0.04;
+    const p=(a,r)=>[(cx+r*Math.cos(a)).toFixed(1),(cy+r*Math.sin(a)).toFixed(1)];
+    const [x0,y0]=p(a0+g,R), [x1,y1]=p(a1-g,R), [xc,yc]=p((a0+a1)/2,6);
+    const d='M'+xc+' '+yc+' L'+x0+' '+y0+' A'+R+' '+R+' 0 0 1 '+x1+' '+y1+' Z';
+    if(i<n){ let lines=''; for(let k=1;k<4;k++){ const [lx0,ly0]=p(a0+.15,26+k*14), [lx1,ly1]=p(a1-.15,26+k*14); lines+='<line x1="'+lx0+'" y1="'+ly0+'" x2="'+lx1+'" y2="'+ly1+'" stroke="#7a4424" stroke-width="2"/>'; }
+      s+='<g class="'+(i===n-1&&cls?cls:'')+'" style="transform-origin:'+cx+'px '+cy+'px"><path d="'+d+'" fill="#c98a5a" stroke="#6e3f24" stroke-width="3"/>'+lines+'</g>'; }
+    else s+='<path d="'+d+'" fill="none" stroke="#9a7353" stroke-width="2.5" stroke-dasharray="7 6"/>';
+  }
+  return '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="Tontafel: '+n+' von 5 Scherben">'+s+'</svg>';
+}
+function adobe(x,y,w,h,c){ return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+c+'" stroke="#5a3218" stroke-width="2"/><path d="M'+(x-6)+' '+y+' L'+(x+w+6)+' '+y+' L'+(x+w)+' '+(y-12)+' L'+x+' '+(y-12)+' Z" fill="#a0442a" stroke="#5a3218" stroke-width="2"/><rect x="'+(x+w/2-9)+'" y="'+(y+h-30)+'" width="18" height="30" fill="#5a3218"/>'; }
+function pots(x,y,n){ let s=''; for(let i=0;i<n;i++){ const px=x+i*34, h=22+(i%3)*8; s+='<path d="M'+(px)+' '+y+' q-6 -'+h/2+' 4 -'+h+' h14 q10 '+h/2+' 4 '+h+' Z" fill="'+['#b5774a','#9a5a34','#c98a5a'][i%3]+'" stroke="#5a3218" stroke-width="2"/>'; } return s; }
+const SCENES = {
+  toepferei: () =>
+    '<rect width="1000" height="300" fill="#e9cfae"/><rect y="230" width="1000" height="70" fill="#9a6f4c"/>'+
+    '<rect x="40" y="60" width="300" height="10" fill="#7a4a28"/><rect x="40" y="130" width="300" height="10" fill="#7a4a28"/>'+pots(52,60,9)+pots(52,130,9)+
+    '<path d="M620 230 Q620 90 720 90 Q820 90 820 230 Z" fill="#b0603a" stroke="#5a2a14" stroke-width="4"/><path d="M680 230 Q680 170 720 170 Q760 170 760 230 Z" fill="#2a1206"/><path d="M690 230 Q700 200 712 222 Q720 196 732 224 Q742 204 750 230 Z" fill="#ff8a1e" class="glow"/>'+
+    '<circle class="smoke" cx="720" cy="80" r="12" fill="#ccc"/><circle class="smoke s2" cx="730" cy="76" r="14" fill="#ddd"/><circle class="smoke s3" cx="712" cy="82" r="10" fill="#bbb"/>'+
+    '<ellipse cx="470" cy="226" rx="70" ry="12" fill="#5a3218"/><rect x="462" y="180" width="16" height="46" fill="#5a3218"/><ellipse cx="470" cy="180" rx="56" ry="10" fill="#7a4a28"/><path d="M450 178 q-4 -26 8 -34 h24 q12 8 8 34 Z" fill="#c98a5a" stroke="#5a3218" stroke-width="2"/>',
+  markt: () =>
+    '<rect width="1000" height="300" fill="#8fd0f5"/><circle cx="880" cy="56" r="30" fill="#ffd95a"/><path d="M0 170 Q200 120 420 150 T1000 140 L1000 300 L0 300 Z" fill="#7aa35c"/>'+
+    '<rect y="235" width="1000" height="65" fill="#d8b48a"/>'+adobe(40,150,150,85,'#f2dcc0')+adobe(230,160,120,75,'#ead1b0')+
+    '<rect x="420" y="60" width="60" height="175" fill="#f4ead8" stroke="#5a3218" stroke-width="2"/><path d="M410 60 L450 20 L490 60 Z" fill="#a0442a" stroke="#5a3218" stroke-width="2"/><line x1="450" y1="20" x2="450" y2="4" stroke="#333" stroke-width="3"/><line x1="442" y1="10" x2="458" y2="10" stroke="#333" stroke-width="3"/><circle cx="450" cy="90" r="10" fill="#c9a36b" stroke="#5a3218" stroke-width="2"/>'+
+    adobe(520,150,160,85,'#f2dcc0')+'<rect x="530" y="118" width="140" height="22" rx="4" fill="#c0392b"/><text x="600" y="134" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="14" fill="#fff">EMPANADAS</text>'+
+    '<ellipse cx="820" cy="240" rx="60" ry="12" fill="#6aa7d6" stroke="#3a6a96" stroke-width="3"/><rect x="812" y="200" width="16" height="40" fill="#bdb3a5"/><path d="M800 200 Q820 180 840 200" stroke="#9fd0ff" stroke-width="4" fill="none"/>'+pots(700,262,3)+pots(60,262,4),
+  turm: () => {
+    let st=''; [[60,30],[160,70],[260,25],[620,40],[760,20],[900,60],[960,30]].forEach(([x,y],i)=>{ st+='<circle class="twinkle" style="animation-delay:'+(i*.3)+'s" cx="'+x+'" cy="'+y+'" r="2.2" fill="#fff"/>'; });
+    return '<rect width="1000" height="300" fill="#2b1b3f"/>'+st+'<rect y="240" width="1000" height="60" fill="#3a2a22"/>'+
+    '<rect x="380" y="40" width="240" height="200" fill="#6b4a33" stroke="#2a1206" stroke-width="4"/><path d="M370 40 L500 0 L630 40 Z" fill="#4b2a6b" stroke="#22102f" stroke-width="3"/>'+
+    '<rect x="420" y="160" width="160" height="16" fill="#3a2214"/><rect x="430" y="176" width="12" height="64" fill="#3a2214"/><rect x="558" y="176" width="12" height="64" fill="#3a2214"/>'+
+    '<g class="glow"><circle cx="450" cy="150" r="9" fill="#b07aff"/><circle cx="490" cy="148" r="9" fill="#7affd0"/><circle cx="530" cy="150" r="9" fill="#ffd86b"/><circle cx="560" cy="148" r="8" fill="#ff7aa8"/></g>'+
+    '<rect x="410" y="70" width="40" height="50" rx="20" fill="#ffd86b" opacity=".7"/><rect x="550" y="70" width="40" height="50" rx="20" fill="#ffd86b" opacity=".7"/>'+pots(200,240,4)+pots(700,240,4); },
+  plaza: () =>
+    '<rect width="1000" height="300" fill="#9fd5f7"/><path d="M0 120 L1000 120 L1000 300 L0 300 Z" fill="#d8b48a"/>'+adobe(20,70,180,90,'#f2dcc0')+adobe(800,70,180,90,'#ead1b0')+
+    '<rect x="340" y="150" width="320" height="40" fill="#8a5232" stroke="#4a2810" stroke-width="3"/><rect x="340" y="140" width="320" height="12" fill="#a0603a"/>'+
+    (()=>{ let s='<path d="M220 30 Q500 80 780 30" stroke="#555" stroke-width="2" fill="none"/>'; const c=['#d52b1e','#ffffff','#0039a6']; for(let i=0;i<16;i++){ const x=230+i*35, y=30+50*Math.sin(Math.PI*(i+.5)/16)*.8; s+='<path d="M'+(x-8)+' '+y+' L'+(x+8)+' '+y+' L'+x+' '+(y+14)+' Z" fill="'+c[i%3]+'" stroke="#333"/>'; } return s; })()+
+    (()=>{ let s=''; for(let i=0;i<22;i++){ const x=40+i*44, y=262+(i%2)*14; s+='<circle cx="'+x+'" cy="'+(y-18)+'" r="11" fill="#5a3a2a"/><rect x="'+(x-13)+'" y="'+(y-8)+'" width="26" height="40" rx="10" fill="'+['#3a6a96','#8e3a12','#2e7d4f','#6b3d82'][i%4]+'"/>'; } return s; })(),
+  gipfel: () =>
+    '<rect width="1000" height="300" fill="#1d1430"/><path d="M0 60 Q120 20 260 50 T560 40 T1000 50 L1000 0 L0 0 Z" fill="#2e2346"/><path d="M640 0 L600 90 L630 90 L590 170 L680 70 L650 70 L690 0 Z" fill="#ffe66d" class="glow"/>'+
+    '<rect y="220" width="1000" height="80" fill="#6b4a33"/><rect y="214" width="1000" height="10" fill="#4a2f1f"/>'+
+    (()=>{ let s=''; for(let i=0;i<25;i++) s+='<rect x="'+(i*40)+'" y="196" width="26" height="22" fill="#6b4a33" stroke="#3a2214" stroke-width="2"/>'; return s; })()
+};
+
+/* =====================================================================
+   SPIELABLAUF
+   ===================================================================== */
+function newGame(level){
+  state={ v:1, level, sig:signature(level), room:0, phase:'intro', done:{}, tries:{}, tips:{}, tipsUsed:SPIEL[level].raeume.map(()=>0),
+    cracks:{}, swap:{}, reserveUsed:{}, burned:{}, kettenText:{}, bonus:{}, wrong:[], scherben:0, elapsed:0, name:'', finished:null,
+    ohnezeit: !E.zeitdruck || OHNEZEIT_PARAM };
+  ui={}; save();
+}
+function loadSaved(){
+  let s=null; try{ s=JSON.parse(lsGet(LS_GAME)||'null'); }catch(e){ s=null; }
+  if(!s || s.v!==1 || !SPIEL[s.level]) return null;
+  try { if(s.sig!==signature(s.level)) return null; } catch(e){ return null; }
+  return s;
+}
+function zeitAktiv(){ return E.zeitdruck && !OHNEZEIT_PARAM && !(state && state.ohnezeit); }
+function stats(){
+  const all=allTasks(state.level); let score=0, ok=0;
+  all.forEach(t=>{ const r=state.done[t.id]; if(r){ score+=r.pts; if(r.ok) ok++; } });
+  Object.values(state.bonus||{}).forEach(b=>{ score+=b; });
+  const max=all.length*E.punkteErsterVersuch + kettenAnzahl(state.level)*3*E.kettenBonusProForm;
+  return { score, max, pct: max? Math.min(100,Math.round(score/max*100)) : 0, total:all.length, ok, open: all.filter(t=>!state.done[t.id]).length };
+}
+function curRoom(){ return D()[state.room]; }
+function shown(t){ const s=state.swap[t.id]; return s!=null ? curRoom().reserve[s] : t; }
+
+/* Versuch: 'ok' | 'retry' | 'fail' */
+function attempt(t, ok, given, show){
+  show=show||t; const tries=state.tries[t.id]||0;
+  if(ok){
+    let pts = tries===0 ? E.punkteErsterVersuch : E.punkteZweiterVersuch;
+    if(state.tips[t.id]) pts=Math.max(0, pts-E.tippKosten);
+    state.done[t.id]={ ok:true, pts }; sound('ok'); save(); return 'ok';
+  }
+  state.tries[t.id]=tries+1;
+  if(tries+1>=2){
+    state.done[t.id]={ ok:false, pts:0 };
+    state.wrong.push({ raum:curRoom().R.name, aufgabe:taskLabel(show), deine:given, loesung:solutionText(show) });
+    sound('bad'); save(); return 'fail';
+  }
+  sound('bad'); save(); return 'retry';
+}
+function taskLabel(t){
+  if(t.typ==='kleben') return t.satz1+' + '+t.toks.map(x=>x.t).join(' ');
+  if(t.typ==='schreiben') return plain(t.satz)+(t.hinweis?' ('+t.hinweis+')':'');
+  if(t.typ==='raetsel') return plain(t.frage);
+  if(t.typ==='falle') return (t.frage?plain(t.frage)+' ':'')+plain(t.satz);
+  if(t.typ==='kette') return 'Wortduell, Schritt '+(t.k+1)+': '+t.toks.map(x=>x.t).join(' ');
+  if(t.typ==='konter') return t.satzpaar;
+  return '';
+}
+function solutionText(t){
+  if(t.typ==='kleben'){ const c=asList(t.loesung)[0]; return plain(verbinden(t.satz1, c, satz2Text(t,c))); }
+  if(t.typ==='schreiben') return plain(String(t.satz).replace('___', asList(t.loesung)[0]));
+  if(t.typ==='falle') return asList(t.loesung).join(' / ');
+  if(t.typ==='kette') return asList(t.passend).join(' / ');
+  if(t.typ==='konter') return asList(t.loesung).join(' / ')+' – '+plain(t.verbunden||'');
+  return String(t.loesung);
+}
+
+/* ---------- Kopfzeile ---------- */
+function renderHud(){
+  const hud=$('#hud');
+  if(!state || view!=='game' || location.hash==='#lehrer'){ hud.innerHTML=''; return; }
+  const s=stats(), n=D().length;
+  hud.innerHTML='<span class="pill">'+esc(state.level)+(state.ohnezeit?' · ohne Zeit':'')+'</span><span class="pill">🚪 '+Math.min(state.room+1,n)+'/'+n+'</span><span class="pill">⭐ '+s.score+'</span><span class="pill" id="clock">⏱ '+fmtTime(state.elapsed)+'</span><span class="pill">🏺 '+state.scherben+'/5</span>';
+}
+
+/* ---------- Haupt-Render ---------- */
+let timerInt=null;
+function stopTimers(){ if(timerInt){ clearInterval(timerInt); timerInt=null; } }
+function render(){
+  stopTimers();
+  if(location.hash==='#lehrer'){ renderTeacher(); renderHud(); return; }
+  if(view==='start' || !state) renderStart();
+  else if(state.phase==='end') renderResult();
+  else if(state.phase==='name') renderName();
+  else renderGame();
+  renderHud();
+}
+
+/* ---------- Start ---------- */
+function renderStart(){
+  const saved=loadSaved(), warn=dataWarnings();
+  let h='<section class="card narrow hero"><div class="herorow"><div><h1>🥟 Magister Lehmann und die Super-Empanada</h1>'+
+    '<p>Der böse Zauberer Magister Lehmann hat die Rezept-Tafel der Super-Empanada zerschlagen. Mit „Zerbröckel!“ zerbricht er jede Verbindung zwischen Sätzen. Rette mit Sofía, Matías, Benja und dem Chanchito die Tafel – mit <strong>Konnektoren</strong>!</p>'+
+    '<p class="small muted">🇨🇱 Un escape room sobre conectores: ¿qué conector tiene el sentido correcto? Junta los pedazos de la tabla de greda.</p></div>'+
+    '<div class="heroart"><div style="width:110px">'+lehmannSVG()+'</div><div style="width:110px">'+chanchitoSVG()+'</div></div></div></section>';
+  if(warn.length) h+='<div class="warnbox narrow"><strong>⚠️ Hinweis für Lehrkräfte – in den Daten stimmt etwas nicht:</strong><ul>'+warn.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+  if(saved){
+    h+='<section class="card narrow"><h2>▶ Weiterspielen</h2><p>Niveau <strong>'+esc(saved.level)+'</strong> · '+(saved.phase==='end'?'fertig':'Raum '+(saved.room+1)+': '+esc((SPIEL[saved.level].raeume[saved.room]||{}).name||''))+'</p>'+
+      '<div class="row"><button type="button" class="primary" id="btnCont">'+(saved.phase==='end'?'🏆 Ergebnis ansehen':'Weiterspielen ➜')+'</button><button type="button" id="btnDiscard">Neu beginnen</button></div></section>';
+  } else {
+    h+='<section class="card narrow"><h2>Wähle dein Niveau</h2><div class="levels">'+LEVELS.map(lv=>{ const S=SPIEL[lv];
+      return S ? '<button type="button" class="level" data-l="'+lv+'"><span class="lv">'+lv+'</span><span class="lt">'+esc(S.titel)+'</span><span class="lo">'+esc(S.schwerpunkt||'')+'</span></button>'
+               : '<button type="button" class="level" disabled><span class="lv">'+lv+'</span><span class="lt">🔒 kommt bald</span></button>'; }).join('')+'</div>'+
+      (OHNEZEIT_PARAM||!E.zeitdruck?'<p class="small muted">⏳ Dieses Spiel läuft <strong>ohne Zeitdruck</strong>.</p>':'<p class="small muted">⏳ In manchen Räumen trocknet der Ton: Dort hast du beim ersten Versuch nur begrenzt Zeit.</p>')+'</section>';
+  }
+  h+='<p class="small center"><a href="#lehrer">Für Lehrkräfte: Prüfcode kontrollieren · ohne Zeitdruck spielen</a></p>';
+  app.innerHTML=h;
+  if($('#btnCont')) $('#btnCont').addEventListener('click',()=>{ state=saved; view='game'; ui={}; render(); });
+  if($('#btnDiscard')) $('#btnDiscard').addEventListener('click',()=>bestaetigen('Das gespeicherte Spiel wird gelöscht. Wirklich neu beginnen?', ()=>{ lsDel(LS_GAME); state=null; render(); }));
+  $$('.level[data-l]').forEach(b=>b.addEventListener('click',()=>{ newGame(b.dataset.l); view='game'; render(); window.scrollTo(0,0); }));
+}
+
+/* ---------- Spiel ---------- */
+function renderGame(){
+  const play = state.phase==='play';
+  app.innerHTML='<div class="stage'+(play?' compact':'')+'" id="stage"></div><section class="card" id="panel"></section>';
+  renderStage(); refreshPanel();
+}
+function renderStage(bubble){
+  const { R, tasks } = curRoom(), S=SCENES[R.szene]||SCENES.toepferei;
+  let h='<svg class="bg" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">'+S()+'</svg>';
+  const finalP = state.phase==='final';
+  h+='<div class="fig bob" style="left:82%;top:96%;width:11cqw">'+lehmannSVG()+'</div>';
+  h+='<div class="fig" style="left:12%;top:97%;width:10cqw">'+chanchitoSVG()+'</div>';
+  h+='<div class="fig emoji bob" style="left:26%;top:97%;--s:4.5">👧🏽</div><div class="fig emoji bob" style="left:31%;top:98%;--s:4.5;animation-delay:.3s">👦🏻</div><div class="fig emoji bob" style="left:36%;top:98%;--s:4.2;animation-delay:.6s">🧒🏽</div>';
+  if(R.boss && state.phase!=='intro'){ const hp=bossHP(); h+='<div class="hpbar"><div id="hp" style="width:'+(hp*100)+'%"></div><span>🧙 Lehmanns Zauberkraft</span></div>'; }
+  if(state.phase==='intro' && R.ruf) h+='<div class="bubble" style="right:16%;top:12%">'+fmt(R.ruf)+'</div>';
+  if(finalP) h+='<div class="bubble" style="right:16%;top:12%">Ihr habt gewonnen, weil ihr meine Sätze verbunden habt …</div>';
+  if(bubble) h+='<div class="bubble pig" style="left:4%;top:20%">'+fmt(bubble)+'</div>';
+  $('#stage').innerHTML=h;
+}
+function bossHP(){ const { tasks }=curRoom(); let dmg=0; tasks.forEach(t=>{ const r=state.done[t.id]; if(r) dmg+= r.ok?1:0.5; }); return Math.max(0,1-dmg/tasks.length); }
+function zap(){ const s=$('#stage'); if(!s) return; const d=document.createElement('div'); d.className='zap'; s.appendChild(d); setTimeout(()=>d.remove(),800); const hp=$('#hp'); if(hp) hp.style.width=(bossHP()*100)+'%'; sound('zap'); }
+function pigSays(t){ const s=$('#stage'); if(!s) return; const old=$('.bubble.pig',s); if(old) old.remove(); const b=document.createElement('div'); b.className='bubble pig'; b.style.left='4%'; b.style.top='14%'; b.innerHTML='🐷 '+fmt(t); s.appendChild(b); }
+
+function refreshPanel(){
+  stopTimers();
+  const P=$('#panel'); if(!P) return;
+  const { R } = curRoom();
+  if(state.phase==='intro') return renderIntro(R,P);
+  if(state.phase==='roomdone') return renderRoomDone(R,P);
+  if(state.phase==='final') return renderFinal(P);
+  renderPlay(P);
+}
+function roomHead(R){ return '<div class="panelhead"><span class="chip">Raum '+(state.room+1)+' von '+D().length+'</span>'+(R.thema?'<span class="chip">🎯 '+esc(R.thema)+'</span>':'')+'<span class="chip" id="tipChip">🐷 Tipps: '+(E.tippsProRaum-state.tipsUsed[state.room])+'/'+E.tippsProRaum+'</span></div>'; }
+function steinKunde(){
+  return '<h3>🪨 Die drei Konnektor-Steine</h3><div class="kunde">'+['flach','keil','haken'].map(f=>{ const ex={flach:'denn',keil:'deshalb',haken:'weil'}[f];
+    return '<div>'+steinHTML(ex,'','tabindex="-1"')+'<p style="margin:.2em 0"><strong>'+esc(FORMEN[f].name)+'</strong> – '+esc(FORMEN[f].kurz)+'</p><p class="small" style="margin:0">'+fmt(FORMEN[f].de)+'</p>'+(spanish()?'<p class="small" style="color:#9fd0ff;margin:.2em 0 0">🇨🇱 '+fmt(FORMEN[f].es)+'</p>':'')+'</div>'; }).join('')+'</div>';
+}
+function renderIntro(R,P){
+  P.innerHTML=roomHead(R)+(state.room===0?'<h2>Pomaire in Gefahr</h2>'+paras(L().intro)+steinKunde()+'<hr style="border-color:var(--line)">':'')+
+    '<h2>'+esc(R.name)+'</h2>'+paras(R.geschichte)+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnGo">Los geht’s ➜</button></div>';
+  $('#btnGo').addEventListener('click',()=>{ state.phase='play'; save(); renderGame(); });
+  focusEl('#btnGo');
+}
+function completeRoom(){
+  stopTimers();
+  state.scherben=Math.max(state.scherben, state.room+1);
+  const last = state.room===D().length-1;
+  state.phase = last ? 'final' : 'roomdone'; ui={}; save();
+  sound(last?'fanfare':'piece'); renderGame(); renderHud();
+}
+function rezeptListe(n){ return '<ol class="rezept">'+SPIEL[state.level].raeume.slice(0,n).map(R=>'<li>'+fmt(R.scherbe||'')+'</li>').join('')+'</ol>'; }
+function renderRoomDone(R,P){
+  P.innerHTML='<h2>🏺 Scherbe '+(state.room+1)+' gefunden!</h2>'+paras(R.geschafft)+
+    '<div class="tafelbox"><div class="ingpop">'+tafelSVG(state.room+1)+'</div><div class="rezept"><p><strong>Auf der Scherbe steht:</strong></p><p class="preview">'+fmt(R.scherbe||'')+'</p></div></div>'+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnNext">Weiter ➜</button></div>';
+  $('#btnNext').addEventListener('click',()=>{ state.room++; state.phase='intro'; ui={}; save(); render(); window.scrollTo(0,0); });
+  focusEl('#btnNext');
+}
+function renderFinal(P){
+  P.innerHTML='<h2>🎉 Die Tafel ist wieder ganz!</h2>'+paras(L().schluss)+
+    '<div class="tafelbox"><div class="ingpop">'+tafelSVG(5)+'</div><div class="rezept"><p><strong>Das Rezept der Super-Empanada</strong></p>'+rezeptListe(5)+'</div></div>'+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnRes">🏆 Zum Ergebnis</button></div>';
+  $('#btnRes').addEventListener('click',()=>{ state.phase='name'; save(); render(); window.scrollTo(0,0); });
+  focusEl('#btnRes');
+}
+
+/* ---------- Spielen ---------- */
+function renderPlay(P){
+  const { R, tasks } = curRoom();
+  let t = ui.resolved ? tasks.find(x=>x.id===ui.resolved) : tasks.find(x=>!state.done[x.id]);
+  if(!t){ return completeRoom(); }
+  if(ui.id!==t.id) ui={ id:t.id, resolved:ui.resolved };
+  const dots='<div class="dots" aria-label="Fortschritt">'+tasks.map(x=>{ const r=state.done[x.id]; return '<span class="'+(r?(r.ok?(state.cracks[x.id]?'crack':'ok'):'bad'):(x.id===t.id?'cur':''))+'"></span>'; }).join('')+'</div>';
+  P.innerHTML=roomHead(R)+'<div class="panelhead"><strong>Aufgabe '+(t.ti+1)+' von '+tasks.length+'</strong>'+dots+'</div><div id="task"></div>';
+  const el=$('#task');
+  const onNext=()=>{ ui={ }; refreshPanel(); };
+  const S=shown(t);
+  const R_=T[S.typ]; R_(t, S, el, onNext);
+}
+function timedNow(t){ return GETIMT.includes(t.typ) && zeitAktiv() && !(state.tries[t.id]) && state.swap[t.id]==null && !state.done[t.id]; }
+function timerHTML(t){ return timedNow(t) ? '<div class="feucht" aria-hidden="true">💧 Der Ton trocknet …<div class="bar"><div id="tbar"></div></div></div>' : ''; }
+function startTimer(t, rerender){
+  if(!timedNow(t)) return;
+  const sec=((E.sekunden[t.typ]||{})[state.level]||30)*1000;
+  if(!ui.timerEnd) ui.timerEnd=Date.now()+sec;
+  const bar=$('#tbar');
+  stopTimers();
+  timerInt=setInterval(()=>{ if(document.hidden) { ui.timerEnd+=100; return; } const left=ui.timerEnd-Date.now(); if(bar) bar.style.width=Math.max(0,left/sec*100)+'%'; if(left<=0){ stopTimers(); timeout(t); } },100);
+}
+function timeout(t){
+  state.tries[t.id]=1; state.cracks[t.id]=true;
+  const room=curRoom(), used=state.reserveUsed[state.room]||[];
+  const ri=room.reserve.findIndex((r,i)=>r.typ===t.typ && !used.includes(i));
+  if(ri>=0){ state.swap[t.id]=ri; state.reserveUsed[state.room]=used.concat([ri]); }
+  sound('crack'); save();
+  ui={ id:t.id, crackMsg:true }; refreshPanel();
+}
+function crackHTML(){ return ui.crackMsg ? '<div class="crackmsg">💧 <strong>Der Ton ist getrocknet – die Scherbe hat einen Riss!</strong> Neuer Versuch'+(ui.id&&state.swap[ui.id]!=null?' mit anderen Sätzen':'')+', jetzt ohne Zeit (höchstens '+E.punkteZweiterVersuch+' Punkte).</div>' : ''; }
+function tipHTML(t,S){
+  const left=E.tippsProRaum-state.tipsUsed[state.room];
+  if(state.done[t.id] || state.tips[t.id] || !S.tipp) return '';
+  return '<button type="button" id="btnTip"'+(left<=0?' disabled':'')+'>🐷 Tipp (−'+E.tippKosten+')</button>';
+}
+function bindTip(t,S){ const b=$('#btnTip'); if(!b) return; b.addEventListener('click',()=>{ if(state.tipsUsed[state.room]>=E.tippsProRaum) return; state.tips[t.id]=true; state.tipsUsed[state.room]++; save(); pigSays(S.tipp); toast('🐷 '+S.tipp,6000); b.remove(); const c=$('#tipChip'); if(c) c.textContent='🐷 Tipps: '+(E.tippsProRaum-state.tipsUsed[state.room])+'/'+E.tippsProRaum; renderHud(); }); }
+function feedbackHTML(t,S){
+  const f=ui.fb; if(!f) return '';
+  const es = spanish() && S.erklaerung_es ? '<p class="small" style="color:#9fd0ff">🇨🇱 <strong>Ayuda:</strong> '+fmt(S.erklaerung_es)+'</p>' : '';
+  if(f.type==='ok') return '<div class="tipbox ok"><p><strong>✓ Richtig!</strong> '+(f.msg?fmt(f.msg):'')+' <span class="small">+'+f.pts+' Punkte</span></p>'+(S.erklaerung_de?'<p>'+fmt(S.erklaerung_de)+'</p>':'')+es+'</div>';
+  if(f.type==='retry') return '<div class="tipbox bad"><p><strong>✗ Noch nicht.</strong> '+fmt(f.msg||'')+'</p>'+(S.thema?'<p>💡 Denkhilfe: <strong>'+esc(S.thema)+'</strong></p>':'')+'<p class="small">Du hast noch einen Versuch.</p></div>';
+  return '<div class="tipbox bad"><p><strong>✗ Leider falsch.</strong> '+fmt(f.msg||'')+'</p><p>Richtig: <strong>'+esc(solutionText(S))+'</strong></p>'+(S.erklaerung_de?'<p>'+fmt(S.erklaerung_de)+'</p>':'')+es+'</div>';
+}
+function nextBtn(label){ return '<div class="row" style="margin-top:.6em"><span class="spacer"></span><button type="button" class="primary" id="btnNextTask">'+(label||'Weiter ➜')+'</button></div>'; }
+function afterAnswer(t, out, el, rerender){
+  if(out==='ok'||out==='fail'){ ui.resolved=t.id; stopTimers(); if(curRoom().R.boss) zap(); renderHud(); }
+  rerender();
+  const fb=$('.tipbox.ok, .tipbox.bad', el); if(fb) setTimeout(()=>fb.scrollIntoView({block:'nearest',behavior:'smooth'}),30);
+  if(out!=='retry'){ const nb=$('#btnNextTask',el); if(nb) nb.focus({preventScroll:true}); }
+}
+
+/* ---------- Aufgabentypen ---------- */
+const T = {
+  /* kleben: Stein wählen + zweiten Satz ordnen */
+  kleben(t, S, el, onNext){
+    const res=state.done[t.id], n=S.toks.length;
+    if(!optOrder[S.id]) optOrder[S.id]=shuffle(range(S.optionen.length));
+    ui.placed=ui.placed||[]; ui.lehm=ui.lehm||[];
+    const rerender=()=>T.kleben(t,S,el,onNext);
+    let h=crackHTML()+timerHTML(t)+'<p class="auftrag">Verbinde die Scherben: Wähle einen Stein und klick den zweiten Satz in die richtige Reihenfolge.</p>';
+    const conn = res ? (ui.conn||asList(S.loesung)[0]) : ui.conn;
+    h+='<div class="shards"><div class="shard">'+esc(String(S.satz1).replace(/[.!?]$/,''))+'</div><div class="slot">'+(conn?steinHTML(conn,'sel','tabindex="-1" disabled'):'Stein?')+'</div><div class="shard">'+esc(S.toks.map(x=>x.t).join(' '))+'</div></div>';
+    if(!res){
+      h+='<p class="small muted" style="margin:.2em 0">1 · Wähle einen Stein:</p><div class="stones">'+optOrder[S.id].map(i=>{ const o=S.optionen[i]; return steinWrap(o,(ui.conn===o?'sel':'')+(ui.lehm.includes(o)?' lehm':''),'data-c="'+esc(o)+'"'+(ui.lehm.includes(o)?' disabled':'')); }).join('')+'</div>';
+    }
+    if(conn){
+      const placed = res && (!res.ok || ui.placed.length!==n) ? orderFor(S.toks, formOf(conn)) : ui.placed;
+      if(!res) h+='<p class="small muted" style="margin:.2em 0">2 · Klick den zweiten Satz in die richtige Reihenfolge ('+esc(FORMEN[formOf(conn)].name)+': '+esc(FORMEN[formOf(conn)].kurz)+'):</p>';
+      const tile=(i,w)=>'<button type="button" class="tile'+(S.toks[i].v?' v':'')+'" data-'+w+'="'+i+'"'+(res?' disabled':'')+'>'+esc(S.toks[i].t)+'</button>';
+      h+='<div class="answer'+(res&&res.ok?' ok':'')+'"><span class="lbl">'+esc(cap(conn))+' …</span>'+placed.map(i=>tile(i,'a')).join('')+'</div>';
+      if(!res && ui.placed.length<n) h+='<div class="pool">'+range(n).filter(i=>!ui.placed.includes(i)).map(i=>tile(i,'p')).join('')+'</div>';
+      const s2=placed.length===n ? placed.map(i=>S.toks[i].t).join(' ') : placed.map(i=>S.toks[i].t).join(' ')+' …';
+      h+='<div class="preview">'+verbinden(S.satz1, conn, s2, {html:true})+'</div>';
+    }
+    if(!res) h+='<div class="row"><button type="button" class="primary" id="btnCheck"'+(conn&&ui.placed.length===n?'':' disabled')+'>🏺 Kleben</button><button type="button" id="btnReset"'+(ui.placed.length?'':' disabled')+'>↺ Satz zurücksetzen</button>'+tipHTML(t,S)+'</div>';
+    h+=feedbackHTML(t,S);
+    if(res) h+=nextBtn();
+    el.innerHTML=h;
+    $$('[data-c]',el).forEach(b=>b.addEventListener('click',()=>{ ui.conn=b.dataset.c; rerender(); }));
+    $$('[data-p]',el).forEach(b=>b.addEventListener('click',()=>{ ui.placed.push(+b.dataset.p); rerender(); const nb=$('.pool .tile',el); if(nb) nb.focus(); else if($('#btnCheck',el)) $('#btnCheck',el).focus(); }));
+    $$('[data-a]',el).forEach(b=>b.addEventListener('click',()=>{ if(res) return; const i=+b.dataset.a; ui.placed=ui.placed.filter(x=>x!==i); rerender(); }));
+    if($('#btnReset',el)) $('#btnReset',el).addEventListener('click',()=>{ ui.placed=[]; rerender(); });
+    bindTip(t,S);
+    if($('#btnCheck',el)) $('#btnCheck',el).addEventListener('click',()=>{
+      const c=ui.conn, built=ui.placed.map(i=>S.toks[i].t).join(' ');
+      const meaning=asList(S.loesung).includes(c), form=canon(built)===canon(satz2Text(S,c));
+      const out=attempt(t, meaning&&form, plain(verbinden(S.satz1,c,built)), S);
+      if(out==='ok') ui.fb={type:'ok', pts:state.done[t.id].pts};
+      else {
+        let msg = !meaning ? 'Der Stein „'+c+'“ passt nicht zur Bedeutung.' : 'Der Stein passt – aber die Wortstellung nicht. '+FORMEN[formOf(c)].de;
+        if(!meaning){ ui.lehm.push(c); ui.conn=null; }
+        ui.placed=[]; ui.fb={ type:out, msg };
+      }
+      afterAnswer(t,out,el,rerender);
+    });
+    if($('#btnNextTask',el)) $('#btnNextTask',el).addEventListener('click',onNext);
+    if(!res) startTimer(t, rerender);
+  },
+
+  /* schreiben: Lücke mit Texteingabe */
+  schreiben(t, S, el, onNext){
+    const res=state.done[t.id];
+    const rerender=()=>T.schreiben(t,S,el,onNext);
+    const parts=String(S.satz).split('___');
+    let h=crackHTML()+'<p class="auftrag">Ergänze den Satz.</p>';
+    h+='<p class="satz">'+fmt(parts[0])+(res?'<strong>'+esc(asList(S.loesung)[0])+'</strong>':'<input '+INPUT_ATTR+' id="ans" style="width:'+Math.max(14,String(asList(S.loesung)[0]).length+4)+'ch" aria-label="Lücke" value="'+esc(ui.val||'')+'">')+fmt(parts[1]||'')+'</p>';
+    if(S.hinweis) h+='<p class="muted">('+fmt(S.hinweis)+')</p>';
+    if(!res) h+=umlautBar()+'<div class="row"><button type="button" class="primary" id="btnCheck">✓ Prüfen</button>'+tipHTML(t,S)+'</div>';
+    h+=feedbackHTML(t,S);
+    if(res) h+=nextBtn();
+    el.innerHTML=h;
+    bindTip(t,S); bindUmlauts(el);
+    const inp=$('#ans',el);
+    const check=()=>{ const v=inp.value.trim(); if(!v){ toast('Bitte schreib deine Antwort in die Lücke.'); return; } ui.val='';
+      const ok=asList(S.loesung).some(l=>canon(l)===canon(v));
+      const out=attempt(t, ok, plain(String(S.satz).replace('___',v)), S);
+      ui.fb = out==='ok' ? {type:'ok',pts:state.done[t.id].pts} : {type:out, msg:'„'+v+'“ stimmt noch nicht.'};
+      afterAnswer(t,out,el,rerender); };
+    if(inp){ inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); check(); } }); inp.addEventListener('input',()=>{ ui.val=inp.value; }); setTimeout(()=>inp.focus({preventScroll:true}),20); }
+    if($('#btnCheck',el)) $('#btnCheck',el).addEventListener('click',check);
+    if($('#btnNextTask',el)) $('#btnNextTask',el).addEventListener('click',onNext);
+  },
+
+  /* raetsel: Ort oder Person anklicken */
+  raetsel(t, S, el, onNext){
+    const res=state.done[t.id]; ui.wrong=ui.wrong||[];
+    const rerender=()=>T.raetsel(t,S,el,onNext);
+    const pers=S.antwort==='person';
+    let h='<p>'+fmt(S.einleitung||'')+'</p><div class="people">'+S.personen.map((p,i)=>{
+      const right=pers&&res&&p.name===S.loesung, w=pers&&ui.wrong.includes(p.name);
+      const inner='<span class="face">'+p.bild+'</span><span><strong>'+esc(p.name)+'</strong><span class="said" style="display:block;margin-top:.2em">„'+fmt(p.text)+'“</span></span>';
+      return pers ? '<button type="button" class="person opt'+(right?' right':'')+(w?' wrong':'')+'" data-p="'+esc(p.name)+'"'+(res||w?' disabled':'')+'>'+inner+'</button>' : '<div class="person">'+inner+'</div>'; }).join('')+'</div>';
+    h+='<p class="auftrag">❓ '+fmt(S.frage)+'</p>';
+    if(!pers) h+='<div class="map">'+S.orte.map(o=>{ const nm=ortName(o), right=res&&nm===S.loesung, w=ui.wrong.includes(nm);
+      return '<button type="button" class="place'+(right?' right':'')+(w?' wrong':'')+'" data-o="'+esc(nm)+'"'+(res||w?' disabled':'')+'><span class="sym">'+ortSym(o)+'</span>'+esc(nm)+'</button>'; }).join('')+'</div>';
+    if(!res) h+='<div class="row">'+tipHTML(t,S)+'</div>';
+    h+=feedbackHTML(t,S);
+    if(res) h+=nextBtn();
+    el.innerHTML=h;
+    bindTip(t,S);
+    $$(pers?'[data-p]':'[data-o]',el).forEach(b=>b.addEventListener('click',()=>{
+      const v=b.dataset.p||b.dataset.o, ok=v===S.loesung;
+      const out=attempt(t, ok, v, S);
+      if(!ok) ui.wrong.push(v);
+      ui.fb = out==='ok' ? {type:'ok',pts:state.done[t.id].pts} : {type:out, msg: pers ? v+' sagt die Wahrheit.' : 'Dort ist es nicht.'};
+      afterAnswer(t,out,el,rerender);
+    }));
+    if($('#btnNextTask',el)) $('#btnNextTask',el).addEventListener('click',onNext);
+  },
+
+  /* falle: verzauberte Steine – nur die Bedeutung entscheidet */
+  falle(t, S, el, onNext){
+    const res=state.done[t.id]; ui.lehm=ui.lehm||[];
+    if(!optOrder[S.id]) optOrder[S.id]=shuffle(range(S.optionen.length));
+    const rerender=()=>T.falle(t,S,el,onNext);
+    const sol=asList(S.loesung);
+    let satz=fmt(S.satz);
+    const gaps=String(S.satz).split('___').length-1;
+    if(gaps){ const fill = res ? sol[0] : null; const pp=String(S.satz).split('___'); const fp=fill?String(fill).split('…').map(x=>x.trim()):[];
+      satz=pp.map((p,i)=>fmt(p)+(i<gaps?'<span class="gap">'+(fp[i]!=null?esc(fp[i]):(fill?esc(fill):'&nbsp;'))+'</span>':'')).join(''); }
+    let h=crackHTML()+timerHTML(t)+'<p class="auftrag">🧙 Lehmanns verzauberte Steine: '+(S.frage?fmt(S.frage):'Welcher passt zur Bedeutung?')+'</p><p class="satz">'+satz+'</p>';
+    const simple=S.optionen.every(o=>formOf(o));
+    h+=simple ? '<div class="stones">'+optOrder[S.id].map(i=>{ const o=S.optionen[i], right=res&&sol.includes(o), l=ui.lehm.includes(o); return steinHTML(o,(right?'right':'')+(l?' lehm':''),'data-o="'+esc(o)+'"'+(res||l?' disabled':'')); }).join('')+'</div>'
+      : '<div class="opts">'+optOrder[S.id].map(i=>{ const o=S.optionen[i], right=res&&sol.includes(o), l=ui.lehm.includes(o); return '<button type="button" class="opt'+(right?' right':'')+(l?' lehm':'')+'" data-o="'+esc(o)+'"'+(res||l?' disabled':'')+'>'+esc(o)+'</button>'; }).join('')+'</div>';
+    if(!res) h+='<div class="row" style="margin-top:.5em">'+tipHTML(t,S)+'</div>';
+    h+=feedbackHTML(t,S);
+    if(res) h+=nextBtn();
+    el.innerHTML=h;
+    bindTip(t,S);
+    $$('[data-o]',el).forEach(b=>b.addEventListener('click',()=>{
+      const o=b.dataset.o, ok=sol.includes(o);
+      const out=attempt(t, ok, o, S);
+      if(!ok) ui.lehm.push(o);
+      ui.fb = out==='ok' ? {type:'ok',pts:state.done[t.id].pts} : {type:out, msg:'„'+o+'“ wird zu Lehm! Der Stein passt nicht zur Bedeutung.'};
+      afterAnswer(t,out,el,rerender);
+    }));
+    if($('#btnNextTask',el)) $('#btnNextTask',el).addEventListener('click',onNext);
+    if(!res) startTimer(t, rerender);
+  },
+
+  /* kette: Wortduell */
+  kette(t, S, el, onNext){
+    const res=state.done[t.id], K=t.K, key=t.kette;
+    const burned=state.burned[key]||[], text=state.kettenText[key]||[esc(K.start)];
+    ui.wrongStones=ui.wrongStones||[];
+    const rerender=()=>T.kette(t,S,el,onNext);
+    let h='<div class="claim">🧙 <strong>Lehmann behauptet:</strong> „'+fmt(K.behauptung)+'“</div>';
+    h+='<p class="auftrag">Schritt '+(t.k+1)+' von '+t.n+': Wähle einen Stein für den nächsten Satz.'+(t.funktion&&res?' <span class="chip">'+esc(t.funktion)+'</span>':'')+'</p>';
+    h+='<div class="text">'+text.map(s=>res?s:s.replace(/ class="new"/g,'')).join(' ')+'</div>';
+    if(!res){
+      const prev = t.basis ? t.basis : plain(text[text.length-1]).replace(/^.*?([^.!?]*[.!?])\s*$/,'$1');
+      h+='<div class="shards">'+(t.basis?'<div class="shard">'+esc(t.basis.replace(/[.!?]$/,''))+'</div>':'<div class="shard">…</div>')+'<div class="slot">Stein?</div><div class="shard">'+esc(t.toks.map(x=>x.t).join(' '))+'</div></div>';
+      h+='<div class="stones">'+K.steine.map(s=>{ const b=burned.includes(s), w=ui.wrongStones.includes(s); return steinWrap(s,(b?'burnt':'')+(w?' lehm':''),'data-s="'+esc(s)+'"'+(b||w?' disabled':'')); }).join('')+'</div>';
+      h+='<p class="small muted">Zerbröckelte Steine kannst du nicht mehr benutzen. Bonus: '+E.kettenBonusProForm+' Punkte pro Steinform, die du benutzt.</p>';
+    }
+    h+=feedbackHTML(t,S);
+    if(res){
+      if(t.k===t.n-1){ const b=state.bonus[key]||0; const forms=[...new Set(burned.map(formOf))].map(f=>FORMEN[f].name).join(', ');
+        h+='<div class="tipbox pig"><p>🐷 <strong>Abwechslungs-Bonus: +'+b+' Punkte</strong> – du hast diese Steinformen benutzt: '+esc(forms)+'.</p></div>'; }
+      h+=nextBtn(t.k===t.n-1?'Weiter ➜':'Nächster Satz ➜');
+    }
+    el.innerHTML=h;
+    $$('[data-s]',el).forEach(b=>b.addEventListener('click',()=>{
+      const s=b.dataset.s, ok=asList(t.passend).includes(s) && !burned.includes(s);
+      const out=attempt(t, ok, s, S);
+      if(out==='ok' || out==='fail'){
+        const use = ok ? s : (asList(t.passend).find(p=>!burned.includes(p)) || asList(t.passend)[0]);
+        const newBurn=burned.concat([use]); state.burned[key]=newBurn;
+        const s2=satz2Text(t, use);
+        let txt=text.map(x=>x.replace(/ class="new"/g,''));
+        if(t.basis){ txt.push('<span class="new">'+verbinden(t.basis, use, s2, {html:true})+'</span>'); }
+        else { const last=txt.pop(); const lastPlain=last; txt.push(verbindenKette(lastPlain, use, s2)); }
+        state.kettenText[key]=txt;
+        if(t.k===t.n-1){ const forms=new Set(newBurn.map(formOf)); state.bonus[key]=forms.size*E.kettenBonusProForm; }
+        sound('burn'); save();
+        ui.fb = out==='ok' ? {type:'ok',pts:state.done[t.id].pts, msg:'Der Stein „'+use+'“ zerbröckelt nach dem Benutzen.'} : {type:'fail', msg:'Hier passt: „'+use+'“.'};
+      } else { ui.wrongStones.push(s); ui.fb={type:'retry', msg: burned.includes(s)?'Dieser Stein ist schon zerbröckelt.':'Der Stein „'+s+'“ passt hier nicht zur Bedeutung.'}; }
+      afterAnswer(t,out,el,rerender);
+    }));
+    if($('#btnNextTask',el)) $('#btnNextTask',el).addEventListener('click',onNext);
+  },
+
+  /* konter: Funktion erkennen */
+  konter(t, S, el, onNext){
+    const res=state.done[t.id]; ui.wrong=ui.wrong||[];
+    const rerender=()=>T.konter(t,S,el,onNext);
+    const opts=asList(S.optionen).length?asList(S.optionen):Object.keys(FUNKTIONEN), sol=asList(S.loesung);
+    let h=crackHTML()+timerHTML(t)+'<p class="auftrag">🧙 Lehmann schleudert dir zwei Sätze entgegen. Welche Verbindung brauchen sie?</p><div class="pair">„'+esc(S.satzpaar)+'“</div>';
+    h+='<div class="types">'+opts.map(o=>{ const F=FUNKTIONEN[o]||{}, right=res&&sol.includes(o), w=ui.wrong.includes(o);
+      return '<button type="button" class="type'+(right?' right':'')+(w?' wrong':'')+'" data-f="'+esc(o)+'"'+(res||w?' disabled':'')+'><span class="tn">'+esc(o)+'</span><span class="tb">'+esc(F.beispiele||'')+'</span></button>'; }).join('')+'</div>';
+    if(res && S.verbunden) h+='<p style="margin-top:.6em">⚡ <strong>Gegenzauber:</strong></p><div class="preview">'+fmt(S.verbunden)+'</div>';
+    h+=feedbackHTML(t,S);
+    if(res) h+=nextBtn(curRoom().tasks.every(x=>state.done[x.id])?'⚡ Letzter Gegenzauber ➜':'Weiter kämpfen ➜');
+    el.innerHTML=h;
+    $$('[data-f]',el).forEach(b=>b.addEventListener('click',()=>{
+      const f=b.dataset.f, ok=sol.includes(f);
+      const out=attempt(t, ok, f, S);
+      if(!ok) ui.wrong.push(f);
+      ui.fb = out==='ok' ? {type:'ok',pts:state.done[t.id].pts, msg:'Treffer!'} : {type:out, msg:'„'+f+'“ passt nicht.'};
+      afterAnswer(t,out,el,rerender);
+    }));
+    if($('#btnNextTask',el)) $('#btnNextTask',el).addEventListener('click',onNext);
+    if(!res) startTimer(t, rerender);
+  }
+};
+function verbindenKette(lastHTML, conn, s2){
+  const f=formOf(conn);
+  if(f==='keil' || (f==='flach' && !['und','oder','sondern'].includes(conn))) return lastHTML+' <span class="new"><span class="kon">'+esc(cap(conn))+'</span> '+esc(s2)+'.</span>';
+  return lastHTML.replace(/\.(<\/span>)?$/,'$1')+'<span class="new">, <span class="kon">'+esc(conn)+'</span> '+esc(s2)+'.</span>';
+}
+function umlautBar(){ return '<div class="umlauts" aria-label="Sonderzeichen">'+['ä','ö','ü','ß','Ä','Ö','Ü'].map(c=>'<button type="button" class="uml" data-u="'+c+'" tabindex="-1">'+c+'</button>').join('')+'<span class="small muted">oder ae, oe, ue, ss</span></div>'; }
+function bindUmlauts(el){
+  const inp=$('#ans',el); if(!inp) return;
+  $$('.uml',el).forEach(b=>{ b.addEventListener('mousedown',e=>e.preventDefault()); b.addEventListener('click',()=>{ const s=inp.selectionStart??inp.value.length, en=inp.selectionEnd??inp.value.length; inp.value=inp.value.slice(0,s)+b.dataset.u+inp.value.slice(en); ui.val=inp.value; inp.focus(); inp.setSelectionRange(s+1,s+1); }); });
+}
+
+/* ---------- Name und Ergebnis ---------- */
+function renderName(){
+  app.innerHTML='<section class="card narrow"><h1>🏆 Geschafft!</h1><p>Schreib deinen Namen für das Ergebnis und den Prüfcode.</p>'+
+    '<p class="row"><label for="nameIn">Dein Name:</label> <input '+INPUT_ATTR+' id="nameIn" maxlength="60" style="flex:1;min-width:220px" placeholder="Vorname Nachname"></p><div id="nameFb" role="status"></div>'+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnName">Ergebnis anzeigen ➜</button></div></section>';
+  const go=()=>{ const n=$('#nameIn').value.trim().replace(/\s+/g,' '); if(normName(n).length<2){ $('#nameFb').innerHTML='<p class="badline">Bitte schreib deinen Namen.</p>'; return; } state.name=n; state.finished=new Date().toISOString(); state.phase='end'; save(); render(); };
+  $('#btnName').addEventListener('click',go); $('#nameIn').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }); focusEl('#nameIn');
+}
+function renderResult(){
+  const s=stats(), d=new Date(state.finished), code=makeCode(state.level,state.ohnezeit,s.pct,d,state.name);
+  const rows=[['Name',state.name],['Niveau',state.level+' – '+L().titel],['Modus',state.ohnezeit?'ohne Zeitdruck':'mit Zeitdruck'],['Punkte',s.score+' von '+s.max],['Prozent',s.pct+' %'],['Zeit',fmtTime(state.elapsed)+' min'],['Datum',fmtDate(d)],['Richtig',s.ok+' von '+s.total+' Aufgaben'],['Risse',Object.keys(state.cracks).length]];
+  let h='<section class="card narrow"><div class="row"><h1 style="margin:0">🏆 Dein Ergebnis</h1><span class="spacer"></span><div style="width:120px">'+tafelSVG(5)+'</div></div>'+
+    '<table class="restable">'+rows.map(r=>'<tr><th scope="row">'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table>'+
+    '<p style="margin-bottom:0">Prüfcode:</p><div class="bigcode">'+esc(code)+'</div><p class="small muted">Mach einen Screenshot oder kopiere das Ergebnis und gib es in Google Classroom ab.</p>'+
+    '<div class="row"><button type="button" class="primary" id="btnCopy">📋 Ergebnis kopieren</button><button type="button" id="btnNew">↺ Neues Spiel</button><span id="copyFb" role="status" class="okline"></span></div>'+
+    '<h2 style="margin-top:1em">Das Rezept der Super-Empanada</h2>'+rezeptListe(5)+
+    '<h2 style="margin-top:1em">Falsch beantwortete Aufgaben ('+state.wrong.length+')</h2>';
+  h += state.wrong.length ? '<ol class="wronglist">'+state.wrong.map(w=>'<li><span class="muted small">'+esc(w.raum)+'</span><br>'+esc(w.aufgabe)+'<br><span class="badline">✗ Deine Antwort: '+esc(w.deine)+'</span><br><span class="okline">✓ Richtig: '+esc(w.loesung)+'</span></li>').join('')+'</ol>' : '<p class="okline">✓ Keine Fehler – super!</p>';
+  app.innerHTML=h+'</section>';
+  $('#btnCopy').addEventListener('click',()=>copyText(resultText(code,s,d)));
+  $('#btnNew').addEventListener('click',()=>bestaetigen('Neues Spiel starten? Dieses Ergebnis wird gelöscht. Hast du schon einen Screenshot gemacht?', ()=>{ lsDel(LS_GAME); state=null; view='start'; render(); }));
+  focusEl('#btnCopy');
+}
+function resultText(code,s,d){
+  let t='Magister Lehmann und die Super-Empanada – Konnektoren-Escape-Room\nName: '+state.name+'\nNiveau: '+state.level+' – '+L().titel+'\nModus: '+(state.ohnezeit?'ohne Zeitdruck':'mit Zeitdruck')+
+    '\nPunkte: '+s.score+' / '+s.max+' ('+s.pct+' %)\nZeit: '+fmtTime(state.elapsed)+' min\nDatum: '+fmtDate(d)+'\nPrüfcode: '+code+'\n';
+  t+='\nFalsch beantwortet ('+state.wrong.length+'):\n'+(state.wrong.length?state.wrong.map((w,i)=>(i+1)+'. '+w.aufgabe+'\n   Meine Antwort: '+w.deine+'\n   Richtig: '+w.loesung).join('\n'):'–');
+  return t;
+}
+function copyText(t){
+  const done=()=>{ $('#copyFb').textContent='✓ Kopiert! Jetzt in Google Classroom einfügen (Strg + V).'; };
+  const fallback=()=>{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){ $('#copyFb').textContent='Kopieren hat nicht geklappt – bitte Screenshot machen.'; } ta.remove(); };
+  let settled=false; const once=f=>()=>{ if(!settled){ settled=true; f(); } };
+  try{ if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(t).then(once(done),once(fallback)); setTimeout(once(fallback),800); } else once(fallback)(); }catch(e){ once(fallback)(); }
+}
+
+/* ---------- Lehrkraft ---------- */
+function renderTeacher(){
+  const base=location.href.split('#')[0].split('?')[0];
+  app.innerHTML='<section class="card narrow"><h1>🔎 Prüfcode kontrollieren</h1><p class="muted">Für Lehrkräfte. Name so eingeben, wie er im Ergebnis steht (Groß-/Kleinschreibung, Akzente und Leerzeichen sind egal). Ein „O“ nach dem Niveau bedeutet: ohne Zeitdruck gespielt.</p>'+
+    '<p><label for="tName">Name</label><br><input '+INPUT_ATTR+' id="tName" class="fullin"></p><p><label for="tCode">Prüfcode</label><br><input '+INPUT_ATTR+' id="tCode" class="fullin" placeholder="z. B. B1-85-131026-K7QFM"></p>'+
+    '<div class="row"><button type="button" class="primary" id="tCheck">Prüfen</button><span class="spacer"></span><button type="button" id="tBack">← Zurück zum Spiel</button></div><div id="tRes" role="status" aria-live="polite" style="margin-top:.8em"></div></section>'+
+    '<section class="card narrow"><h2>⏳ Ohne Zeitdruck spielen (Nachteilsausgleich)</h2>'+
+    '<p>In den Räumen 1, 3 und 5 „trocknet der Ton“: Beim ersten Versuch läuft eine Zeit. Läuft sie ab, bekommt die Scherbe einen Riss und es kommt eine Ersatzaufgabe ohne Zeit.</p>'+
+    '<p><strong>Für einzelne Lernende:</strong> Schicken Sie diesen Link (z. B. in Google Classroom):</p><p><code>'+esc(base)+'?ohnezeit</code></p>'+
+    '<p><strong>Für alle:</strong> In der Datei oben bei EINSTELLUNGEN <code>zeitdruck: false</code> eintragen.</p>'+
+    (EINGEBETTET?'<p class="small muted">Hinweis: Eingebettet in Google Sites kann man keinen Link-Parameter anhängen. Legen Sie dafür eine zweite Seite mit einer Kopie des Spiels an, in der <code>zeitdruck: false</code> steht.</p>':'')+
+    '<p class="small muted">Im Prüfcode steht dann ein „O“ (z. B. B1O-…).</p></section>';
+  const go=()=>{ const r=verifyCode($('#tCode').value,$('#tName').value);
+    $('#tRes').innerHTML = r.valid ? '<p class="tipbox ok"><strong>✓ Der Code ist gültig.</strong><br>Niveau <strong>'+r.level+'</strong>'+(r.ohnezeit?' (ohne Zeitdruck)':'')+' · <strong>'+r.pct+' %</strong> · '+r.date+'</p>'
+      : '<p class="tipbox bad"><strong>✗ Der Code ist nicht gültig.</strong><br>'+esc(r.reason||'Name oder Code passen nicht zusammen.')+'</p>'; };
+  $('#tCheck').addEventListener('click',go); ['#tName','#tCode'].forEach(s=>$(s).addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }));
+  $('#tBack').addEventListener('click',()=>{ history.replaceState(null,'',location.pathname+location.search); render(); });
+  focusEl('#tName');
+}
+
+/* ---------- Uhr ---------- */
+setInterval(()=>{
+  if(!state || view!=='game' || state.phase!=='play' || document.hidden || location.hash==='#lehrer') return;
+  state.elapsed+=1000;
+  const c=$('#clock'); if(c) c.textContent='⏱ '+fmtTime(state.elapsed);
+  if(state.elapsed%5000===0) save();
+},1000);
+
+/* ---------- Start ---------- */
+(function init(){
+  try{ const s=JSON.parse(lsGet(LS_SET)||'{}'); if(s.sound) settings.sound=true; }catch(e){}
+  const sb=$('#btnSound');
+  const upd=()=>{ sb.textContent=settings.sound?'🔊 Ton an':'🔇 Ton aus'; sb.setAttribute('aria-pressed',String(settings.sound)); };
+  upd(); sb.addEventListener('click',()=>{ settings.sound=!settings.sound; lsSet(LS_SET,JSON.stringify(settings)); upd(); sound('ok'); });
+  $('#btnMenu').addEventListener('click',()=>{ if(location.hash==='#lehrer') history.replaceState(null,'',location.pathname+location.search); stopTimers(); view='start'; state=null; ui={}; render(); });
+  window.addEventListener('hashchange',render);
+  render();
+})();
+</script>
+</body>
+</html>
