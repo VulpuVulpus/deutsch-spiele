@@ -201,11 +201,10 @@ const REGELN = {
 const SPIEL = {
 
   /* =================================================================
-     A2 · Klasse 9
+     A2
      ================================================================= */
   A2: {
     titel: "Das Rezept ist weg!",
-    klasse: "Klasse 9",
     schwerpunkt: "Verb auf Platz 2, Perfekt und Modalverben, weil/dass, deshalb",
     schluss: "Am Samstag ist der große Wettbewerb in Viña del Mar. Die Jury probiert den Super-Completo – und Tía Carmen gewinnt! 🏆\n\nUnd Don Lucho? Er sagt „Entschuldigung“ und hilft jetzt jeden Samstag in der Fuente de Soda. Canelo bekommt jeden Tag eine Vienesa. 🐕\n\nMerk dir: **Das Verb ist das Brot – oben und unten. Der Rest ist Belag!**",
     stationen: [
@@ -402,11 +401,10 @@ const SPIEL = {
   },
 
   /* =================================================================
-     B1 · Klasse 10
+     B1
      ================================================================= */
   B1: {
     titel: "Wettlauf gegen die Zeit",
-    klasse: "Klasse 10",
     schwerpunkt: "Satzklammer, Nebensätze (auch vorne), um … zu, Relativsätze",
     schluss: "Am Samstag steht Tía Carmen in Viña del Mar vor der Jury. Der Präsident der Jury beißt in den Super-Completo, schließt die Augen – und lächelt. Tía Carmen gewinnt zum vierten Mal! 🏆\n\nDon Lucho gratuliert ihr als Erster. Seit diesem Tag verkaufen die beiden zusammen Completos, und Canelo passt auf die Vienesas auf. 🐕\n\nMerk dir: **Das Verb ist das Brot – oben und unten. Der Rest ist Belag!**",
     stationen: [
@@ -619,11 +617,10 @@ const SPIEL = {
   },
 
   /* =================================================================
-     B2 · Klasse 11
+     B2
      ================================================================= */
   B2: {
     titel: "Ein Rezept mit Geschichte",
-    klasse: "Klasse 11",
     schwerpunkt: "Passiv mit Modalverb, doppelter Infinitiv, Konjunktiv II, je … desto, Relativsätze mit Präposition, sondern",
     schluss: "Am Samstag wird in Viña del Mar ein Super-Completo serviert, über den die Jury noch lange sprechen wird. Tía Carmen gewinnt zum vierten Mal – und bedankt sich auf der Bühne bei drei Jugendlichen, ohne die es diesen Completo nicht gegeben hätte. 🏆\n\nDon Lucho, der in der ersten Reihe sitzt, klatscht am lautesten. Seit diesem Tag teilen sich die beiden einen Stand, und Canelo wird von allen Gästen verwöhnt. 🐕\n\nMerk dir: **Das Verb ist das Brot – oben und unten. Der Rest ist Belag!**",
     stationen: [
@@ -827,11 +824,10 @@ const SPIEL = {
   },
 
   /* =================================================================
-     C1 · Klasse 12
+     C1
      ================================================================= */
   C1: {
     titel: "Der Fall Super-Completo",
-    klasse: "Klasse 12",
     schwerpunkt: "Partizipialattribute, Konjunktiv I, doppelter Infinitiv, Passiv, Nominalstil, gehobene Konnektoren",
     schluss: "Am Samstag tritt Carmen Rojas in Viña del Mar an – mit dem vollständigen Rezept ihrer Großmutter. Die Jury zeigt sich nach eigenen Worten „sprachlos“, und der Super-Completo wird zum vierten Mal ausgezeichnet. 🏆\n\nIn ihrer Dankesrede erwähnt Carmen drei Jugendliche, ohne deren Einsatz der Fall nicht hätte aufgeklärt werden können. Don Lucho, der sich öffentlich entschuldigt hat, betreibt seither gemeinsam mit ihr einen Stand. Canelo gilt inzwischen als inoffizielles Maskottchen der Fuente de Soda. 🐕\n\nMerk dir: **Das Verb ist das Brot – oben und unten. Der Rest ist Belag!**",
     stationen: [
@@ -1599,7 +1595,7 @@ function renderStart(){
       (startSel.mode==='paar'?'<p class="small muted">Zu zweit wechselt ihr euch ab: Eine Person baut den Satz 👩‍🍳, die andere kontrolliert 🧐. Sprecht vor jedem Klick kurz miteinander!</p>':'')+
       '<div id="nameFb" role="status"></div></section>';
     h+='<section class="card narrow"><h2>2 · Wähle dein Niveau</h2><div class="levels">'+LEVELS.map(lv=>{ const S=SPIEL[lv];
-      return S ? '<button type="button" class="level" data-l="'+lv+'"><span class="lv">'+lv+'</span><span class="lt">'+esc(S.titel)+'</span><span class="lo">'+esc(S.klasse||'')+'</span><span class="lo">'+esc(S.schwerpunkt||'')+'</span></button>'
+      return S ? '<button type="button" class="level" data-l="'+lv+'"><span class="lv">'+lv+'</span><span class="lt">'+esc(S.titel)+'</span><span class="lo">'+esc(S.schwerpunkt||'')+'</span></button>'
                : '<button type="button" class="level" disabled><span class="lv">'+lv+'</span><span class="lt">🔒 kommt bald</span></button>'; }).join('')+'</div>'+
       '<label class="check" style="margin-top:.6em"><input type="checkbox" id="chkChallenge"> ⏳ Challenge-Modus: mit Zeitlimit</label></section>';
   }
