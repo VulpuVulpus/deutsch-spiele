@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verb-Tetris – Satzbau-Arcade</title>
+<script>
+/* =====================================================================
+   VERB-TETRIS · Satzbau-Arcade
+   =====================================================================
+
+   ANLEITUNG FÜR LEHRKRÄFTE
+   ---------------------------------------------------------------------
+   Alles, was Sie ändern können, steht in diesem ersten Abschnitt
+   (EINSTELLUNGEN, REGELN und SPIEL). Die Spiel-Logik weiter unten
+   müssen Sie nicht anfassen.
+
+   SO FUNKTIONIERT DAS SPIEL
+   Unten liegt ein Satz mit Lücken. Von oben fallen die Verben als
+   Blöcke. Die Spielerin / der Spieler schiebt den Block über die
+   richtige Lücke und lässt ihn fallen. Hat ein Satz mehrere Verbteile,
+   fallen sie in zufälliger Reihenfolge. Ein falscher Satz wird zur
+   grauen „Schrott-Zeile“; der Stapel wächst. Bei zu vielen
+   Schrott-Zeilen ist das Spiel vorbei.
+
+   AUFBAU
+   SPIEL → Niveau (A2 = Kl. 9 … C1 = Kl. 12) → stufen → saetze
+   Jede Stufe wird schneller. Pro Stufe werden zufällig
+   „saetzeProStufe“ Sätze ausgewählt.
+
+   SO SCHREIBEN SIE EINEN SATZ
+   · Satzglieder mit | trennen: "Gestern | [war] | ich | in Santiago."
+   · Verben (alle Teile, die fallen sollen) in [eckige Klammern].
+   · Kommas einfach hinter das Satzglied schreiben: "zu Hause, | weil"
+   · Satzzeichen am Ende (. ? !) wird automatisch angehängt.
+   · Ein Satz darf eine eigene Regel haben:
+       { satz: "…", regel: "ende" }
+     sonst gilt die Regel der Stufe.
+   · Bitte nicht zweimal dasselbe Verb in einem Satz einklammern.
+
+   REGELN
+     · Texte immer in "Anführungszeichen"; im Text selbst „…“ verwenden.
+     · Nach jedem Feld und jeder } ein Komma.
+     · **Wort** = fett.
+     · Fehler in den Daten zeigt die Startseite als gelben Hinweis an.
+   ===================================================================== */
+
+const EINSTELLUNGEN = {
+  geheimwort: "Verb-Tetris-Pucon-2026",   // für die Prüfcodes
+  saetzeProStufe: 5,                       // so viele Sätze pro Stufe (zufällig gewählt)
+  zeilen: 10,                              // Höhe des Spielfelds in Zeilen
+  maxSchrott: 5,                           // so viele Fehler-Zeilen → Spiel vorbei
+  aufraeumenNach: 3,                       // nach so vielen richtigen Sätzen in Folge verschwindet 1 Schrott-Zeile
+  startTempo: { A2: 1100, B1: 1050, B2: 1000, C1: 950 },  // ms pro Zeile in Stufe 1
+  beschleunigung: 0.86,                    // jede Stufe: Tempo × 0,86 (schneller)
+  langsamFaktor: 1.9,                      // Langsam-Modus: Tempo × 1,9
+  punkteProVerb: 10,
+  punkteProSatz: 50,
+  spanischeHilfe: { A2: true, B1: true, B2: false, C1: false }
+};
+
+/* ---------------------------------------------------------------------
+   REGELN – Erklärungen nach einem Fehler
+   --------------------------------------------------------------------- */
+const REGELN = {
+  v2:          { name: "Verb auf Platz 2", de: "Im Hauptsatz steht das konjugierte Verb immer auf **Platz 2**.", es: "En la oración principal el verbo conjugado va siempre en la posición 2." },
+  inversion:   { name: "Inversion", de: "Steht etwas anderes auf Platz 1 (**Gestern**, **Am Wochenende** …), bleibt das Verb auf **Platz 2** – das Subjekt rutscht **hinter** das Verb: Gestern **war** ich …", es: "«Ayer yo estuve…» → «Gestern **war** ich …». El sujeto va después del verbo." },
+  klammer:     { name: "Satzklammer", de: "Konjugiertes Verb (Modalverb, haben, sein) auf **Platz 2**, der zweite Teil (Infinitiv, Partizip, Vorsilbe) ganz am **Ende**: Ich **muss** heute Deutsch **lernen**.", es: "«Tengo que estudiar» → «Ich **muss** … **lernen**»: los verbos se separan." },
+  frage:       { name: "W-Frage", de: "W-Wort auf Platz 1, Verb auf **Platz 2**, Partizip/Infinitiv am **Ende**: Wann **hast** du Deutsch **gelernt**?", es: "«¿Cuándo aprendiste alemán?» → «Wann **hast** du Deutsch **gelernt**?»" },
+  ende:        { name: "Verb ans Ende", de: "**weil, dass, obwohl, wenn, ob** … schicken das konjugierte Verb ans **Ende** des Nebensatzes.", es: "«porque **estoy** enfermo» → «weil ich krank **bin**». ¡El verbo va al final!" },
+  nebenklammer:{ name: "Nebensatz mit zwei Verben", de: "Im Nebensatz steht das **konjugierte** Verb ganz am **Ende**, hinter Partizip oder Infinitiv: …, weil ich Netflix **geschaut habe**.", es: "«porque **he visto**» → «weil ich … **geschaut habe**»." },
+  vorne:       { name: "Nebensatz auf Platz 1", de: "Steht der Nebensatz vorne, ist er **Platz 1**. Nach dem Komma folgt sofort das Verb: Weil es **regnet**, **bleiben** wir … – **Verb, Verb!**", es: "Verbo – coma – verbo: «Weil es **regnet**, **bleiben** wir zu Hause»." },
+  deshalb:     { name: "deshalb, trotzdem, um … zu", de: "**deshalb / trotzdem** stehen auf Platz 1 → danach sofort das **Verb**. Bei **um … zu** steht „zu + Infinitiv“ am **Ende**.", es: "«Por eso nosotros vamos» → «Deshalb **gehen** wir». «para comprar» → «um … **zu kaufen**»." },
+  relativ:     { name: "Relativsatz", de: "Der Relativsatz beginnt mit **der/die/das** (oder Präposition + der/die/das, dessen, deren). Das Verb steht am **Ende**: der Bus, der nach Pucón **fährt**.", es: "«el bus que **va** a Pucón» → «der Bus, der nach Pucón **fährt**»." },
+  passiv:      { name: "Passiv", de: "**werden / wurde / ist … worden** auf Platz 2, das **Partizip** am Ende: In Chile **wird** viel Palta **gegessen**. Perfekt: … **ist** … **renoviert worden**.", es: "«Se come mucha palta» → «Es **wird** viel Palta **gegessen**»." },
+  passivmodal: { name: "Passiv mit Modalverb", de: "Hauptsatz: Modalverb auf **Platz 2**, am Ende **Partizip + werden**. Nebensatz: alles ans Ende, das Modalverb zuletzt: …, dass es **gelöst werden muss**.", es: "«que tiene que ser resuelto» → «dass es **gelöst werden muss**»." },
+  konj2:       { name: "Konjunktiv II", de: "**würde / wäre / hätte** auf Platz 2 (bzw. im wenn-Satz am Ende), Infinitiv/Partizip am Ende: Wenn ich reich **wäre**, **würde** ich **reisen**.", es: "«Si fuera rico, viajaría» → «Wenn ich reich **wäre**, **würde** ich **reisen**»." },
+  jedesto:     { name: "je … desto", de: "**je** + Nebensatz (Verb am **Ende**), **desto** + Komparativ + **Verb** + Subjekt: Je mehr du **übst**, desto besser **sprichst** du.", es: "«Cuanto más practicas, mejor hablas» → «Je mehr du **übst**, desto besser **sprichst** du»." },
+  ersatzinf:   { name: "Doppelter Infinitiv", de: "Mit Modalverb im Perfekt/Konjunktiv II stehen **zwei Infinitive** am Ende. Im Nebensatz steht **hat/hätte vor** den Infinitiven: …, dass ich **hätte anrufen sollen**.", es: "«que debería haber llamado» → «dass ich **hätte anrufen sollen**»." },
+  konj1:       { name: "Indirekte Rede", de: "Ohne „dass“: Wortstellung wie im **Hauptsatz** (Verb auf Platz 2): Er sagte, der Täter **sei geflohen**. Mit „dass“: Verb am Ende.", es: "Sin «dass», el verbo va en la posición 2." },
+  kaum:        { name: "Langes Platz-1-Element", de: "Egal wie lang Platz 1 ist („Aufgrund des starken Regens“, „Kaum“, ein ganzer Nebensatz) – danach kommt **sofort das Verb**.", es: "Por largo que sea el primer elemento, después viene el verbo." }
+};
+
+/* ---------------------------------------------------------------------
+   SPIEL – Sätze nach Niveau und Stufe
+   --------------------------------------------------------------------- */
+const SPIEL = {
+
+  /* ================= A2 · Klasse 9 · Hauptsätze ================= */
+  A2: {
+    titel: "Hauptsätze", klasse: "Klasse 9",
+    schwerpunkt: "Verb auf Platz 2, Inversion (Gestern …), Satzklammer, Perfekt, W-Fragen",
+    stufen: [
+      { name: "Verb auf Platz 2", regel: "v2", saetze: [
+        "Matías | [spielt] | jeden Samstag | Fußball.",
+        "Sofía | [wohnt] | in Valparaíso.",
+        "Wir | [essen] | am Sonntag | Empanadas.",
+        "Der Bus | [fährt] | nach Pucón.",
+        "Meine Schwester | [lernt] | Deutsch.",
+        "Colo-Colo | [gewinnt] | heute | das Spiel.",
+        "Benja | [trinkt] | jeden Morgen | Tee."
+      ]},
+      { name: "Inversion: Gestern, Am Wochenende …", regel: "inversion", saetze: [
+        "Gestern | [war] | ich | in Santiago.",
+        "Am Wochenende | [fahren] | wir | nach Viña del Mar.",
+        "Heute | [regnet] | es | in Concepción.",
+        "Im September | [feiern] | die Chilenen | die Fiestas Patrias.",
+        "Nach der Schule | [isst] | Benja | eine Sopaipilla.",
+        "Morgen | [schreiben] | wir | einen Test.",
+        "In Pucón | [sieht] | man | den Vulkan."
+      ]},
+      { name: "Satzklammer: Modalverben und trennbare Verben", regel: "klammer", saetze: [
+        "Ich | [muss] | heute | Deutsch | [lernen].",
+        "Sofía | [will] | in Pucón | Rafting | [machen].",
+        "Am Samstag | [können] | wir | an den Strand | [gehen].",
+        "Der Zug | [kommt] | um acht Uhr | in Temuco | [an].",
+        "Matías | [ruft] | seine Oma | in Concepción | [an].",
+        "Heute Abend | [möchte] | Benja | einen Completo | [essen]."
+      ]},
+      { name: "Perfekt und W-Fragen", regel: "klammer", saetze: [
+        "Gestern | [habe] | ich | meine Hausaufgaben | [gemacht].",
+        "Wir | [sind] | mit dem Bus | nach Valparaíso | [gefahren].",
+        "Letztes Jahr | [hat] | Colo-Colo | die Meisterschaft | [gewonnen].",
+        "Am Wochenende | [ist] | Sofía | in Pucón | [geblieben].",
+        { satz: "Wann | [hast] | du | Deutsch | [gelernt]?", regel: "frage" },
+        { satz: "Wo | [habt] | ihr | die Empanadas | [gekauft]?", regel: "frage" }
+      ]}
+    ]
+  },
+
+  /* ================= B1 · Klasse 10 · Nebensätze ================= */
+  B1: {
+    titel: "Nebensätze", klasse: "Klasse 10",
+    schwerpunkt: "weil, dass, obwohl: Verb ans Ende · Nebensatz vorne · deshalb, um … zu",
+    stufen: [
+      { name: "weil, dass, obwohl: Verb ans Ende", regel: "ende", saetze: [
+        "Ich | [bleibe] | heute | zu Hause, | weil | ich | krank | [bin].",
+        "Sofía | [sagt], | dass | der Test | leicht | [ist].",
+        "Wir | [gehen] | an den Strand, | obwohl | es | kalt | [ist].",
+        "Benja | [weiß] | nicht, | ob | der Bus | heute | [fährt].",
+        "Matías | [ist] | glücklich, | weil | Colo-Colo | [gewinnt].",
+        "Ich | [glaube], | dass | Valparaíso | sehr schön | [ist]."
+      ]},
+      { name: "Nebensatz mit zwei Verben", regel: "nebenklammer", saetze: [
+        "Ich | [bin] | müde, | weil | ich | zu lange | Netflix | [geschaut] | [habe].",
+        "Sofía | [freut] | sich, | dass | sie | nach Deutschland | [fliegen] | [darf].",
+        "Wir | [wissen], | dass | Matías | den Test | [geschrieben] | [hat].",
+        "Der Lehrer | [ist] | sauer, | weil | wir | die Hausaufgaben | nicht | [gemacht] | [haben].",
+        "Benja | [sagt], | dass | er | am Samstag | [arbeiten] | [muss].",
+        "Es | [ist] | schade, | dass | Colo-Colo | [verloren] | [hat]."
+      ]},
+      { name: "Nebensatz vorne: Verb, Verb!", regel: "vorne", saetze: [
+        "Weil | es | [regnet], | [bleiben] | wir | zu Hause.",
+        "Wenn | ich | Zeit | [habe], | [spiele] | ich | Gitarre.",
+        "Obwohl | Sofía | müde | [ist], | [geht] | sie | zur Party.",
+        "Als | ich | klein | [war], | [wohnte] | ich | in Concepción.",
+        "Bevor | wir | [essen], | [waschen] | wir | uns | die Hände.",
+        "Wenn | das Wetter | gut | [ist], | [fahren] | wir | nach Pucón."
+      ]},
+      { name: "deshalb, trotzdem, um … zu, indirekte Fragen", regel: "deshalb", saetze: [
+        "Es | [ist] | heiß. | Deshalb | [gehen] | wir | [schwimmen].",
+        "Der Bus | [kommt] | nicht. | Trotzdem | [warten] | wir.",
+        "Ich | [spare] | Geld, | um | ein Handy | [zu kaufen].",
+        { satz: "Sofía | [fragt], | ob | wir | morgen | [mitkommen].", regel: "ende" },
+        { satz: "[Kannst] | du | mir | [sagen], | wo | der Bus | [hält]?", regel: "ende" },
+        "Matías | [hat] | keine Zeit, | deshalb | [bleibt] | er | zu Hause."
+      ]}
+    ]
+  },
+
+  /* ================= B2 · Klasse 11 · Relativsätze und Passiv ================= */
+  B2: {
+    titel: "Relativsätze und Passiv", klasse: "Klasse 11",
+    schwerpunkt: "Relativsätze, Passiv, Passiv mit Modalverb, Konjunktiv II, je … desto",
+    stufen: [
+      { name: "Relativsätze", regel: "relativ", saetze: [
+        "Das | [ist] | der Bus, | der | nach Pucón | [fährt].",
+        "Die Señora, | die | neben mir | [sitzt], | [verkauft] | Tomaten.",
+        "Ich | [kenne] | ein Café, | in dem | es | guten Kuchen | [gibt].",
+        "Der Vulkan, | den | wir | gestern | [gesehen] | [haben], | [heißt] | Villarrica.",
+        "Sofía | [hat] | eine Freundin, | deren | Vater | in Berlin | [arbeitet].",
+        "Das Stadion, | in dem | Colo-Colo | [spielt], | [liegt] | in Santiago."
+      ]},
+      { name: "Passiv", regel: "passiv", saetze: [
+        "In Chile | [wird] | viel Palta | [gegessen].",
+        "Die Brücke | [wurde] | 2010 | [repariert].",
+        "Das Museum | [ist] | letztes Jahr | [renoviert] | [worden].",
+        "Der Test | [wird] | morgen | [geschrieben].",
+        "Valparaíso | [wurde] | 2003 | zum Weltkulturerbe | [erklärt].",
+        "Die Empanadas | [werden] | im Ofen | [gebacken]."
+      ]},
+      { name: "Passiv mit Modalverb", regel: "passivmodal", saetze: [
+        "Die Hausaufgaben | [müssen] | bis Freitag | [abgegeben] | [werden].",
+        "Im Park | [darf] | kein Müll | [weggeworfen] | [werden].",
+        "Das Formular | [kann] | online | [ausgefüllt] | [werden].",
+        "Die Fenster | [sollten] | jeden Tag | [geöffnet] | [werden].",
+        { satz: "Ich | [glaube], | dass | das Spiel | [verschoben] | [wird].", regel: "passiv" },
+        { satz: "Weil | die Straße | [repariert] | [wird], | [fährt] | der Bus | eine andere Route.", regel: "vorne" }
+      ]},
+      { name: "Konjunktiv II und je … desto", regel: "konj2", saetze: [
+        "Wenn | ich | reich | [wäre], | [würde] | ich | nach Deutschland | [reisen].",
+        { satz: "Je | mehr | du | [übst], | desto | besser | [sprichst] | du.", regel: "jedesto" },
+        "An deiner Stelle | [würde] | ich | mehr | [lernen].",
+        "Wenn | der Bus | pünktlich | [gekommen] | [wäre], | [hätten] | wir | den Anfang | [gesehen].",
+        { satz: "Je | früher | wir | [losfahren], | desto | weniger | Verkehr | [gibt] | es.", regel: "jedesto" },
+        "Ich | [hätte] | gern | mehr | Zeit | [gehabt]."
+      ]}
+    ]
+  },
+
+  /* ================= C1 · Klasse 12 · Komplexe Sätze ================= */
+  C1: {
+    titel: "Komplexe Sätze", klasse: "Klasse 12",
+    schwerpunkt: "Passiv mit Modalverb im Neben- und Relativsatz, doppelter Infinitiv, indirekte Rede",
+    stufen: [
+      { name: "Passiv mit Modalverb im Nebensatz", regel: "passivmodal", saetze: [
+        "Es | [ist] | klar, | dass | das Problem | schnell | [gelöst] | [werden] | [muss].",
+        "Die Ministerin | [betont], | dass | die Schulen | besser | [ausgestattet] | [werden] | [müssen].",
+        "Wir | [fragen] | uns, | ob | der Test | [wiederholt] | [werden] | [kann].",
+        "Weil | die Daten | [geschützt] | [werden] | [müssen], | [gilt] | ein neues Gesetz.",
+        "Der Bericht | [zeigt], | wie | viel Plastik | [vermieden] | [werden] | [könnte].",
+        "Bevor | das Projekt | [beginnen] | [kann], | [muss] | es | [genehmigt] | [werden]."
+      ]},
+      { name: "Relativsätze mit Passiv und Modalverb", regel: "passivmodal", saetze: [
+        "Das Gebäude, | das | [abgerissen] | [werden] | [soll], | [steht] | in Valparaíso.",
+        "Die Regeln, | die | [eingehalten] | [werden] | [müssen], | [hängen] | an der Tür.",
+        "Es | [gibt] | Probleme, | die | nicht | sofort | [gelöst] | [werden] | [können].",
+        "Der Vulkan, | dessen | Aktivität | genau | [beobachtet] | [wird], | [liegt] | bei Pucón.",
+        "Das | [ist] | ein Thema, | über das | lange | [diskutiert] | [werden] | [muss].",
+        "Die Stadt, | in der | das Treffen | [stattfinden] | [soll], | [ist] | noch nicht bekannt."
+      ]},
+      { name: "Doppelter Infinitiv und Konjunktiv II", regel: "ersatzinf", saetze: [
+        "Er | [hat] | gestern | länger | [arbeiten] | [müssen].",
+        "Ich | [weiß], | dass | ich | früher | [hätte] | [anrufen] | [sollen].",
+        "Obwohl | sie | es | [hätte] | [wissen] | [müssen], | [sagte] | sie | nichts.",
+        "Das Problem | [hätte] | früher | [gelöst] | [werden] | [müssen].",
+        { satz: "[Hätte] | ich | das | [gewusst], | [wäre] | ich | [gekommen].", regel: "konj2" },
+        { satz: "Wir | [hätten] | den Bus | fast | [verpasst].", regel: "konj2" }
+      ]},
+      { name: "Indirekte Rede, Kaum …, Nominalstil", regel: "konj1", saetze: [
+        "Die Polizei | [teilte] | [mit], | der Täter | [sei] | [geflohen].",
+        "Der Minister | [erklärte], | die Reform | [werde] | im Mai | [umgesetzt].",
+        "Die Expertin | [betont], | das Wasser | [müsse] | besser | [geschützt] | [werden].",
+        { satz: "Kaum | [hatte] | der Film | [begonnen], | [fiel] | der Strom | [aus].", regel: "kaum" },
+        { satz: "Aufgrund des starken Regens | [wurde] | das Konzert | [abgesagt].", regel: "kaum" },
+        { satz: "Nachdem | die Ergebnisse | [veröffentlicht] | [worden] | [waren], | [begann] | die Diskussion.", regel: "vorne" }
+      ]}
+    ]
+  }
+};
+</script>
+
+<style>
+:root{
+  --bg:#0c1022; --panel:#151b36; --panel2:#1e2750; --line:#3a4a8a;
+  --text:#f3f5ff; --muted:#c3c9e8; --accent:#ffc94a; --accent-text:#1a1a1a;
+  --ok:#5ee08f; --ok-bg:#103a26; --bad:#ff8a8a; --bad-bg:#45181c;
+  --focus:#ffe066; --btn:#2a3570; --btnh:#36448a;
+  --verb1:#ffb347; --verb2:#e8732a; --verbline:#7a3a0a;
+  --tok:#4ec3e0; --tok2:#2b8fb0; --kon:#b48cff; --kon2:#7d55d6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);background-image:radial-gradient(ellipse at 10% 0%,#1d2a5e 0%,transparent 55%),radial-gradient(ellipse at 95% 100%,#3a1d4e 0%,transparent 50%);background-attachment:fixed;color:var(--text);font-family:Roboto,Arial,"Segoe UI",system-ui,sans-serif;font-size:19px;line-height:1.45;min-height:100vh}
+h1,h2,h3{line-height:1.2;margin:.2em 0 .5em} h1{font-size:1.8em} h2{font-size:1.3em} h3{font-size:1.05em}
+p{margin:.4em 0 .8em} a{color:var(--accent)}
+button{font:inherit;color:var(--text);cursor:pointer;border-radius:12px;border:2px solid #6070b8;background:var(--btn);padding:.35em .9em;min-height:46px;touch-action:manipulation}
+button:hover:not(:disabled){background:var(--btnh)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.primary:hover:not(:disabled){background:#ffd978}
+input[type=text]{font:inherit;color:#111;background:#fff;border:3px solid #8fa0e0;border-radius:10px;padding:.25em .45em;min-height:46px}
+.muted{color:var(--muted)} .small{font-size:.85em} .center{text-align:center}
+.row{display:flex;gap:.6em;flex-wrap:wrap;align-items:center} .spacer{flex:1}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:1em 1.3em;box-shadow:0 8px 24px rgba(0,0,0,.35);margin-bottom:.9em}
+.narrow{max-width:920px;margin-left:auto;margin-right:auto}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.1em .7em;white-space:nowrap;font-size:.9em}
+.warnbox{background:#4a3a00;border:2px solid var(--accent);border-radius:12px;padding:.6em 1em;margin:.6em 0;font-size:.85em}
+.warnbox ul{margin:.3em 0 0;padding-left:1.2em}
+.okline{color:var(--ok)} .badline{color:var(--bad)}
+.tipbox{background:#3a3214;border:2px solid #b89a3a;border-radius:12px;padding:.5em .9em;margin-top:.6em}
+.tipbox.es{background:#13324a;border-color:#4f8fc0}
+.tipbox.ok{background:var(--ok-bg);border-color:var(--ok)}
+.tipbox.bad{background:var(--bad-bg);border-color:var(--bad)}
+.tipbox p{margin:.25em 0}
+
+#top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.6em;flex-wrap:wrap;padding:.3em .8em;background:rgba(10,14,30,.95);border-bottom:2px solid var(--line)}
+#top .brand{font-weight:800;white-space:nowrap}
+#hud{display:flex;gap:.5em;flex-wrap:wrap;align-items:center;flex:1}
+#top .tools{display:flex;gap:.4em}
+#top .tools button{min-height:40px;padding:.2em .7em;font-size:.9em}
+.homelink{color:var(--muted);text-decoration:none;font-size:.85em;border:1px solid var(--line);border-radius:999px;padding:.15em .7em;white-space:nowrap}
+.homelink:hover{color:var(--text);border-color:var(--accent)}
+main{max-width:1280px;margin:0 auto;padding:.6em 1em 1.5em}
+
+/* Start */
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8em;margin:.6em 0 .2em}
+.level{display:flex;flex-direction:column;align-items:flex-start;gap:.15em;text-align:left;padding:.8em 1em;border-radius:16px;min-height:140px}
+.level .lv{font-size:1.5em;font-weight:800;color:var(--accent)} .level .lt{font-weight:700}
+.level .lo{font-size:.8em;color:var(--muted)}
+.check{display:flex;align-items:center;gap:.5em;cursor:pointer} .check input{width:26px;height:26px}
+.demo{display:flex;flex-wrap:wrap;gap:.35em;align-items:center;margin:.5em 0}
+.howto{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.6em;margin:.4em 0}
+.howto div{background:var(--panel2);border-radius:12px;padding:.5em .8em;font-size:.9em}
+kbd{display:inline-block;background:#fff;color:#111;border-radius:6px;padding:0 .4em;font-family:inherit;font-weight:700;box-shadow:0 2px 0 #888;font-size:.9em}
+
+/* Spielfeld */
+.game{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:1em;align-items:start}
+@media (max-width:900px){ .game{grid-template-columns:1fr} }
+.board{position:relative;height:min(64vh,560px);min-height:380px;border-radius:14px;border:3px solid var(--line);overflow:hidden;
+  background:linear-gradient(180deg,#0a0f26,#121a40);
+  background-image:linear-gradient(180deg,rgba(10,15,38,.92),rgba(18,26,64,.92)),repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 1px,transparent 1px 44px),repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 44px)}
+.blk{display:inline-flex;align-items:center;justify-content:center;font-weight:700;border-radius:6px;padding:.1em .55em;min-height:2em;white-space:nowrap;
+  border:2px solid rgba(0,0,0,.45);box-shadow:inset 0 3px 0 rgba(255,255,255,.35),inset 0 -4px 0 rgba(0,0,0,.25);color:#071a22}
+.blk.t{background:linear-gradient(180deg,var(--tok),var(--tok2))}
+.blk.k{background:linear-gradient(180deg,var(--kon),var(--kon2));color:#160830}
+.blk.v{background:linear-gradient(180deg,var(--verb1),var(--verb2));color:#2a1000;border-color:var(--verbline)}
+.blk.c{background:none;border:none;box-shadow:none;color:var(--text);padding:0 .05em;min-width:0}
+.blk.end{background:none;border:none;box-shadow:none;color:var(--text);padding:0}
+.blk.bad{background:linear-gradient(180deg,#ff7b7b,#c0392b);color:#fff;animation:shk .45s}
+.blk.ghost{background:transparent;border:3px dashed var(--ok);color:var(--ok);box-shadow:none;animation:pulse 1s infinite alternate}
+@keyframes pulse{to{opacity:.45}}
+@keyframes shk{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+.srow{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:.15em;padding:0 .4em;font-size:22px;transition:top .35s ease}
+.srow.clear .blk{animation:clr .6s forwards}
+@keyframes clr{40%{filter:brightness(2.2);transform:scale(1.08)}100%{opacity:0;transform:translateY(-30px) scale(.8)}}
+.gap{min-width:16px;width:16px;height:2.2em;border-radius:6px;border:2px dashed rgba(255,255,255,.25);background:transparent;padding:0;min-height:0;flex:0 0 auto}
+.gap:hover{border-color:var(--accent);background:rgba(255,201,74,.15)}
+.gap.sel{border:2px solid var(--accent);background:rgba(255,201,74,.35);box-shadow:0 0 12px rgba(255,201,74,.7)}
+.piece{position:absolute;z-index:5;font-size:22px;transition:left .1s ease-out, top .12s linear;pointer-events:none}
+.piece .blk{font-size:1em;box-shadow:inset 0 3px 0 rgba(255,255,255,.4),inset 0 -4px 0 rgba(0,0,0,.25),0 0 18px rgba(255,170,60,.65)}
+.guide{position:absolute;z-index:1;width:0;border-left:2px dashed rgba(255,201,74,.55);pointer-events:none;transition:left .1s ease-out}
+.junk{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;padding:0 .6em;background:repeating-linear-gradient(45deg,#3a3f55 0 12px,#33384c 12px 24px);border-top:2px solid #555b78;color:#aab0c8;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:top .35s ease}
+.junk span{overflow:hidden;text-overflow:ellipsis}
+.overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:rgba(5,8,20,.72);padding:1em}
+.overlay#wrongOv{align-items:flex-end;overflow:auto;background:rgba(5,8,20,.55);padding:.6em}
+#wrongOv .box{font-size:.9em;padding:.7em 1em}
+#wrongOv h2{font-size:1.15em;margin:0 0 .3em}
+.overlay .box{background:var(--panel);border:3px solid var(--line);border-radius:16px;padding:1em 1.2em;max-width:720px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.overlay .box.bad{border-color:var(--bad)}
+.solution{display:flex;flex-wrap:wrap;gap:.25em;align-items:center;font-size:18px;margin:.4em 0}
+.bar{height:8px;border-radius:4px;background:#2a3264;overflow:hidden;margin-top:.6em}
+.bar > div{height:100%;background:var(--accent);width:100%}
+.float{position:absolute;z-index:12;font-weight:900;color:var(--accent);font-size:26px;pointer-events:none;animation:flt 1.1s ease-out forwards;text-shadow:0 2px 6px #000}
+@keyframes flt{to{transform:translateY(-60px);opacity:0}}
+.side .card{padding:.7em .9em}
+.side h3{margin:.1em 0 .4em;font-size:.95em;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.nextbox{min-height:2.6em;display:flex;align-items:center;font-size:20px}
+.ctrl{display:flex;gap:.5em;justify-content:center;margin-top:.6em}
+.ctrl button{min-width:72px;font-size:1.2em}
+.lives{letter-spacing:.1em}
+.streak{display:flex;gap:4px} .streak span{width:22px;height:10px;border-radius:5px;background:#2a3264} .streak span.on{background:var(--accent)}
+.restable{border-collapse:collapse;margin:.5em 0} .restable th,.restable td{text-align:left;padding:.2em .8em .2em 0;border-bottom:1px solid var(--line)}
+.bigcode{font-family:"Courier New",monospace;font-size:1.6em;font-weight:800;letter-spacing:.06em;background:#fff;color:#111;border-radius:12px;padding:.2em .6em;display:inline-block;margin:.2em 0}
+.wronglist li{margin-bottom:.7em}
+.fullin{width:100%}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#fff;color:#222;border-radius:12px;padding:.5em 1em;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:60;max-width:90vw}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important} }
+</style>
+</head>
+<body>
+<header id="top">
+  <a class="homelink" href="index.html" title="Zur Startseite mit allen Spielen">← Alle Spiele</a>
+  <span class="brand">🧱 Verb-Tetris</span>
+  <div id="hud" aria-live="off"></div>
+  <div class="tools">
+    <button type="button" id="btnPause" hidden>⏸ Pause</button>
+    <button type="button" id="btnSound" aria-pressed="false" title="Ton an/aus">🔇 Ton aus</button>
+  </div>
+</header>
+<main id="app" tabindex="-1"></main>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+/* =====================================================================
+   AB HIER: SPIEL-LOGIK (muss nicht geändert werden)
+   ===================================================================== */
+const E = EINSTELLUNGEN;
+const LEVELS = ['A2','B1','B2','C1'];
+const LS_SET = 'verbtetris.einstellungen.v1', LS_HI = 'verbtetris.highscore.v1', LS_NAME = 'verbtetris.name.v1';
+const INPUT_ATTR = 'type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"';
+const KONNEKTOREN = ['weil','dass','obwohl','wenn','als','ob','bevor','nachdem','während','damit','da','falls','sofern','zumal','um','je','desto','deshalb','trotzdem','dann','deswegen','darum','kaum','und','aber','oder','denn','sondern','der','die','das','den','dem','deren','dessen','in dem','in der','über das','mit dem','mit der','wo','wie','wer','was','wann','warum'];
+
+const app=document.getElementById('app');
+let view='start', G=null, settings={ sound:false }, startName='', startSlow=false;
+
+/* ---------- Hilfen ---------- */
+const $=(s,r)=>(r||document).querySelector(s);
+const $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function fmtTime(ms){ const s=Math.max(0,Math.round(ms/1000)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function fmtDate(d){ const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear(); }
+let toastT=null;
+function toast(msg,ms){ const t=$('#toast'); t.innerHTML=fmt(msg); t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; }, ms||2500); }
+
+/* ---------- Sätze lesen ---------- */
+function satzText(s){ return typeof s==='string' ? s : (s && s.satz) || ''; }
+function parseSatz(raw){
+  let str=String(raw).trim(), end='';
+  const m=str.match(/[.!?]$/); if(m){ end=m[0]; str=str.slice(0,-1).trim(); }
+  const blocks = str.includes('|') ? str.split('|') : str.split(/\s+/);
+  const toks=[];
+  blocks.forEach(b=>{
+    b=b.trim(); if(!b) return;
+    let comma=false; if(/,$/.test(b)){ comma=true; b=b.slice(0,-1).trim(); }
+    const mv=b.match(/^\[(.+)\]$/);
+    if(mv) toks.push({ t:mv[1].trim(), v:true });
+    else toks.push({ t:b, v:false, k:KONNEKTOREN.includes(b.toLowerCase()) });
+    if(comma) toks.push({ t:',', v:false, c:true });
+  });
+  return { toks, end };
+}
+function fullText(toks,end){ return toks.map(x=>x.t).join(' ').replace(/\s+,/g,',')+end; }
+
+function dataWarnings(){
+  const w=[];
+  LEVELS.forEach(lv=>{ const S=SPIEL[lv]; if(!S) return;
+    if(!Array.isArray(S.stufen)||!S.stufen.length){ w.push(lv+': „stufen“ fehlt.'); return; }
+    S.stufen.forEach((st,si)=>{
+      const where=lv+' · Stufe '+(si+1)+' ('+(st.name||'?')+')';
+      if(st.regel && !REGELN[st.regel]) w.push(where+': unbekannte regel „'+st.regel+'“.');
+      if(!Array.isArray(st.saetze) || st.saetze.length<E.saetzeProStufe) w.push(where+': Es braucht mindestens '+E.saetzeProStufe+' Sätze.');
+      (st.saetze||[]).forEach((s,i)=>{
+        const raw=satzText(s), tw=where+', Satz '+(i+1)+': ';
+        if(!raw){ w.push(tw+'leer.'); return; }
+        const p=parseSatz(raw), verbs=p.toks.filter(x=>x.v).map(x=>x.t);
+        if(!verbs.length) w.push(tw+'kein Verb in [eckigen Klammern].');
+        if(new Set(verbs).size!==verbs.length) w.push(tw+'dasselbe Verb ist zweimal eingeklammert.');
+        if(typeof s==='object' && s.regel && !REGELN[s.regel]) w.push(tw+'unbekannte regel „'+s.regel+'“.');
+      });
+    });
+  });
+  return w;
+}
+
+/* ---------- Prüfcode ---------- */
+function cyrb53(str){ let h1=0xdeadbeef, h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909); return 4294967296*(2097151&h2)+(h1>>>0); }
+const B32='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function normName(n){ return String(n||'').replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]/g,''); }
+function checksum(level,sl,pct,d,name){ let n=cyrb53([level,sl?'L':'N',pct,d,normName(name),E.geheimwort].join('|')); let o=''; for(let i=0;i<5;i++){ o+=B32[n%32]; n=Math.floor(n/32); } return o; }
+function makeCode(level,sl,pct,date,name){ const p=n=>String(n).padStart(2,'0'); const d=p(date.getDate())+p(date.getMonth()+1)+p(date.getFullYear()%100); return level+(sl?'L':'')+'-'+pct+'-'+d+'-'+checksum(level,sl,pct,d,name); }
+function verifyCode(code,name){
+  const m=String(code||'').toUpperCase().replace(/\s+/g,'').match(/^(A2|B1|B2|C1)(L?)-(\d{1,3})-(\d{6})-([A-Z0-9]{5})$/);
+  if(!m) return { valid:false, reason:'Das Format stimmt nicht. Beispiel: B1-80-131026-K7QFM' };
+  return { valid: checksum(m[1],!!m[2],+m[3],m[4],name)===m[5], level:m[1], slow:!!m[2], pct:+m[3], date:m[4].slice(0,2)+'.'+m[4].slice(2,4)+'.20'+m[4].slice(4) };
+}
+
+/* ---------- Ton ---------- */
+let actx=null;
+const SND={ move:[[440,.03]], ok:[[660,.08],[880,.12]], clear:[[523,.08],[659,.08],[784,.08],[1047,.2]], bad:[[196,.25],[147,.3]], over:[[392,.2],[330,.2],[262,.4]], land:[[220,.05]] };
+function sound(n){ if(!settings.sound) return; try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); let t=actx.currentTime;
+  SND[n].forEach(([f,d])=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type='square'; o.frequency.value=f; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.08,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+d); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d+0.03); t+=d*0.9; }); }catch(e){} }
+
+/* =====================================================================
+   START
+   ===================================================================== */
+function highscores(){ try{ return JSON.parse(lsGet(LS_HI)||'{}'); }catch(e){ return {}; } }
+function renderStart(){
+  G=null; $('#btnPause').hidden=true; $('#hud').innerHTML='';
+  const warn=dataWarnings(), hi=highscores();
+  if(!startName) startName=lsGet(LS_NAME)||'';
+  let h='<section class="card narrow"><h1>🧱 Verb-Tetris</h1>'+
+    '<p>Unten liegt ein Satz mit Lücken. Von oben fallen die <strong>Verben</strong>. Schieb jedes Verb über die richtige Lücke und lass es fallen. Ist der Satz richtig, verschwindet die Zeile. Ist er falsch, wird er zu <strong>Schrott</strong> – und der Stapel wächst!</p>'+
+    '<div class="demo"><span class="blk t">Gestern</span><span class="gap sel" style="display:inline-block"></span><span class="blk t">ich</span><span class="blk t">in Santiago</span><span class="muted">⟵</span><span class="blk v">war</span></div>'+
+    '<p class="small muted">🇨🇱 Los verbos caen como bloques: ponlos en el lugar correcto. Posición 2, inversión, verbo al final después de weil/dass/obwohl …</p>'+
+    '<div class="howto"><div><kbd>←</kbd> <kbd>→</kbd> Verb verschieben<br>oder auf eine Lücke klicken</div><div><kbd>Leertaste</kbd> fallen lassen<br><kbd>↓</kbd> schneller fallen</div><div><kbd>P</kbd> Pause<br>3 richtige Sätze in Folge = 1 Schrott-Zeile weg 🧹</div></div></section>';
+  if(warn.length) h+='<div class="warnbox narrow"><strong>⚠️ Hinweis für Lehrkräfte – in den Daten stimmt etwas nicht:</strong><ul>'+warn.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+  h+='<section class="card narrow"><h2>1 · Dein Name</h2><input '+INPUT_ATTR+' id="nm" class="fullin" value="'+esc(startName)+'"><div id="nmFb" role="status"></div>'+
+    '<label class="check" style="margin-top:.6em"><input type="checkbox" id="slow"'+(startSlow?' checked':'')+'> 🐢 Langsam-Modus: Die Blöcke fallen langsamer (wird im Prüfcode vermerkt).</label></section>';
+  h+='<section class="card narrow"><h2>2 · Wähle deine Stufe</h2><div class="levels">'+LEVELS.map(lv=>{ const S=SPIEL[lv]; if(!S) return '<button type="button" class="level" disabled><span class="lv">'+lv+'</span><span class="lt">🔒 kommt bald</span></button>';
+      return '<button type="button" class="level" data-l="'+lv+'"><span class="lv">'+esc(S.klasse)+'</span><span class="lt">'+lv+' · '+esc(S.titel)+'</span><span class="lo">'+esc(S.schwerpunkt||'')+'</span>'+(hi[lv]?'<span class="lo">🏆 Rekord: '+hi[lv]+' Punkte</span>':'')+'</button>'; }).join('')+'</div></section>';
+  h+='<p class="small center"><a href="#lehrer">Für Lehrkräfte: Prüfcode kontrollieren</a></p>';
+  app.innerHTML=h;
+  $$('.level[data-l]').forEach(b=>b.addEventListener('click',()=>{
+    startName=$('#nm').value.trim().replace(/\s+/g,' '); startSlow=$('#slow').checked;
+    if(normName(startName).length<2){ $('#nmFb').innerHTML='<p class="badline">Bitte schreib deinen Namen.</p>'; $('#nm').focus(); return; }
+    lsSet(LS_NAME,startName); startGame(b.dataset.l);
+  }));
+}
+
+/* =====================================================================
+   SPIEL
+   ===================================================================== */
+function startGame(level){
+  const L=SPIEL[level], plan=[];
+  L.stufen.forEach((st,si)=>{ shuffle(st.saetze).slice(0,E.saetzeProStufe).forEach(s=>plan.push({ si, raw:satzText(s), regel:(typeof s==='object'&&s.regel)||st.regel })); });
+  G={ level, slow:startSlow, name:startName, plan, idx:0, score:0, junk:[], streak:0, ok:0, wrong:[], elapsed:0, paused:false, phase:'play', t:null, piece:null, busy:false };
+  view='game'; $('#btnPause').hidden=false;
+  renderGameShell(); nextSentence();
+}
+function renderGameShell(){
+  app.innerHTML='<div class="game"><div><div class="board" id="board"></div>'+
+    '<div class="ctrl"><button type="button" id="cL" aria-label="Nach links">◀</button><button type="button" id="cD" class="primary" aria-label="Fallen lassen">⬇ Ablegen</button><button type="button" id="cR" aria-label="Nach rechts">▶</button></div></div>'+
+    '<aside class="side"><div class="card"><h3>Stufe</h3><div id="stufe"></div></div><div class="card"><h3>Nächster Block</h3><div class="nextbox" id="next"></div></div>'+
+    '<div class="card"><h3>Serie 🧹</h3><div class="streak" id="streak"></div><p class="small muted" style="margin:.4em 0 0">'+E.aufraeumenNach+' richtige Sätze in Folge → 1 Schrott-Zeile verschwindet.</p></div></aside></div>';
+  $('#cL').addEventListener('click',()=>move(-1)); $('#cR').addEventListener('click',()=>move(1)); $('#cD').addEventListener('click',hardDrop);
+}
+function slotH(){ const b=$('#board'); return b ? b.clientHeight/E.zeilen : 50; }
+function rowSlot(){ return E.zeilen-1-G.junk.length; }
+function landY(){ return rowSlot()-1; }
+function tickMs(){ let ms=E.startTempo[G.level]*Math.pow(E.beschleunigung,G.cur.si); if(G.slow) ms*=E.langsamFaktor; return ms; }
+
+function nextSentence(){
+  if(G.idx>=G.plan.length) return finish(true);
+  const p=G.plan[G.idx], { toks, end }=parseSatz(p.raw);
+  const verbIdx=toks.map((t,i)=>i).filter(i=>toks[i].v);
+  G.cur={ toks, end, regel:p.regel, si:p.si, row:toks.map((t,i)=>i).filter(i=>!toks[i].v), queue:shuffle(verbIdx) };
+  renderBoard(); renderSide(); renderHud(); spawn();
+}
+function spawn(){
+  const c=G.cur;
+  if(!c.queue.length) return sentenceDone();
+  G.piece={ idx:c.queue.shift(), y:0, gap:Math.floor(c.row.length/2) };
+  G.busy=false;
+  renderBoard(); renderSide(); schedule();
+}
+function schedule(){ clearTimeout(G.t); if(G.paused||G.phase!=='play'||!G.piece) return; G.t=setTimeout(step, tickMs()); }
+function step(){ if(!G||G.paused||!G.piece||G.busy) return; if(G.piece.y>=landY()) return land(); G.piece.y++; placePiece(); schedule(); }
+function move(d){ if(!G||!G.piece||G.paused||G.busy) return; const n=G.cur.row.length; const g=Math.max(0,Math.min(n,G.piece.gap+d)); if(g!==G.piece.gap){ G.piece.gap=g; sound('move'); markGap(); placePiece(); } }
+function setGap(g){ if(!G||!G.piece||G.paused||G.busy) return; if(G.piece.gap===g){ hardDrop(); return; } G.piece.gap=g; markGap(); placePiece(); }
+function softDrop(){ if(!G||!G.piece||G.paused||G.busy) return; if(G.piece.y<landY()){ G.piece.y++; G.score+=1; placePiece(); renderHud(); schedule(); } else land(); }
+function hardDrop(){ if(!G||!G.piece||G.paused||G.busy) return; clearTimeout(G.t); G.score+=Math.max(0,landY()-G.piece.y)*2; G.piece.y=landY(); G.busy=true; placePiece(); setTimeout(()=>{ G.busy=false; land(); },140); }
+
+function land(){
+  if(!G||!G.piece) return;
+  clearTimeout(G.t);
+  const c=G.cur, p=G.piece;
+  const correct=c.row.filter(i=>i<p.idx).length;
+  G.piece=null;
+  if(p.gap===correct){
+    c.row.splice(correct,0,p.idx); G.score+=E.punkteProVerb; sound('land');
+    renderBoard(); renderHud();
+    if(c.queue.length) setTimeout(()=>{ if(G && G.phase==='play') spawn(); },150); else sentenceDone();
+  } else wrong(p, correct);
+}
+function sentenceDone(){
+  const c=G.cur; G.ok++; G.streak++;
+  let pts=E.punkteProSatz*(1+Math.floor(c.si/2)); if(G.streak>=E.aufraeumenNach) pts*=2;
+  G.score+=pts; sound('clear');
+  const row=$('#srow'); if(row) row.classList.add('clear');
+  floatText('+'+pts+(G.streak>=E.aufraeumenNach?' 🔥':''));
+  if(G.streak%E.aufraeumenNach===0 && G.junk.length){ G.junk.shift(); setTimeout(()=>toast('🧹 Aufgeräumt! Eine Schrott-Zeile ist weg.'),300); }
+  renderHud(); renderSide();
+  G.busy=true;
+  setTimeout(()=>{ if(!G) return; G.busy=false; G.idx++; nextSentence(); },750);
+}
+function wrong(p, correct){
+  const c=G.cur; G.streak=0; G.phase='wrong'; sound('bad');
+  const sol=fullText(c.toks,c.end);
+  G.wrong.push({ satz:sol, regel:c.regel, verb:c.toks[p.idx].t });
+  const R=REGELN[c.regel]||{};
+  // Satz mit falschem Verb (rot) und Zielmarkierung (grün)
+  let row=c.row.slice(); let html='';
+  for(let g=0; g<=row.length; g++){
+    if(g===p.gap) html+='<span class="blk bad">'+esc(c.toks[p.idx].t)+'</span>';
+    if(g===correct) html+='<span class="blk ghost">'+esc(c.toks[p.idx].t)+'</span>';
+    if(g<row.length) html+=tokHTML(c.toks[row[g]]);
+  }
+  html+='<span class="blk end">'+esc(c.end)+'</span>';
+  const srow=$('#srow'); if(srow){ srow.innerHTML=html; fitRow(srow); }
+  $('#guide') && $('#guide').remove(); $('#piece') && $('#piece').remove();
+  if($('#next')) $('#next').innerHTML='<span class="muted small">neuer Satz</span>';
+  const ov=document.createElement('div'); ov.className='overlay'; ov.id='wrongOv';
+  ov.innerHTML='<div class="box bad" role="alertdialog" aria-labelledby="wT"><h2 id="wT" style="margin-top:0">✗ Falsche Stelle!</h2>'+
+    '<p>Das Verb <strong>„'+esc(c.toks[p.idx].t)+'“</strong> gehört an die grün markierte Stelle. Richtig ist:</p>'+
+    '<div class="solution">'+c.toks.map(tokHTML).join('')+'<span class="blk end">'+esc(c.end)+'</span></div>'+
+    '<div class="tipbox"><p><strong>💡 '+esc(R.name||'')+':</strong> '+fmt(R.de||'')+'</p>'+
+    (E.spanischeHilfe[G.level]&&R.es?'<p style="color:#9fd0ff">🇨🇱 '+fmt(R.es)+'</p>':'')+'</div>'+
+    '<div class="row" style="margin-top:.7em"><span class="small muted">Der Satz wird zur Schrott-Zeile.</span><span class="spacer"></span><button type="button" class="primary" id="btnGoOn">Weiter (Leertaste) ➜</button></div><div class="bar"><div id="wbar"></div></div></div>';
+  // Overlay über dem Spielfeld, aber den markierten Satz sichtbar lassen
+  $('#board').appendChild(ov);
+  // Overlay nur über dem leeren Bereich – die markierte Satzzeile bleibt sichtbar
+  const rowTop=$('#srow') ? $('#srow').offsetTop : 0;
+  ov.style.bottom=Math.max(0,$('#board').clientHeight-rowTop)+'px';
+  let left=8000; const total=left;
+  G.wTimer=setInterval(()=>{ if(G.paused) return; left-=100; const b=$('#wbar'); if(b) b.style.width=Math.max(0,left/total*100)+'%'; if(left<=0) goOn(); },100);
+  $('#btnGoOn').addEventListener('click',goOn); $('#btnGoOn').focus({preventScroll:true});
+  renderHud();
+}
+function goOn(){
+  if(!G || G.phase!=='wrong') return;
+  clearInterval(G.wTimer); const ov=$('#wrongOv'); if(ov) ov.remove();
+  G.junk.push(fullText(G.cur.toks,G.cur.end));
+  G.phase='play';
+  if(G.junk.length>=E.maxSchrott){ sound('over'); return finish(false); }
+  G.idx++; nextSentence();
+}
+function floatText(t){ const b=$('#board'), r=$('#srow'); if(!b||!r) return; const f=document.createElement('div'); f.className='float'; f.textContent=t; f.style.left='45%'; f.style.top=(r.offsetTop-30)+'px'; b.appendChild(f); setTimeout(()=>f.remove(),1200); }
+
+/* ---------- Zeichnen ---------- */
+function tokHTML(t){ if(t.c) return '<span class="blk c">,</span>'; return '<span class="blk '+(t.v?'v':(t.k?'k':'t'))+'">'+esc(t.t)+'</span>'; }
+function renderBoard(){
+  const b=$('#board'); if(!b||!G) return;
+  const sh=slotH(), c=G.cur;
+  let h='';
+  G.junk.forEach((j,i)=>{ h+='<div class="junk" style="top:'+((E.zeilen-1-i)*sh)+'px;height:'+sh+'px" title="'+esc(j)+'"><span>🧱 '+esc(j)+'</span></div>'; });
+  let row='';
+  for(let g=0; g<=c.row.length; g++){
+    row+='<button type="button" class="gap'+(G.piece&&G.piece.gap===g?' sel':'')+'" data-g="'+g+'" aria-label="Lücke '+(g+1)+'" tabindex="-1"></button>';
+    if(g<c.row.length) row+=tokHTML(c.toks[c.row[g]]);
+  }
+  row+='<span class="blk end">'+esc(c.end)+'</span>';
+  h+='<div class="srow" id="srow" style="top:'+(rowSlot()*sh)+'px;height:'+sh+'px">'+row+'</div>';
+  if(G.piece){ h+='<div class="guide" id="guide"></div><div class="piece" id="piece"><span class="blk v">'+esc(c.toks[G.piece.idx].t)+'</span></div>'; }
+  if(G.paused) h+='<div class="overlay" id="pauseOv"><div class="box center"><h2>⏸ Pause</h2><p>Drück <kbd>P</kbd> oder klick auf „Weiter“.</p><button type="button" class="primary" id="btnResume">▶ Weiter</button></div></div>';
+  b.innerHTML=h;
+  fitRow($('#srow'));
+  $$('.gap',b).forEach(x=>x.addEventListener('click',()=>setGap(+x.dataset.g)));
+  if($('#btnResume')) $('#btnResume').addEventListener('click',togglePause);
+  placePiece(true);
+}
+function fitRow(r){ if(!r) return; let fs=22; r.style.fontSize=fs+'px'; while(r.scrollWidth>r.clientWidth+1 && fs>11){ fs--; r.style.fontSize=fs+'px'; } const p=$('#piece'); if(p) p.style.fontSize=Math.max(fs,15)+'px'; }
+function markGap(){ $$('#srow .gap').forEach(x=>x.classList.toggle('sel', G.piece && +x.dataset.g===G.piece.gap)); }
+function placePiece(instant){
+  const p=$('#piece'), b=$('#board'); if(!p||!b||!G.piece) return;
+  const g=$('#srow .gap[data-g="'+G.piece.gap+'"]'); if(!g) return;
+  const br=b.getBoundingClientRect(), gr=g.getBoundingClientRect();
+  const cx=gr.left+gr.width/2-br.left, w=p.offsetWidth, sh=slotH();
+  const left=Math.max(4,Math.min(br.width-w-4,cx-w/2));
+  if(instant){ p.style.transition='none'; }
+  p.style.left=left+'px'; p.style.top=(G.piece.y*sh+(sh-p.offsetHeight)/2)+'px';
+  const gd=$('#guide'); if(gd){ if(instant) gd.style.transition='none'; gd.style.left=cx+'px'; gd.style.top=(G.piece.y*sh+sh*0.8)+'px'; gd.style.height=Math.max(0,(rowSlot()-G.piece.y)*sh-sh*0.6)+'px'; }
+  if(instant){ void p.offsetWidth; p.style.transition=''; if(gd) gd.style.transition=''; }
+}
+function renderSide(){
+  if(!G||!$('#stufe')) return;
+  const c=G.cur, L=SPIEL[G.level], st=L.stufen[c.si], R=REGELN[c.regel]||{};
+  $('#stufe').innerHTML='<strong>'+(c.si+1)+'/'+L.stufen.length+': '+esc(st.name)+'</strong><p class="small" style="margin:.4em 0 0">'+fmt(R.de||'')+'</p>'+(E.spanischeHilfe[G.level]&&R.es?'<p class="small" style="color:#9fd0ff;margin:.3em 0 0">🇨🇱 '+fmt(R.es)+'</p>':'');
+  const nx=c.queue[0];
+  $('#next').innerHTML = nx!=null ? '<span class="blk v">'+esc(c.toks[nx].t)+'</span>' : '<span class="muted small">neuer Satz</span>';
+  const on=G.streak%E.aufraeumenNach;
+  $('#streak').innerHTML=Array.from({length:E.aufraeumenNach},(_,i)=>'<span class="'+(i<on?'on':'')+'"></span>').join('');
+}
+function renderHud(){
+  if(!G){ $('#hud').innerHTML=''; return; }
+  const lives=E.maxSchrott-G.junk.length;
+  $('#hud').innerHTML='<span class="pill">'+esc(SPIEL[G.level].klasse)+(G.slow?' · 🐢':'')+'</span><span class="pill">⭐ '+G.score+'</span><span class="pill">📝 '+Math.min(G.idx+1,G.plan.length)+'/'+G.plan.length+'</span><span class="pill lives" title="Freie Zeilen bis Game Over">'+'❤️'.repeat(Math.max(0,lives))+'🖤'.repeat(Math.max(0,G.junk.length))+'</span><span class="pill" id="clock">⏱ '+fmtTime(G.elapsed)+'</span>';
+}
+function togglePause(){
+  if(!G||G.phase==='end') return;
+  G.paused=!G.paused; $('#btnPause').textContent=G.paused?'▶ Weiter':'⏸ Pause';
+  if(G.phase==='play'){ renderBoard(); if(!G.paused) schedule(); else clearTimeout(G.t); }
+}
+
+/* ---------- Ende ---------- */
+function finish(complete){
+  clearTimeout(G.t); clearInterval(G.wTimer);
+  G.phase='end'; G.complete=complete; G.finished=new Date();
+  const hi=highscores(); if(!hi[G.level] || G.score>hi[G.level]){ hi[G.level]=G.score; lsSet(LS_HI,JSON.stringify(hi)); G.record=true; }
+  if(complete) sound('clear');
+  $('#btnPause').hidden=true; view='result'; renderResult();
+}
+function renderResult(){
+  const total=G.plan.length, pct=Math.round(G.ok/total*100), code=makeCode(G.level,G.slow,pct,G.finished,G.name);
+  const L=SPIEL[G.level], nextLv=LEVELS[LEVELS.indexOf(G.level)+1];
+  renderHud();
+  const rows=[['Name',G.name],['Stufe',L.klasse+' – '+G.level+' '+L.titel],['Modus',G.slow?'Langsam-Modus 🐢':'normal'],['Punkte',G.score+(G.record?' 🏆 neuer Rekord!':'')],['Richtige Sätze',G.ok+' von '+total+' ('+pct+' %)'],['Zeit',fmtTime(G.elapsed)+' min'],['Datum',fmtDate(G.finished)]];
+  let h='<section class="card narrow"><h1>'+(G.complete?'🏁 Geschafft!':'💥 Game Over')+'</h1>'+
+    (G.complete?'<p>Du hast alle '+total+' Sätze gespielt.</p>':'<p>Der Stapel war zu hoch. Du bist bis Satz '+(G.idx+1)+' von '+total+' gekommen.</p>')+
+    '<table class="restable">'+rows.map(r=>'<tr><th scope="row">'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table>'+
+    '<p style="margin-bottom:0">Prüfcode:</p><div class="bigcode">'+esc(code)+'</div><p class="small muted">Mach einen Screenshot oder kopiere das Ergebnis und gib es in Google Classroom ab.</p>'+
+    '<div class="row"><button type="button" class="primary" id="btnCopy">📋 Ergebnis kopieren</button><button type="button" id="btnAgain">↺ Nochmal</button>'+(nextLv&&SPIEL[nextLv]?'<button type="button" id="btnNextLv">⏭ '+esc(SPIEL[nextLv].klasse)+'</button>':'')+'<button type="button" id="btnHome">☰ Menü</button><span id="copyFb" role="status" class="okline"></span></div>'+
+    '<h2 style="margin-top:1em">Deine Fehler ('+G.wrong.length+')</h2>';
+  h+=G.wrong.length ? '<ol class="wronglist">'+G.wrong.map(w=>{ const R=REGELN[w.regel]||{}; return '<li><span class="okline">✓ '+esc(w.satz)+'</span><br><span class="small muted">„'+esc(w.verb)+'“ stand falsch · '+esc(R.name||'')+'</span></li>'; }).join('')+'</ol>' : '<p class="okline">✓ Keine Fehler – ¡bacán!</p>';
+  app.innerHTML=h+'</section>';
+  $('#btnCopy').addEventListener('click',()=>copyText(resultText(code,pct)));
+  $('#btnAgain').addEventListener('click',()=>startGame(G.level));
+  if($('#btnNextLv')) $('#btnNextLv').addEventListener('click',()=>startGame(nextLv));
+  $('#btnHome').addEventListener('click',()=>{ view='start'; renderStart(); });
+  $('#btnCopy').focus();
+}
+function resultText(code,pct){
+  const L=SPIEL[G.level];
+  return 'Verb-Tetris – Satzbau-Arcade\nName: '+G.name+'\nStufe: '+L.klasse+' ('+G.level+' – '+L.titel+')\nModus: '+(G.slow?'Langsam':'normal')+'\nPunkte: '+G.score+'\nRichtige Sätze: '+G.ok+' / '+G.plan.length+' ('+pct+' %)\nZeit: '+fmtTime(G.elapsed)+' min\nDatum: '+fmtDate(G.finished)+'\nPrüfcode: '+code+'\n\nFehler ('+G.wrong.length+'):\n'+(G.wrong.length?G.wrong.map((w,i)=>(i+1)+'. '+w.satz).join('\n'):'–');
+}
+function copyText(t){
+  const done=()=>{ $('#copyFb').textContent='✓ Kopiert! Jetzt in Google Classroom einfügen (Strg + V).'; };
+  const fallback=()=>{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){ $('#copyFb').textContent='Kopieren hat nicht geklappt – bitte Screenshot machen.'; } ta.remove(); };
+  let settled=false; const once=f=>()=>{ if(!settled){ settled=true; f(); } };
+  try{ if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(t).then(once(done),once(fallback)); setTimeout(once(fallback),800); } else once(fallback)(); }catch(e){ once(fallback)(); }
+}
+
+/* ---------- Lehrkraft ---------- */
+function renderTeacher(){
+  if(G && G.phase==='play' && !G.paused) togglePause();
+  $('#hud').innerHTML='';
+  app.innerHTML='<section class="card narrow"><h1>🔎 Prüfcode kontrollieren</h1><p class="muted">Für Lehrkräfte. Name so eingeben, wie er im Ergebnis steht (Groß-/Kleinschreibung, Akzente und Leerzeichen sind egal). Ein „L“ nach der Stufe bedeutet Langsam-Modus.</p>'+
+    '<p><label for="tName">Name</label><br><input '+INPUT_ATTR+' id="tName" class="fullin"></p><p><label for="tCode">Prüfcode</label><br><input '+INPUT_ATTR+' id="tCode" class="fullin" placeholder="z. B. B1-80-131026-K7QFM"></p>'+
+    '<div class="row"><button type="button" class="primary" id="tCheck">Prüfen</button><span class="spacer"></span><button type="button" id="tBack">← Zurück zum Spiel</button></div><div id="tRes" role="status" aria-live="polite" style="margin-top:.8em"></div></section>';
+  const go=()=>{ const r=verifyCode($('#tCode').value,$('#tName').value);
+    $('#tRes').innerHTML = r.valid ? '<p class="tipbox ok"><strong>✓ Der Code ist gültig.</strong><br>Stufe <strong>'+r.level+'</strong> ('+esc((SPIEL[r.level]||{}).klasse||'')+')'+(r.slow?' · Langsam-Modus':'')+' · <strong>'+r.pct+' %</strong> richtige Sätze · '+r.date+'</p>'
+      : '<p class="tipbox bad"><strong>✗ Der Code ist nicht gültig.</strong><br>'+esc(r.reason||'Name oder Code passen nicht zusammen.')+'</p>'; };
+  $('#tCheck').addEventListener('click',go); ['#tName','#tCode'].forEach(s=>$(s).addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }));
+  $('#tBack').addEventListener('click',()=>{ history.replaceState(null,'',location.pathname+location.search); route(); });
+  $('#tName').focus();
+}
+
+/* ---------- Steuerung ---------- */
+document.addEventListener('keydown',e=>{
+  if(location.hash==='#lehrer' || !G) return;
+  if(G.phase==='wrong'){ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); goOn(); } return; }
+  if(G.phase!=='play') return;
+  if(e.target && e.target.tagName==='INPUT') return;
+  const k=e.key;
+  if(k==='p'||k==='P'||k==='Escape'){ e.preventDefault(); togglePause(); return; }
+  if(G.paused) return;
+  if(k==='ArrowLeft'||k==='a'||k==='A'){ e.preventDefault(); move(-1); }
+  else if(k==='ArrowRight'||k==='d'||k==='D'){ e.preventDefault(); move(1); }
+  else if(k==='ArrowDown'||k==='s'||k==='S'){ e.preventDefault(); softDrop(); }
+  else if(k===' '||k==='Enter'||k==='ArrowUp'){ e.preventDefault(); hardDrop(); }
+});
+document.addEventListener('visibilitychange',()=>{ if(document.hidden && G && G.phase==='play' && !G.paused) togglePause(); });
+window.addEventListener('resize',()=>{ if(G && G.phase==='play') renderBoard(); });
+setInterval(()=>{ if(G && (G.phase==='play'||G.phase==='wrong') && !G.paused && !document.hidden && location.hash!=='#lehrer'){ G.elapsed+=1000; const c=$('#clock'); if(c) c.textContent='⏱ '+fmtTime(G.elapsed); } },1000);
+
+function route(){
+  if(location.hash==='#lehrer') return renderTeacher();
+  if(G && G.phase!=='end' && view==='game'){ renderGameShell(); renderBoard(); renderSide(); renderHud(); $('#btnPause').hidden=false; return; }
+  if(G && view==='result') return renderResult();
+  renderStart();
+}
+(function init(){
+  try{ const s=JSON.parse(lsGet(LS_SET)||'{}'); if(s.sound) settings.sound=true; }catch(e){}
+  const sb=$('#btnSound');
+  const upd=()=>{ sb.textContent=settings.sound?'🔊 Ton an':'🔇 Ton aus'; sb.setAttribute('aria-pressed',String(settings.sound)); };
+  upd(); sb.addEventListener('click',()=>{ settings.sound=!settings.sound; lsSet(LS_SET,JSON.stringify(settings)); upd(); sound('ok'); sb.blur(); });
+  $('#btnPause').addEventListener('click',()=>{ togglePause(); $('#btnPause').blur(); });
+  window.addEventListener('hashchange',route);
+  route();
+})();
+</script>
+</body>
+</html>
