@@ -20,7 +20,7 @@
       Wenn etwas fehlt, zeigt die Seite oben einen gelben Hinweis.
 
    FELDER EINES SPIELS
-     datei       : Dateiname der Spieldatei, z. B. "kasus-code.html"
+     datei       : Dateiname der Spieldatei, z. B. "artikel-detektive.html"
      titel       : Name des Spiels
      bild        : 1–3 Emojis für das Titelbild, z. B. "🔐🔭✨"
      farbe       : Farbe des Titelbilds, z. B. "#1f618d"
@@ -36,7 +36,7 @@
      speicher    : (optional) Name des Spielstands im Browser – dann zeigt
                    die Karte „Weiterspielen“, wenn ein Spiel gespeichert ist.
                    Nur für Spiele, die den Spielstand so speichern
-                   (Kasus-Code und Artikel-Detektive tun das).
+                   (Artikel-Detektive und Super-Completo tun das).
      lehrerseite : (optional) true → Link zur Prüfcode-Kontrolle (#lehrer)
                    erscheint unten im Bereich „Für Lehrkräfte“
    ===================================================================== */
@@ -48,31 +48,6 @@ const SEITE = {
 };
 
 const SPIELE = [
-  {
-    datei: "kasus-code.html",
-    titel: "Kasus-Code",
-    bild: "🔐🔭✨",
-    farbe: "#1f3a68",
-    kurz: "Ein Escape Room mit Geschichte: Löse Grammatik-Rätsel und knacke die Türcodes.",
-    beschreibung: "Du bist mit Sofía, Matías und Benja eingeschlossen – im Observatorium in der Atacama, in einem alten Haus in Valparaíso, im Archiv in Concepción oder auf einer Forschungsstation. Jede richtige Antwort gibt dir eine Zahl für das Türschloss.",
-    sospielst: [
-      "Wähle dein Niveau (A2–C1).",
-      "Löse in jedem Raum die Aufgaben – du hast immer zwei Versuche.",
-      "Gib den Code ins Türschloss ein und geh in den nächsten Raum.",
-      "Am Ende bekommst du einen Prüfcode für Google Classroom."
-    ],
-    niveaus: {
-      A2: "Verben mit Akkusativ/Dativ, Wo? oder Wohin?",
-      B1: "Possessivartikel, Pronomen-Wortstellung, stellen/stehen …",
-      B2: "Adjektive nach Präpositionen, Verben mit Präposition, Relativsätze",
-      C1: "Funktionsverbgefüge, Redewendungen, Fehlersuche"
-    },
-    typ: "Escape Room",
-    dauer: "30–45 Min. pro Niveau",
-    spanisch: "Un escape room: resuelve ejercicios de casos y abre las puertas.",
-    speicher: "kasuscode.spiel.v1",
-    lehrerseite: true
-  },
   {
     datei: "artikel-detektive.html",
     titel: "Artikel-Detektive",
