@@ -676,6 +676,21 @@ main{max-width:1180px;margin:0 auto;padding:.6em 1em 1.5em}
 .tile,.tile:hover:not(:disabled){background:#f3dcc3}
 .tile.v,.tile.v:hover:not(:disabled){background:linear-gradient(180deg,#ffd27a,#e59a3a);border-color:#7a4a1c}
 .tile:disabled{opacity:1;cursor:default}
+.scherbe{font-weight:600;color:#2a1206;background:linear-gradient(180deg,#e2a877,#b8753f);border:3px solid #6e3f24;border-radius:16px 5px 13px 7px;padding:.15em .75em;min-height:46px;display:inline-flex;align-items:center}
+button.tile.scherbe,button.tile.scherbe:hover:not(:disabled){background:linear-gradient(180deg,#e2a877,#b8753f)}
+button.tile.scherbe.v,button.tile.scherbe.v:hover:not(:disabled){background:linear-gradient(180deg,#ffd27a,#e59a3a)}
+button.tile.scherbe:nth-child(odd){border-radius:6px 15px 8px 14px}
+.scherbe.fest{background:linear-gradient(180deg,#c98a5a,#9a5a34);color:#fff2e4;border-style:solid}
+.answer .slot{min-width:90px;min-height:46px;margin:0 .1em}
+.potrow{display:flex;align-items:center;gap:1em;margin:.4em 0 0}
+.pot{width:150px;height:auto;overflow:visible}
+.potpiece{transform-box:view-box;transform-origin:80px 90px;animation:assemble .9s cubic-bezier(.3,1.3,.5,1) both}
+.potpiece .seam{animation:seam 1.4s 1.1s forwards}
+@keyframes assemble{from{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}to{transform:none;opacity:1}}
+@keyframes seam{to{opacity:0}}
+.pot{animation:potglow 1s 1.3s ease-out both}
+@keyframes potglow{0%{filter:none}50%{filter:drop-shadow(0 0 14px #ffd27a)}100%{filter:drop-shadow(0 0 4px #ffd27a)}}
+.pottxt{font-weight:700;color:var(--accent);margin:0}
 .preview{background:#fffaf0;color:#2a2018;border-radius:12px;padding:.5em .9em;margin:.3em 0 .6em;font-family:Georgia,serif}
 .preview .kon{font-weight:800;color:#8e3a12}
 
@@ -966,6 +981,34 @@ function tafelSVG(n, cls){
   }
   return '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="Tontafel: '+n+' von 5 Scherben">'+s+'</svg>';
 }
+/* Tontopf aus Scherben (Animation: die Scherben fliegen zusammen) */
+function potSVG(n){
+  const rows=[ [[0,0],[78,0],[160,0]],
+    [[0,52],[30,60],[55,48],[80,58],[105,50],[130,61],[160,54]],
+    [[0,100],[28,110],[52,98],[80,108],[108,99],[134,111],[160,103]],
+    [[0,148],[35,156],[60,145],[80,153],[100,144],[128,157],[160,150]],
+    [[0,180],[82,180],[160,180]] ];
+  const mids=[[86,30],[74,82],[88,130],[76,166]];
+  const vx=row=>row.findIndex(p=>p[0]>=76 && p[0]<=82);
+  const polys=[];
+  for(let b=0;b<4;b++){
+    const top=rows[b], bot=rows[b+1], it=vx(top), ib=vx(bot);
+    polys.push(top.slice(0,it+1).concat([mids[b]]).concat(bot.slice(0,ib+1).reverse()));
+    polys.push(top.slice(it).concat(bot.slice(ib).reverse()).concat([mids[b]]));
+  }
+  const pot='<path d="M52 10 h56 q5 0 5 6 v8 q0 6 -7 10 q38 22 38 72 q0 58 -50 72 h-28 q-50 -14 -50 -72 q0 -50 38 -72 q-7 -4 -7 -10 v-8 q0 -6 5 -6 z" fill="url(#potg)" stroke="#5a2a12" stroke-width="4"/>'+
+    '<path d="M30 96 q50 14 100 0" stroke="#5a2a12" stroke-width="3" fill="none"/><path d="M34 112 q46 12 92 0" stroke="#f3d2a8" stroke-width="3" fill="none" stroke-dasharray="8 6"/>'+
+    '<path d="M62 60 l8 10 l8 -10 l8 10 l8 -10" stroke="#f3d2a8" stroke-width="3" fill="none"/>';
+  const potPath='M52 10 h56 q5 0 5 6 v8 q0 6 -7 10 q38 22 38 72 q0 58 -50 72 h-28 q-50 -14 -50 -72 q0 -50 38 -72 q-7 -4 -7 -10 v-8 q0 -6 5 -6 z';
+  let defs='<defs><linearGradient id="potg" x1="0" x2="1"><stop offset="0" stop-color="#9a5530"/><stop offset=".45" stop-color="#d48a55"/><stop offset="1" stop-color="#8a4a28"/></linearGradient><clipPath id="potclip"><path d="'+potPath+'"/></clipPath>';
+  let g='';
+  polys.forEach((P,i)=>{ const pts=P.map(p=>p.join(',')).join(' ');
+    defs+='<clipPath id="pc'+i+'"><polygon points="'+pts+'"/></clipPath>';
+    const a=i*2.399, dx=Math.round(Math.cos(a)*140), dy=Math.round(Math.sin(a)*90), rot=Math.round((i%2?1:-1)*(25+i*9));
+    g+='<g class="potpiece" style="--dx:'+dx+'px;--dy:'+dy+'px;--r:'+rot+'deg;animation-delay:'+(i*0.09)+'s"><g clip-path="url(#pc'+i+')">'+pot+'</g><g clip-path="url(#potclip)"><polygon class="seam" points="'+pts+'" fill="none" stroke="#3a1a08" stroke-width="2"/></g></g>';
+  });
+  return '<svg class="pot" viewBox="-20 -10 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+defs+'</defs>'+g+'</svg>';
+}
 function adobe(x,y,w,h,c){ return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+c+'" stroke="#5a3218" stroke-width="2"/><path d="M'+(x-6)+' '+y+' L'+(x+w+6)+' '+y+' L'+(x+w)+' '+(y-12)+' L'+x+' '+(y-12)+' Z" fill="#a0442a" stroke="#5a3218" stroke-width="2"/><rect x="'+(x+w/2-9)+'" y="'+(y+h-30)+'" width="18" height="30" fill="#5a3218"/>'; }
 function pots(x,y,n){ let s=''; for(let i=0;i<n;i++){ const px=x+i*34, h=22+(i%3)*8; s+='<path d="M'+(px)+' '+y+' q-6 -'+h/2+' 4 -'+h+' h14 q10 '+h/2+' 4 '+h+' Z" fill="'+['#b5774a','#9a5a34','#c98a5a'][i%3]+'" stroke="#5a3218" stroke-width="2"/>'; } return s; }
 const SCENES = {
@@ -1232,27 +1275,26 @@ const T = {
     if(!optOrder[S.id]) optOrder[S.id]=shuffle(range(S.optionen.length));
     ui.placed=ui.placed||[]; ui.lehm=ui.lehm||[];
     const rerender=()=>T.kleben(t,S,el,onNext);
-    let h=crackHTML()+timerHTML(t)+'<p class="auftrag">Verbinde die Scherben: Wähle einen Stein und klick den zweiten Satz in die richtige Reihenfolge.</p>';
+    if(!ui.pool){ let o, k=0; do { o=shuffle(range(n)); k++; } while(k<20 && n>1 && o.every((v,i)=>v===i)); ui.pool=o; }
+    let h=crackHTML()+timerHTML(t);
     const conn = res ? (ui.conn||asList(S.loesung)[0]) : ui.conn;
-    h+='<div class="shards"><div class="shard">'+esc(String(S.satz1).replace(/[.!?]$/,''))+'</div><div class="slot">'+(conn?steinHTML(conn,'sel','tabindex="-1" disabled'):'Stein?')+'</div><div class="shard">'+esc(S.toks.map(x=>x.t).join(' '))+'</div></div>';
     if(!res){
       h+='<p class="small muted" style="margin:.2em 0">1 · Wähle einen Stein:</p><div class="stones">'+optOrder[S.id].map(i=>{ const o=S.optionen[i]; return steinWrap(o,(ui.conn===o?'sel':'')+(ui.lehm.includes(o)?' lehm':''),'data-c="'+esc(o)+'"'+(ui.lehm.includes(o)?' disabled':'')); }).join('')+'</div>';
+      h+='<p class="small muted" style="margin:.2em 0">2 · Bau aus den Scherben einen richtigen Satz'+(conn?' ('+esc(FORMEN[formOf(conn)].name)+': '+esc(FORMEN[formOf(conn)].kurz)+')':'')+':</p>';
     }
-    if(conn){
-      const placed = res && (!res.ok || ui.placed.length!==n) ? orderFor(S.toks, formOf(conn)) : ui.placed;
-      if(!res) h+='<p class="small muted" style="margin:.2em 0">2 · Klick den zweiten Satz in die richtige Reihenfolge ('+esc(FORMEN[formOf(conn)].name)+': '+esc(FORMEN[formOf(conn)].kurz)+'):</p>';
-      const tile=(i,w)=>'<button type="button" class="tile'+(S.toks[i].v?' v':'')+'" data-'+w+'="'+i+'"'+(res?' disabled':'')+'>'+esc(S.toks[i].t)+'</button>';
-      h+='<div class="answer'+(res&&res.ok?' ok':'')+'"><span class="lbl">'+esc(cap(conn))+' …</span>'+placed.map(i=>tile(i,'a')).join('')+'</div>';
-      if(!res && ui.placed.length<n) h+='<div class="pool">'+range(n).filter(i=>!ui.placed.includes(i)).map(i=>tile(i,'p')).join('')+'</div>';
-      const s2=placed.length===n ? placed.map(i=>S.toks[i].t).join(' ') : placed.map(i=>S.toks[i].t).join(' ')+' …';
-      h+='<div class="preview">'+verbinden(S.satz1, conn, s2, {html:true})+'</div>';
-    }
+    const placed = res ? (res.ok && ui.placed.length===n ? ui.placed : orderFor(S.toks, formOf(conn))) : ui.placed;
+    const tile=(i,w)=>'<button type="button" class="tile scherbe'+(S.toks[i].v?' v':'')+'" data-'+w+'="'+i+'"'+(res?' disabled':'')+'>'+esc(S.toks[i].t)+'</button>';
+    h+='<div class="answer'+(res&&res.ok?' ok':'')+'" aria-label="Dein Satz"><span class="scherbe fest">'+esc(String(S.satz1).replace(/[.!?]$/,''))+'</span>'+
+      '<span class="slot">'+(conn?steinHTML(conn,'sel','tabindex="-1" disabled'):'Stein?')+'</span>'+placed.map(i=>tile(i,'a')).join('')+'</div>';
+    if(!res && ui.placed.length<n) h+='<div class="pool">'+ui.pool.filter(i=>!ui.placed.includes(i)).map(i=>tile(i,'p')).join('')+'</div>';
+    if(conn && placed.length) h+='<div class="preview">'+verbinden(S.satz1, conn, placed.map(i=>S.toks[i].t).join(' ')+(placed.length<n?' …':''), {html:true})+'</div>';
     if(!res) h+='<div class="row"><button type="button" class="primary" id="btnCheck"'+(conn&&ui.placed.length===n?'':' disabled')+'>🏺 Kleben</button><button type="button" id="btnReset"'+(ui.placed.length?'':' disabled')+'>↺ Satz zurücksetzen</button>'+tipHTML(t,S)+'</div>';
+    if(res && res.ok && ui.fb && ui.fb.type==='ok') h+='<div class="potrow">'+potSVG(n+2)+'<p class="pottxt">🏺 Die Scherben werden zu einem Tontopf!</p></div>';
     h+=feedbackHTML(t,S);
     if(res) h+=nextBtn();
     el.innerHTML=h;
     $$('[data-c]',el).forEach(b=>b.addEventListener('click',()=>{ ui.conn=b.dataset.c; rerender(); }));
-    $$('[data-p]',el).forEach(b=>b.addEventListener('click',()=>{ ui.placed.push(+b.dataset.p); rerender(); const nb=$('.pool .tile',el); if(nb) nb.focus(); else if($('#btnCheck',el)) $('#btnCheck',el).focus(); }));
+    $$('[data-p]',el).forEach(b=>b.addEventListener('click',()=>{ ui.placed.push(+b.dataset.p); rerender(); const nb=$('.pool .tile',el); if(nb) nb.focus(); else if($('#btnCheck',el)&&!$('#btnCheck',el).disabled) $('#btnCheck',el).focus(); }));
     $$('[data-a]',el).forEach(b=>b.addEventListener('click',()=>{ if(res) return; const i=+b.dataset.a; ui.placed=ui.placed.filter(x=>x!==i); rerender(); }));
     if($('#btnReset',el)) $('#btnReset',el).addEventListener('click',()=>{ ui.placed=[]; rerender(); });
     bindTip(t,S);
