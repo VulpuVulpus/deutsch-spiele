@@ -88,6 +88,10 @@
                optionen: (optional) Zellen, sonst ["haben","sein"]
                loesung : die richtige Zelle ("sein")
                form    : die Form im Satz ("sind")
+               Auf den Zellen steht automatisch die passende Form
+               („sind“ / „haben“, „war“ / „hatte“, „wäre“ / „hätte“,
+               „wird“ / „ist“ …). Wenn nötig, selbst festlegen:
+               anzeige : { haben:"habe", sein:"sei" }
      schmieden – Am Amboss ein Verb schmieden. Bausteine in [ ] sind
                „heiß“: Ein Hammerschlag wechselt zur nächsten Form.
                verb    : Infinitiv (muss in VERBEN stehen)
@@ -151,7 +155,138 @@ const VERBEN = [
   { inf:"fahren",     praet:"fuhr",       part:"gefahren",    hilfs:"sein",  art:"unregelmäßig", beispiel:"Wir sind mit der Zeitmaschine gefahren.", niveau:"A2" },
   { inf:"reparieren", praet:"reparierte", part:"repariert",   hilfs:"haben", art:"regelmäßig",   beispiel:"Sofía hat die Maschine repariert.", niveau:"A2" },
   { inf:"holen",      praet:"holte",      part:"geholt",      hilfs:"haben", art:"regelmäßig",   beispiel:"Die Siedler haben Holz geholt.", niveau:"A2" },
+  { inf:"bringen",    praet:"brachte",    part:"gebracht",    hilfs:"haben", art:"gemischt",     beispiel:"Die Siedler brachten Kühe über den See.", niveau:"B1" },
+  { inf:"denken",     praet:"dachte",     part:"gedacht",     hilfs:"haben", art:"gemischt",     beispiel:"Benja dachte, die Maschine sei ein Kühlschrank.", niveau:"B1" },
+  { inf:"kennen",     praet:"kannte",     part:"gekannt",     hilfs:"haben", art:"gemischt",     beispiel:"Niemand kannte die drei Kinder.", niveau:"B1" },
+  { inf:"schwimmen",  praet:"schwamm",    part:"geschwommen", hilfs:"sein",  art:"unregelmäßig", beispiel:"Eine Ente schwamm am Steg vorbei.", niveau:"B1" },
+  { inf:"ziehen",     praet:"zog",        part:"gezogen",     hilfs:"haben", art:"unregelmäßig", beispiel:"Benja hat den Hebel gezogen.", niveau:"B2" },
+  { inf:"heben",      praet:"hob",        part:"gehoben",     hilfs:"haben", art:"unregelmäßig", beispiel:"Die Schraube wurde aus dem Gras gehoben.", niveau:"B2" },
+  { inf:"gewinnen",   praet:"gewann",     part:"gewonnen",    hilfs:"haben", art:"unregelmäßig", beispiel:"Sofía hat das Wettrennen gewonnen.", niveau:"B2" },
+  { inf:"werfen",     praet:"warf",       part:"geworfen",    hilfs:"haben", art:"unregelmäßig", beispiel:"Das Netz wurde in den See geworfen.", niveau:"B2" },
+  { inf:"schließen",  praet:"schloss",    part:"geschlossen", hilfs:"haben", art:"unregelmäßig", beispiel:"Die Tür ist von innen geschlossen worden.", niveau:"B2" },
+  { inf:"steigen",    praet:"stieg",      part:"gestiegen",   hilfs:"sein",  art:"unregelmäßig", beispiel:"Drei Kinder sind aus einer Maschine gestiegen.", niveau:"B2" },
+  { inf:"verlieren",  praet:"verlor",     part:"verloren",    hilfs:"haben", art:"unregelmäßig", beispiel:"Matías hat seinen Ball verloren.", niveau:"B2" },
+  { inf:"beginnen",   praet:"begann",     part:"begonnen",    hilfs:"haben", art:"unregelmäßig", beispiel:"Die Reise hat auf dem Dachboden begonnen.", niveau:"B2" },
+  { inf:"sprechen",   praet:"sprach",     part:"gesprochen",  hilfs:"haben", art:"unregelmäßig", beispiel:"Der Roboter hat nur im Präteritum gesprochen.", niveau:"B2" },
+  { inf:"tragen",     praet:"trug",       part:"getragen",    hilfs:"haben", art:"unregelmäßig", beispiel:"In der Oficina wurden Helme getragen.", niveau:"B2" },
+  { inf:"schleifen",  praet:"schliff",    part:"geschliffen", hilfs:"haben", art:"unregelmäßig", beispiel:"Die Kanten des Zahnrads sind frisch geschliffen.", niveau:"C1" },
+  { inf:"gießen",     praet:"goss",       part:"gegossen",    hilfs:"haben", art:"unregelmäßig", beispiel:"Das Zahnrad wurde aus Messing gegossen.", niveau:"C1" },
+  { inf:"gedeihen",   praet:"gedieh",     part:"gediehen",    hilfs:"sein",  art:"unregelmäßig", beispiel:"Die Äpfel der Siedler gediehen am See prächtig.", niveau:"C1" },
+  { inf:"schwören",   praet:"schwor",     part:"geschworen",  hilfs:"haben", art:"unregelmäßig", beispiel:"Benja schwor, er habe den Knopf nie berührt.", niveau:"C1" },
+  { inf:"meiden",     praet:"mied",       part:"gemieden",    hilfs:"haben", art:"unregelmäßig", beispiel:"Die Kinder mieden den Rand des Kraters.", niveau:"C1" },
+  { inf:"schmelzen",  praet:"schmolz",    part:"geschmolzen", hilfs:"haben/sein", art:"unregelmäßig", beispiel:"Der Schnee auf dem Osorno ist geschmolzen.", niveau:"C1" },
+  { inf:"bergen",     praet:"barg",       part:"geborgen",    hilfs:"haben", art:"unregelmäßig", beispiel:"Das Ruderboot wurde aus dem See geborgen.", niveau:"C1" },
+  { inf:"pfeifen",    praet:"pfiff",      part:"gepfiffen",   hilfs:"haben", art:"unregelmäßig", beispiel:"Der Wind hat durch die Höhle gepfiffen.", niveau:"C1" },
+  { inf:"gleiten",    praet:"glitt",      part:"geglitten",   hilfs:"sein",  art:"unregelmäßig", beispiel:"Ein Seevogel ist über das Meer geglitten.", niveau:"C1" },
+  { inf:"verschwinden", praet:"verschwand", part:"verschwunden", hilfs:"sein", art:"unregelmäßig", beispiel:"Die Maschine ist plötzlich verschwunden.", niveau:"C1" },
+  { inf:"frieren",    praet:"fror",       part:"gefroren",    hilfs:"haben/sein", art:"unregelmäßig", beispiel:"In der Steinzeit haben wir schrecklich gefroren.", niveau:"C1" },
 ];
+
+/* ---------------------------------------------------------------------
+   STANDARD – gilt für alle Niveaus, je Raumbild (szene):
+   handy   : was Benjas Handy anzeigt
+   kostuem : Hüte für Sofía, Matías, Benja
+   extras  : Zeitfehler, Gags und Infos (werden an die Gegenstände
+             jedes Raums mit diesem Raumbild angehängt; mit
+             ohneStandard: true in einem Raum abschalten)
+   Ein Raum kann handy und kostuem auch selbst angeben.
+   --------------------------------------------------------------------- */
+const STANDARD = {
+  dachboden: {
+    handy: "4G, Akku 85 %. Alles normal. Noch …",
+    extras: [
+      { id:"zeitung", art:"zeitfehler", name:"eine Zeitung", symbol:"📰", ort:[280, 480, 60, 50],
+        titel:"Eine Zeitung?",
+        text:"**Frutillarer Tageblatt – 13. März 2126**\n„Erster Kuchen auf dem Mars gebacken. Er schmeckt ein bisschen nach Staub.“\n\nMoment … 2126? Eine Zeitung aus der Zukunft! Die passt nicht in diese Zeit." },
+      { id:"tonkrug", art:"gag", name:"ein Tonkrug", symbol:"🏺", ort:[210, 300, 60, 70],
+        titel:"Ein alter Tonkrug",
+        text:"Ein Krug aus Ton. Unten stehen zwei kleine Buchstaben: **M. L.**\n\nMatías: „Wer ist M. L.? Ein Zauberer?“\nSofía: „Quatsch. Zauberer gibt es nicht.“\nDer Krug sagt nichts. Natürlich nicht." },
+      { id:"foto", art:"gag", name:"ein altes Foto", symbol:"🖼️", ort:[460, 150, 70, 70],
+        titel:"Ein altes Foto",
+        text:"Eine Frau steht vor einem kleinen Imbiss in Valparaíso. Auf der Rückseite steht: „Für Carmen – viel Glück mit dem Super-Completo!“\n\nBenja: „Tía Carmen? Die kenne ich doch!“" },
+      { id:"spinne", art:"gag", name:"eine Spinne", symbol:"🕷️", ort:[140, 40, 50, 50],
+        titel:"Eine Spinne",
+        text:"Hier oben wohnt eine Spinne. Sie wohnt hier schon sehr lange. Sie bezahlt keine Miete." },
+    ],
+  },
+  rapanui: {
+    handy: "Kein Netz. Benja hält das Handy hoch in die Luft. Immer noch kein Netz. Ein Seevogel schaut ihn neugierig an.",
+    kostuem: ["👒","🧢","🧢"],
+    extras: [
+      { id:"moai", art:"info", name:"die Moai in der Ferne", symbol:"", ort:[460, 170, 250, 125],
+        titel:"Die Moai",
+        text:"Die Moai sind große Figuren aus Stein. Die Menschen auf Rapa Nui haben sie selbst gemacht und aufgestellt. Sie erinnern an wichtige Vorfahren.\n\nSofía, Matías und Benja schauen nur aus der Ferne. Sie fassen nichts an." },
+      { id:"fussball", art:"zeitfehler", name:"etwas Rundes im Gras", symbol:"⚽", ort:[400, 370, 45, 45],
+        titel:"Ein Fußball?",
+        text:"Ein Fußball im Gras? Fußball spielt hier noch lange niemand!\n\nAch so – das ist der Colo-Colo-Ball von Matías. Er hat ihn mitgebracht. Schnell in den Rucksack damit!" },
+      { id:"krabbe", art:"gag", name:"eine Krabbe", symbol:"🦀", ort:[220, 500, 50, 45],
+        titel:"Eine Krabbe",
+        text:"Eine Krabbe läuft seitwärts zum Wasser. Benja läuft auch seitwärts. Die Krabbe ist schneller." },
+    ],
+  },
+  llanquihue: {
+    handy: "Kein Netz. Benja: „Vielleicht oben auf dem Vulkan?“ – Sofía: „Nein, Benja!“",
+    kostuem: ["👒","🎩","🎩"],
+    extras: [
+      { id:"schuessel", art:"zeitfehler", name:"etwas auf dem Dach", symbol:"📡", ort:[690, 140, 50, 50],
+        titel:"Eine Satellitenschüssel?",
+        text:"Eine Satellitenschüssel auf dem Holzhaus – im Jahr 1852?\n\nDas ist ein Zeitfehler! Schnell weg damit, bevor jemand fernsehen will." },
+      { id:"kuchen", art:"gag", name:"ein Kuchen auf dem Tisch", symbol:"🍰", ort:[440, 360, 55, 50],
+        titel:"Ein Kuchen!",
+        text:"Auf dem Tisch steht ein Apfelkuchen. Benja fragt die Siedlerin: „Wie heißt das auf Spanisch?“\n\nDie Siedlerin lacht. „Das weiß ich nicht. Aber hier heißt es Kuchen.“\n\nSofía grinst: Kuchen heißt in Chile auch Kuchen!" },
+      { id:"vogel", art:"gag", name:"ein kleiner Vogel", symbol:"🐦", ort:[200, 200, 50, 45],
+        titel:"Ein kleiner Vogel",
+        text:"Ein kleiner brauner Vogel ruft ganz laut aus dem Wald. Matías springt vor Schreck auf einen Baumstamm.\n\nDer Vogel lacht. Glaubt Matías." },
+    ],
+  },
+  oficina: {
+    handy: "Kein Netz. Benja: „Hier gibt es nur Sand, Sonne und einen Telegrafen.“",
+    kostuem: ["⛑️","⛑️","⛑️"],
+    extras: [
+      { id:"automat", art:"zeitfehler", name:"ein Automat", symbol:"🌭", ort:[700, 430, 55, 60],
+        titel:"Ein Completo-Automat?",
+        text:"Ein Automat! „Completo mit Avocado – nur 1 Marke.“\n\nDarunter klebt ein Zettel: „Außer Betrieb. Bitte im Jahr 2026 wiederkommen.“\n\nEin Completo-Automat um 1910? Das ist ein Zeitfehler!" },
+      { id:"altezeitung", art:"gag", name:"eine Zeitung an der Wand", symbol:"🗞️", ort:[460, 190, 60, 55],
+        titel:"Die Zeitung von gestern",
+        text:"**Die große Schlagzeile:**\n„Sensation! Telegraf ist schneller als Postpferd!“\n\n**Darunter, ganz klein:**\n„Das Pferd ist beleidigt und gibt keine Interviews.“" },
+      { id:"staub", art:"gag", name:"eine Staubwolke", symbol:"🌪️", ort:[200, 250, 60, 60],
+        titel:"Eine kleine Staubwolke",
+        text:"Eine kleine Staubwolke tanzt über den Sand. Benja tanzt mit. Jetzt ist Benja auch voll Staub." },
+    ],
+  },
+  station: {
+    handy: "Kein Netz. Der Roboter sagte: „Handys? Die standen im Museum.“",
+    kostuem: ["🥽","🥽","🥽"],
+    extras: [
+      { id:"telefon", art:"zeitfehler", name:"ein altes Ding", symbol:"☎️", ort:[690, 300, 55, 50],
+        titel:"Ein Telefon mit Wählscheibe?",
+        text:"Ein altes Telefon mit Wählscheibe – im Jahr 2126?\n\nDer Roboter sagte: „Das gehörte meinem Großvater. Er war ein Toaster.“\n\nDas ist ein Zeitfehler!" },
+      { id:"lichter", art:"gag", name:"blinkende Lichter", symbol:"💡", ort:[40, 150, 60, 55],
+        titel:"Blinkende Lichter",
+        text:"Rote, grüne und blaue Lichter. Benja drückt einen Knopf. Musik!\n\nDer Roboter tanzte. Dann sagte er: „Das passierte nie.“" },
+    ],
+  },
+  frutillar: {
+    handy: "Netz! Fünf Nachrichten von Mama: „Wo seid ihr?“",
+    extras: [
+      { id:"roboter2", art:"zeitfehler", name:"jemand am Steg", symbol:"🤖", ort:[585, 425, 45, 45],
+        titel:"Wer sitzt denn da?",
+        text:"Der kleine Roboter aus dem Jahr 2126 sitzt am Steg und angelt! Er ist heimlich mitgefahren.\n\n„Hier war es schön“, sagte er. Ein Roboter heute in Frutillar? Das ist ein Zeitfehler!" },
+      { id:"ente", art:"gag", name:"eine Ente", symbol:"🦆", ort:[520, 470, 50, 45],
+        titel:"Eine Ente",
+        text:"Eine Ente schwimmt vorbei. Sie schaut lange auf die Zeitmaschine. Dann schwimmt sie sehr schnell weiter." },
+    ],
+  },
+  steinzeit: {
+    handy: "Kein Netz. Kein Strom. Kein Handy-Laden. Benja ist traurig.",
+    kostuem: ["🦴","🦴","🦴"],
+    extras: [
+      { id:"mammut", art:"gag", name:"ein Mammut", symbol:"🦣", ort:[600, 200, 130, 120],
+        titel:"Ein Mammut!",
+        text:"Ein Mammut schaut euch an. Benja macht ein Foto. Das Handy sagt: „Speicher voll.“" },
+    ],
+  },
+};
 
 /* ---------------------------------------------------------------------
    SPIEL
@@ -174,7 +309,6 @@ A2: {
     geschichte: "Es regnet in Frutillar. Sofía, Matías und Benja sind auf dem Dachboden von Sofías Oma. Das Haus ist sehr alt. Deutsche Siedler haben es vor langer Zeit gebaut.\n\nUnter einer Decke steht eine Maschine aus Messing und Holz. Sie hat viele Zahnräder und eine große Uhr. Auf einem Schild steht: **ZEITMASCHINE – läuft nur mit richtigen Verbformen.**\n\nBenja drückt auf einen roten Knopf. Die Maschine brummt … und geht wieder aus. „Sie braucht Energie!“, sagt Sofía.",
     anleitung: "🔍 Klick auf die Gegenstände im Raum. Dort warten Aufgaben.\n⚡ Jede richtige Verbform gibt der Maschine Energie.\n🔢 Ist ein Gegenstand gelöst, zeigt er eine Ziffer.\n🔒 Klick auf die Maschine: Stell die Ziffern am Zeitschloss ein und zieh den Hebel.\n🕰️ In jeder Zeit versteckt sich ein Zeitfehler: etwas, das nicht in diese Zeit passt. Findest du alle?",
     geschafft: "Die Maschine leuchtet, die Zahnräder drehen sich. Benja legt die Hand auf den Hebel. „Nur ein kleiner Test …“",
-    handy: "4G, Akku 85 %. Alles normal. Noch …",
     gegenstaende: [
       { id:"koffer", art:"aufgabe", name:"ein alter Koffer", symbol:"🧳", ort:[60, 360, 130, 110], ziffer:7,
         titel:"Der alte Koffer",
@@ -233,18 +367,6 @@ A2: {
             erklaerung_de:"**Angst haben**, **Hunger haben**, **Durst haben** – hier braucht man **haben**: Wir **haben** keine Angst.",
             erklaerung_es:"Como en español: **tener** miedo → Angst **haben**; tener hambre → Hunger haben." },
         ] },
-      { id:"zeitung", art:"zeitfehler", name:"eine Zeitung", symbol:"📰", ort:[280, 480, 60, 50],
-        titel:"Eine Zeitung?",
-        text:"**Frutillarer Tageblatt – 13. März 2126**\n„Erster Kuchen auf dem Mars gebacken. Er schmeckt ein bisschen nach Staub.“\n\nMoment … 2126? Eine Zeitung aus der Zukunft! Die passt nicht in diese Zeit." },
-      { id:"tonkrug", art:"gag", name:"ein Tonkrug", symbol:"🏺", ort:[210, 300, 60, 70],
-        titel:"Ein alter Tonkrug",
-        text:"Ein Krug aus Ton. Unten stehen zwei kleine Buchstaben: **M. L.**\n\nMatías: „Wer ist M. L.? Ein Zauberer?“\nSofía: „Quatsch. Zauberer gibt es nicht.“\nDer Krug sagt nichts. Natürlich nicht." },
-      { id:"foto", art:"gag", name:"ein altes Foto", symbol:"🖼️", ort:[460, 150, 70, 70],
-        titel:"Ein altes Foto",
-        text:"Eine Frau steht vor einem kleinen Imbiss in Valparaíso. Auf der Rückseite steht: „Für Carmen – viel Glück mit dem Super-Completo!“\n\nBenja: „Tía Carmen? Die kenne ich doch!“" },
-      { id:"spinne", art:"gag", name:"eine Spinne", symbol:"🕷️", ort:[140, 40, 50, 50],
-        titel:"Eine Spinne",
-        text:"Hier oben wohnt eine Spinne. Sie wohnt hier schon sehr lange. Sie bezahlt keine Miete." },
     ],
   },
 
@@ -254,10 +376,8 @@ A2: {
     szene: "rapanui",
     jahr: "Zeit der Moai",
     thema: "Präsens: Vokalwechsel und trennbare Verben",
-    kostuem: ["👒","🧢","🧢"],
     geschichte: "Ein Blitz – und die Maschine landet auf einer grünen Wiese. Vor euch liegt das Meer. Ihr seid auf Rapa Nui, vor vielen hundert Jahren!\n\nIn der Ferne stehen große Figuren aus Stein: die Moai. Sofía sagt leise: „Wir bleiben hier und gehen nicht näher. Das ist ein besonderer Ort.“\n\nAber oh nein: Die Maschine qualmt! Beim Landen sind Teile ins Gras gefallen.",
     geschafft: "Alle Teile sind wieder in der Maschine. Ein Seevogel fliegt über das Meer. „Danke, Rapa Nui“, flüstert Benja.",
-    handy: "Kein Netz. Benja hält das Handy hoch in die Luft. Immer noch kein Netz. Ein Seevogel schaut ihn neugierig an.",
     gegenstaende: [
       { id:"logbuch", art:"aufgabe", name:"Matías’ Logbuch", symbol:"📓", ort:[70, 420, 90, 80], ziffer:2,
         titel:"Matías’ Logbuch",
@@ -322,15 +442,6 @@ A2: {
             erklaerung_de:"**anfangen:** a → ä bei er/sie/es: Die Reise **fängt** gleich wieder **an**.",
             erklaerung_es:"Dos cosas a la vez: „anfangen“ (empezar) es separable (**an** al final) y cambia a → **ä**: die Reise f**ä**ngt … an." },
         ] },
-      { id:"moai", art:"info", name:"die Moai in der Ferne", symbol:"", ort:[460, 170, 250, 125],
-        titel:"Die Moai",
-        text:"Die Moai sind große Figuren aus Stein. Die Menschen auf Rapa Nui haben sie selbst gemacht und aufgestellt. Sie erinnern an wichtige Vorfahren.\n\nSofía, Matías und Benja schauen nur aus der Ferne. Sie fassen nichts an." },
-      { id:"fussball", art:"zeitfehler", name:"etwas Rundes im Gras", symbol:"⚽", ort:[400, 370, 45, 45],
-        titel:"Ein Fußball?",
-        text:"Ein Fußball im Gras? Fußball spielt hier noch lange niemand!\n\nAch so – das ist der Colo-Colo-Ball von Matías. Er hat ihn mitgebracht. Schnell in den Rucksack damit!" },
-      { id:"krabbe", art:"gag", name:"eine Krabbe", symbol:"🦀", ort:[220, 500, 50, 45],
-        titel:"Eine Krabbe",
-        text:"Eine Krabbe läuft seitwärts zum Wasser. Benja läuft auch seitwärts. Die Krabbe ist schneller." },
     ],
   },
 
@@ -340,10 +451,8 @@ A2: {
     szene: "llanquihue",
     jahr: "um 1852",
     thema: "Perfekt mit haben oder sein, Partizip II",
-    kostuem: ["👒","🎩","🎩"],
     geschichte: "Die Maschine landet am Ufer von einem großen See. Hinter dem See steht ein Vulkan mit Schnee: der Osorno. Ihr seid am Llanquihue-See, um das Jahr 1852.\n\nHier kommen gerade deutsche Siedler an. Sie haben eine lange Reise gemacht: zuerst mit dem Schiff über das Meer, dann durch den Wald bis zum See. Jetzt bauen sie Häuser aus Holz.\n\nDie Maschine hat euch neue Kleidung gegeben – ihr seht aus wie Siedler! Jetzt braucht sie Energie aus dem **Perfekt**.",
     geschafft: "Eine Siedlerin winkt. „Gute Reise!“ – „Danke für den Kuchen!“, ruft Benja.",
-    handy: "Kein Netz. Benja: „Vielleicht oben auf dem Vulkan?“ – Sofía: „Nein, Benja!“",
     gegenstaende: [
       { id:"amboss", art:"aufgabe", name:"der Amboss", symbol:"⚒️", ort:[80, 400, 100, 90], ziffer:6,
         titel:"Der Amboss",
@@ -403,15 +512,6 @@ A2: {
             erklaerung_de:"**laufen – lief – gelaufen:** unregelmäßig, mit **-en**. Der Vokal bleibt: ge-lauf-en. Perfekt mit **sein**.",
             erklaerung_es:"„laufen“ es irregular: gelauf**en**. Es un movimiento, por eso: sie **sind** gelaufen." },
         ] },
-      { id:"schuessel", art:"zeitfehler", name:"etwas auf dem Dach", symbol:"📡", ort:[690, 140, 50, 50],
-        titel:"Eine Satellitenschüssel?",
-        text:"Eine Satellitenschüssel auf dem Holzhaus – im Jahr 1852?\n\nDas ist ein Zeitfehler! Schnell weg damit, bevor jemand fernsehen will." },
-      { id:"kuchen", art:"gag", name:"ein Kuchen auf dem Tisch", symbol:"🍰", ort:[440, 360, 55, 50],
-        titel:"Ein Kuchen!",
-        text:"Auf dem Tisch steht ein Apfelkuchen. Benja fragt die Siedlerin: „Wie heißt das auf Spanisch?“\n\nDie Siedlerin lacht. „Das weiß ich nicht. Aber hier heißt es Kuchen.“\n\nSofía grinst: Kuchen heißt in Chile auch Kuchen!" },
-      { id:"vogel", art:"gag", name:"ein kleiner Vogel", symbol:"🐦", ort:[200, 200, 50, 45],
-        titel:"Ein kleiner Vogel",
-        text:"Ein kleiner brauner Vogel ruft ganz laut aus dem Wald. Matías springt vor Schreck auf einen Baumstamm.\n\nDer Vogel lacht. Glaubt Matías." },
     ],
   },
 
@@ -421,10 +521,8 @@ A2: {
     szene: "oficina",
     jahr: "um 1910",
     thema: "Partizip II (trennbar, untrennbar, -ieren), Verben mit Dativ",
-    kostuem: ["⛑️","⛑️","⛑️"],
     geschichte: "Heiß! Staubig! Die Maschine landet in der Atacama-Wüste, um das Jahr 1910. Hier ist eine Salpeter-Oficina: eine kleine Stadt für die Arbeiter, mitten in der Wüste. Aus dem Salpeter macht man Dünger. Schiffe bringen ihn in die ganze Welt.\n\nEs gibt eine Fabrik, einen Laden für die Arbeiter und sogar eine Zeitung. Die Arbeiter bekommen oft kein normales Geld, sondern Marken der Oficina.\n\nDie Maschine ist voll Staub. Sie braucht **Partizipien** und **Verben mit Dativ**.",
     geschafft: "Der Staub ist weg, die Maschine glänzt wieder. Ein Arbeiter ruft: „Viel Glück!“",
-    handy: "Kein Netz. Benja: „Hier gibt es nur Sand, Sonne und einen Telegrafen.“",
     gegenstaende: [
       { id:"werkstatt", art:"aufgabe", name:"die Werkstatt", symbol:"🛠️", ort:[70, 390, 100, 90], ziffer:2,
         titel:"Die Werkstatt",
@@ -489,15 +587,6 @@ A2: {
             erklaerung_de:"**abfahren** ist trennbar: ab**ge**fahren. Perfekt mit **sein**: Der Zug **ist** abgefahren.",
             erklaerung_es:"Verbo separable: ab-**ge**-fahren. Es movimiento → **sein**: der Zug ist abgefahren (el tren partió)." },
         ] },
-      { id:"automat", art:"zeitfehler", name:"ein Automat", symbol:"🌭", ort:[700, 430, 55, 60],
-        titel:"Ein Completo-Automat?",
-        text:"Ein Automat! „Completo mit Avocado – nur 1 Marke.“\n\nDarunter klebt ein Zettel: „Außer Betrieb. Bitte im Jahr 2026 wiederkommen.“\n\nEin Completo-Automat um 1910? Das ist ein Zeitfehler!" },
-      { id:"altezeitung", art:"gag", name:"eine Zeitung an der Wand", symbol:"🗞️", ort:[460, 190, 60, 55],
-        titel:"Die Zeitung von gestern",
-        text:"**Die große Schlagzeile:**\n„Sensation! Telegraf ist schneller als Postpferd!“\n\n**Darunter, ganz klein:**\n„Das Pferd ist beleidigt und gibt keine Interviews.“" },
-      { id:"staub", art:"gag", name:"eine Staubwolke", symbol:"🌪️", ort:[200, 250, 60, 60],
-        titel:"Eine kleine Staubwolke",
-        text:"Eine kleine Staubwolke tanzt über den Sand. Benja tanzt mit. Jetzt ist Benja auch voll Staub." },
     ],
   },
 
@@ -507,10 +596,8 @@ A2: {
     szene: "station",
     jahr: "2126",
     thema: "Modalverben, Imperativ, werden",
-    kostuem: ["🥽","🥽","🥽"],
     geschichte: "Die Maschine landet in einer Station aus Glas und Metall. Draußen fliegt ein Bus ohne Räder vorbei. Ihr seid in der Zukunft, im Jahr 2126!\n\nEin Roboter rollt herein. „Willkommen. Ich war hier der Chef. Ich sprach immer … in der Vergangenheit.“ Komisch: Der Roboter spricht nur im Präteritum.\n\nDie Maschine braucht jetzt **Modalverben**, **Befehle** (Imperativ) und das Verb **werden**.",
     geschafft: "Der Roboter sagte: „Das war gut. Ihr wart schnell.“ Dann winkte er.",
-    handy: "Kein Netz. Der Roboter sagte: „Handys? Die standen im Museum.“",
     gegenstaende: [
       { id:"pult", art:"aufgabe", name:"das Steuerpult", symbol:"🎛️", ort:[90, 380, 110, 90], ziffer:3,
         titel:"Das Steuerpult",
@@ -568,12 +655,6 @@ A2: {
             erklaerung_de:"Imperativ von **aufmachen** mit du: **Mach** die Tür **auf**! Das Präfix steht am Ende.",
             erklaerung_es:"Imperativo + verbo separable: **Mach** die Tür **auf**! (¡Abre la puerta!) El prefijo va al final." },
         ] },
-      { id:"telefon", art:"zeitfehler", name:"ein altes Ding", symbol:"☎️", ort:[690, 300, 55, 50],
-        titel:"Ein Telefon mit Wählscheibe?",
-        text:"Ein altes Telefon mit Wählscheibe – im Jahr 2126?\n\nDer Roboter sagte: „Das gehörte meinem Großvater. Er war ein Toaster.“\n\nDas ist ein Zeitfehler!" },
-      { id:"lichter", art:"gag", name:"blinkende Lichter", symbol:"💡", ort:[40, 150, 60, 55],
-        titel:"Blinkende Lichter",
-        text:"Rote, grüne und blaue Lichter. Benja drückt einen Knopf. Musik!\n\nDer Roboter tanzte. Dann sagte er: „Das passierte nie.“" },
     ],
   },
 
@@ -585,7 +666,6 @@ A2: {
     thema: "Alles zusammen: Präsens, Perfekt, Verben mit Dativ",
     geschichte: "Die Maschine landet am Steg in Frutillar. Endlich zu Hause! Aber die Maschine zittert und qualmt. „Sie ist nicht stabil!“, ruft Sofía. „Wenn wir sie nicht reparieren, springt sie gleich wieder in eine andere Zeit!“\n\nJetzt brauchst du noch einmal alles, was du gelernt hast.",
     geschafft: "Die Maschine wird ruhig. Die große Uhr zeigt: HEUTE. Von oben ruft Oma: „Kinder, es gibt Kuchen!“",
-    handy: "Netz! Fünf Nachrichten von Mama: „Wo seid ihr?“",
     gegenstaende: [
       { id:"kern", art:"aufgabe", name:"der Kern der Maschine", symbol:"🔩", ort:[700, 330, 70, 70], ziffer:2,
         titel:"Der Kern der Maschine",
@@ -645,12 +725,6 @@ A2: {
             erklaerung_de:"**danken** + Dativ: Wir danken **der** Oma (die → der).",
             erklaerung_es:"agradecer **a** alguien → jemandem danken (dativo): die Oma → **der** Oma." },
         ] },
-      { id:"roboter2", art:"zeitfehler", name:"jemand am Steg", symbol:"🤖", ort:[585, 425, 45, 45],
-        titel:"Wer sitzt denn da?",
-        text:"Der kleine Roboter aus dem Jahr 2126 sitzt am Steg und angelt! Er ist heimlich mitgefahren.\n\n„Hier war es schön“, sagte er. Ein Roboter heute in Frutillar? Das ist ein Zeitfehler!" },
-      { id:"ente", art:"gag", name:"eine Ente", symbol:"🦆", ort:[520, 470, 50, 45],
-        titel:"Eine Ente",
-        text:"Eine Ente schwimmt vorbei. Sie schaut lange auf die Zeitmaschine. Dann schwimmt sie sehr schnell weiter." },
     ],
   },
   ],
@@ -661,10 +735,8 @@ A2: {
     szene: "steinzeit",
     jahr: "Steinzeit",
     thema: "Partizip II: unregelmäßige Verben",
-    kostuem: ["🦴","🦴","🦴"],
     geschichte: "Du hast alle Zeitfehler gefunden! Zur Belohnung springt die Maschine noch einmal – ganz weit zurück. In die Steinzeit!\n\nHier gibt es kein Metall. Benja nimmt einen Stein als Hammer. Schmiede fünf Partizipien für dein Album. Jede Aufgabe bringt Extrapunkte.",
     geschafft: "Ein Mammut schaut aus der Höhle. Zeit für die Rückfahrt!",
-    handy: "Kein Netz. Kein Strom. Kein Handy-Laden. Benja ist traurig.",
     gegenstaende: [
       { id:"feuer", art:"aufgabe", name:"das Feuer", symbol:"🔥", ort:[420, 380, 90, 90],
         titel:"Am Feuer",
@@ -701,9 +773,1313 @@ A2: {
             erklaerung_de:"**schlafen – schlief – geschlafen:** Der Vokal bleibt **a**.",
             erklaerung_es:"„schlafen“ (dormir): geschlafen. Ojo: Präsens du schl**ä**fst, pero Partizip con **a**." },
         ] },
-      { id:"mammut", art:"gag", name:"ein Mammut", symbol:"🦣", ort:[600, 200, 130, 120],
-        titel:"Ein Mammut!",
-        text:"Ein Mammut schaut euch an. Benja macht ein Foto. Das Handy sagt: „Speicher voll.“" },
+    ],
+  },
+},
+
+
+/* =========================== NIVEAU B1 =========================== */
+B1: {
+  titel: "Präteritum, Futur und Konjunktiv II",
+  schwerpunkt: "Präteritum (auch Mischverben und Modalverben), Plusquamperfekt, Futur I, reflexive Verben, Konjunktiv II der Gegenwart",
+  schluss: "Die Zeitmaschine steht wieder unter ihrer Decke auf dem Dachboden. Unten riecht es nach Kuchen.\n\n„Wisst ihr was?“, sagt Matías. „Wenn ich noch einmal reisen dürfte, würde ich direkt in die Zukunft fahren.“ – „Und ich“, sagt Benja, „würde den Knopf diesmal vorher lesen.“",
+  raeume: [
+
+  /* ---------- Raum 0: Dachboden ---------- */
+  {
+    name: "Der Dachboden in Frutillar",
+    szene: "dachboden",
+    jahr: "heute",
+    thema: "Präsens: reflexive Verben und unregelmäßige Formen",
+    geschichte: "Draußen regnet es seit Stunden, als Sofía, Matías und Benja auf den Dachboden von Sofías Oma steigen. Das Haus haben deutsche Siedler gebaut, und hier oben liegen Dinge aus über hundert Jahren.\n\nUnter einer staubigen Decke entdecken sie eine Maschine aus Messing und Holz, mit Zahnrädern und einer großen Uhr. Auf einem Schild steht: **ZEITMASCHINE – läuft nur mit richtigen Verbformen.**\n\nBevor jemand „Nicht anfassen!“ rufen kann, hat Benja schon auf den roten Knopf gedrückt. Die Maschine brummt kurz und geht wieder aus. „Sie braucht Energie“, sagt Sofía. „Und ich glaube, ich weiß auch, welche.“",
+    anleitung: "🔍 Klick auf die Gegenstände im Raum. Dort warten Aufgaben.\n⚡ Jede richtige Verbform gibt der Maschine Energie.\n🔢 Ist ein Gegenstand gelöst, zeigt er eine Ziffer.\n🔒 Klick auf die Maschine: Stell die Ziffern am Zeitschloss ein und zieh den Hebel.\n🕰️ In jeder Zeit versteckt sich ein Zeitfehler: etwas, das nicht in diese Zeit passt. Findest du alle?",
+    geschafft: "Die Zahnräder greifen ineinander, die Uhr tickt laut. „Nur ein kurzer Test“, murmelt Benja und legt die Hand auf den Hebel.",
+    gegenstaende: [
+      { id:"koffer", art:"aufgabe", name:"ein alter Koffer", symbol:"🧳", ort:[60, 360, 130, 110], ziffer:4,
+        titel:"Der alte Koffer",
+        text:"Am Koffer ist ein Schloss mit drei Ringen: **Person – Verbstamm – Endung**. Hier geht es um **reflexive Verben**.",
+        aufgaben: [
+          { typ:"zahnrad", satz:"Wir ___ uns gern an den Sommer in Pucón.",
+            ringe:["PERSON", ["erinner","freu","ärger"], ["e","st","t","n","en"]], loesung:["wir","erinner","n"],
+            thema:"reflexive Verben: Verben auf -ern",
+            tipp:"„sich erinnern an“ endet schon auf -ern. Wie viele e braucht „wir“?",
+            erklaerung_de:"**Wir erinnern uns** – Verben auf **-ern** und **-eln** haben bei wir und sie/Sie nur **-n**: erinner**n**, sammel**n**.",
+            erklaerung_es:"acordarse **de** algo → sich erinnern **an** etwas. Los verbos en -ern solo llevan **-n**: wir erinner**n** uns (nos acordamos)." },
+          { typ:"zahnrad", satz:"Matías ___ sich über die alte Maschine.",
+            ringe:["PERSON", ["freu","erinner","ärger"], ["e","st","t","n","en"]], loesung:["er/sie/es","freu","t"],
+            thema:"reflexive Verben: sich freuen über",
+            tipp:"Matías ist begeistert, nicht wütend.",
+            erklaerung_de:"**sich freuen über** + Akkusativ: Matías **freut** sich über die Maschine.",
+            erklaerung_es:"alegrarse **de** algo → sich freuen **über** etwas. El pronombre reflexivo con er/sie/es es **sich**." },
+          { typ:"zahnrad", satz:"Du ___ dich viel zu oft, Benja!",
+            ringe:["PERSON", ["ärger","freu","erinner"], ["e","st","t","n","en"]], loesung:["du","ärger","st"],
+            thema:"reflexive Verben: sich ärgern",
+            tipp:"„dich“ zeigt dir die Person. Und Benja ist oft schlecht gelaunt …",
+            erklaerung_de:"**sich ärgern:** du **ärgerst** dich. Das Reflexivpronomen passt zur Person: ich – mich, du – dich, er – sich.",
+            erklaerung_es:"enojarse → sich ärgern: du ärgerst **dich** (te enojas). Como en español, el pronombre cambia con la persona." },
+        ] },
+      { id:"bauplan", art:"aufgabe", name:"ein Bauplan an der Wand", symbol:"📜", ort:[300, 120, 120, 120], ziffer:9,
+        titel:"Der Bauplan der Zeitmaschine",
+        text:"Auf dem Bauplan stehen zwei Tabellen. Ein paar Formen fehlen.",
+        aufgaben: [
+          { typ:"tabelle", verb:"sich beeilen", zeit:"Präsens",
+            zellen:{ "ich":"beeile mich", "du":"?", "er/sie/es":"beeilt sich", "wir":"?", "ihr":"?", "sie/Sie":"beeilen sich" },
+            loesung:{ "du":"beeilst dich", "wir":"beeilen uns", "ihr":"beeilt euch" },
+            thema:"reflexive Verben: Reflexivpronomen",
+            tipp:"Schreib Verb UND Pronomen. Bei wir heißt das Pronomen wie das Objekt „uns“, bei ihr wie „euch“.",
+            erklaerung_de:"Reflexivpronomen: mich, dich, sich, **uns**, **euch**, sich. Also: du beeilst **dich**, wir beeilen **uns**, ihr beeilt **euch**.",
+            erklaerung_es:"„sich beeilen“ = darse prisa. Pronombres: mich (me), dich (te), sich (se), uns (nos), euch (os), sich (se)." },
+          { typ:"tabelle", verb:"wissen", zeit:"Präsens",
+            zellen:{ "ich":"weiß", "du":"?", "er/sie/es":"?", "wir":"wissen", "ihr":"?", "sie/Sie":"wissen" },
+            loesung:{ "du":"weißt", "er/sie/es":"weiß", "ihr":"wisst" },
+            thema:"Präsens: wissen",
+            tipp:"„wissen“ funktioniert im Singular wie ein Modalverb: ich und er/sie/es sind gleich.",
+            erklaerung_de:"**wissen:** ich weiß, du **weißt**, er **weiß** (ohne -t!), wir wissen, ihr **wisst**.",
+            erklaerung_es:"„wissen“ = saber (un dato). En singular ich y er/sie/es son iguales: er weiß (él sabe), sin -t." },
+        ] },
+      { id:"energiefach", art:"aufgabe", name:"das Energiefach der Maschine", symbol:"🔋", ort:[630, 420, 90, 80], ziffer:1,
+        titel:"Das Energiefach",
+        text:"Die Maschine braucht Energiezellen. Welche Zelle passt ins Perfekt?",
+        aufgaben: [
+          { typ:"zelle", satz:"Benja ___ sich einfach in die Maschine gesetzt.", loesung:"haben", form:"hat",
+            thema:"Perfekt: reflexive Verben → haben",
+            tipp:"Reflexive Verben bilden das Perfekt immer gleich.",
+            erklaerung_de:"Reflexive Verben bilden das Perfekt mit **haben**: Benja **hat** sich gesetzt.",
+            erklaerung_es:"Los verbos reflexivos usan siempre **haben** en el perfecto: se ha sentado → hat sich gesetzt." },
+          { typ:"zelle", satz:"Wir ___ ganz leise auf den Dachboden gestiegen.", loesung:"sein", form:"sind",
+            thema:"Perfekt: Bewegung → sein",
+            tipp:"Steigen ist eine Bewegung von unten nach oben.",
+            erklaerung_de:"**steigen** ist eine Bewegung von A nach B → **sein**: Wir **sind** gestiegen.",
+            erklaerung_es:"En español „hemos subido“ (haber), en alemán con movimiento: wir **sind** gestiegen." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 1: Rapa Nui ---------- */
+  {
+    name: "Rapa Nui",
+    szene: "rapanui",
+    jahr: "Zeit der Moai",
+    thema: "Präteritum: regelmäßige und unregelmäßige Verben",
+    geschichte: "Ein greller Blitz, ein Ruck – und die Maschine steht auf einer grünen Wiese über dem Meer. In der Ferne erkennt ihr große Figuren aus Stein auf einer Plattform: die Moai von Rapa Nui. Ihr seid viele hundert Jahre in der Vergangenheit.\n\n„Wir bleiben auf Abstand“, sagt Sofía. „Das ist ein besonderer Ort für die Menschen hier.“\n\nBeim Landen ist die Maschine beschädigt worden. Matías holt sein Logbuch heraus: „Eine richtige Expedition schreibt man im **Präteritum**.“",
+    geschafft: "Die letzte Schraube sitzt. Matías schreibt ins Logbuch: „Wir reparierten die Maschine und verließen Rapa Nui mit großem Respekt.“",
+    gegenstaende: [
+      { id:"logbuch", art:"aufgabe", name:"Matías’ Logbuch", symbol:"📓", ort:[70, 420, 90, 80], ziffer:6,
+        titel:"Matías’ Logbuch",
+        text:"Matías schreibt das Logbuch im Präteritum – aber die Verben sind durcheinander. Dreh die Ringe! „–“ heißt: keine Endung.",
+        aufgaben: [
+          { typ:"zahnrad", satz:"Am Morgen ___ wir zum ersten Mal die Moai.",
+            ringe:["PERSON", ["seh","sah","sieh"], ["–","st","en","t"]], loesung:["wir","sah","en"],
+            thema:"Präteritum: unregelmäßige Verben",
+            tipp:"Unregelmäßige Verben ändern im Präteritum den Vokal. Endung bei „wir“: wie im Präsens.",
+            erklaerung_de:"**sehen – sah:** Im Präteritum ändert sich der Stamm. Endungen: ich sah, du sah**st**, er sah, wir sah**en**, ihr sah**t**.",
+            erklaerung_es:"El Präteritum es sobre todo el pasado **escrito** (diarios, cuentos, noticias). No pienses en indefinido/imperfecto: „wir sahen“ puede ser „vimos“ o „veíamos“." },
+          { typ:"zahnrad", satz:"Benja ___ lange nach dem verlorenen Zahnrad.",
+            ringe:["PERSON", ["such","sach","sich"], ["–","te","test","ten"]], loesung:["er/sie/es","such","te"],
+            thema:"Präteritum: regelmäßige Verben (-te)",
+            tipp:"„suchen“ ist regelmäßig. Regelmäßige Verben bekommen im Präteritum ein -t-.",
+            erklaerung_de:"Regelmäßig: Stamm + **-te**: er such**te**, wir such**ten**, du such**test**.",
+            erklaerung_es:"Verbos regulares en Präteritum: raíz + **-te**: er suchte (buscó / buscaba)." },
+          { typ:"zahnrad", satz:"Du ___ alles ganz genau auf, Sofía.",
+            ringe:["PERSON", ["schreib","schrieb","schrob"], ["–","st","en","t","te"]], loesung:["du","schrieb","st"],
+            thema:"Präteritum: unregelmäßige Verben (du)",
+            tipp:"„aufschreiben“: „auf“ steht schon am Ende. Bei du kommt -st an den neuen Stamm.",
+            erklaerung_de:"**schreiben – schrieb:** du **schriebst** … auf. Unregelmäßige Verben haben im Präteritum **kein -te**.",
+            erklaerung_es:"Los verbos irregulares no llevan -te en el Präteritum: du schrieb**st** (escribiste / escribías)." },
+        ] },
+      { id:"werkzeug", art:"aufgabe", name:"die Werkzeugkiste", symbol:"🧰", ort:[250, 430, 100, 80], ziffer:3,
+        titel:"Die Werkzeugkiste",
+        text:"In der Werkzeugkiste liegen zwei Tabellen – im Präteritum.",
+        aufgaben: [
+          { typ:"tabelle", verb:"gehen", zeit:"Präteritum",
+            zellen:{ "ich":"ging", "du":"?", "er/sie/es":"ging", "wir":"?", "ihr":"?", "sie/Sie":"gingen" },
+            loesung:{ "du":"gingst", "wir":"gingen", "ihr":"gingt" },
+            thema:"Präteritum: unregelmäßige Verben",
+            tipp:"ich und er/sie/es haben keine Endung. Die anderen Endungen kennst du aus dem Präsens.",
+            erklaerung_de:"**gehen – ging:** ich ging, du ging**st**, er ging, wir ging**en**, ihr ging**t**, sie ging**en**.",
+            erklaerung_es:"En Präteritum, ich y er/sie/es son iguales y no tienen terminación: ich ging, er ging (fui / iba, fue / iba)." },
+          { typ:"tabelle", verb:"arbeiten", zeit:"Präteritum",
+            zellen:{ "ich":"arbeitete", "du":"?", "er/sie/es":"?", "wir":"arbeiteten", "ihr":"?", "sie/Sie":"arbeiteten" },
+            loesung:{ "du":"arbeitetest", "er/sie/es":"arbeitete", "ihr":"arbeitetet" },
+            thema:"Präteritum: Stamm auf -t",
+            tipp:"Stamm „arbeit-“ + e + -te … Achte auf die vielen t und e!",
+            erklaerung_de:"Stamm auf **-t/-d**: arbeit**ete**, du arbeit**etest**, ihr arbeit**etet**.",
+            erklaerung_es:"Si la raíz termina en -t o -d, se agrega una **e**: arbeit-**e**-te (trabajó / trabajaba)." },
+        ] },
+      { id:"teile", art:"aufgabe", name:"Teile im Gras", symbol:"⚙️", ort:[470, 470, 80, 70], ziffer:8,
+        titel:"Teile im Gras",
+        text:"Zwischen den Zahnrädern liegt ein kleiner Amboss. Schmiede die Präteritumformen für das Logbuch!",
+        aufgaben: [
+          { typ:"schmieden", verb:"finden", form:"Präteritum",
+            bausteine:["f", ["i","a","u"], "nd", ["","te","en"]], loesung:"fand",
+            thema:"Präteritum: unregelmäßige Verben (er/sie/es)",
+            tipp:"finden – ? – gefunden. Das Präteritum hat einen anderen Vokal als das Partizip.",
+            erklaerung_de:"**finden – fand – gefunden.** Präteritum (er/sie/es) ohne Endung: er **fand**.",
+            erklaerung_es:"„finden“ (encontrar): er fand (encontró / encontraba). Irregular: sin -te." },
+          { typ:"schmieden", verb:"kommen", form:"Präteritum",
+            bausteine:["k", ["o","a"], ["mm","m"], ["","te"]], loesung:"kam",
+            thema:"Präteritum: unregelmäßige Verben (er/sie/es)",
+            tipp:"Im Präteritum verliert „kommen“ ein m.",
+            erklaerung_de:"**kommen – kam – gekommen:** Präteritum mit **a** und nur **einem m**.",
+            erklaerung_es:"„kommen“ (venir): er kam (vino / venía)." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 2: Llanquihue-See ---------- */
+  {
+    name: "Am Llanquihue-See",
+    szene: "llanquihue",
+    jahr: "um 1852",
+    thema: "Mischverben und Modalverben im Präteritum",
+    geschichte: "Diesmal landet die Maschine am Ufer eines riesigen Sees. Über dem Wasser steht der Vulkan Osorno mit seiner weißen Spitze. Ihr seid am Llanquihue-See, ungefähr im Jahr 1852.\n\nDeutsche Siedler kommen hier gerade an. Viele von ihnen waren monatelang mit dem Schiff unterwegs und mussten danach noch durch dichten Wald bis zum See. Jetzt roden sie Land und bauen ihre ersten Häuser aus Holz.\n\nEine Siedlerin schaut euch neugierig an. Zum Glück hat euch die Maschine passende Kleidung gegeben. Aber sie braucht neue Energie: **Mischverben** und **Modalverben im Präteritum**.",
+    geschafft: "„Ihr kamt, ihr halft, ihr verschwindet wieder“, lacht die Siedlerin. „Nehmt wenigstens ein Stück Kuchen mit!“",
+    gegenstaende: [
+      { id:"amboss", art:"aufgabe", name:"der Amboss", symbol:"⚒️", ort:[80, 400, 100, 90], ziffer:7,
+        titel:"Der Amboss",
+        text:"Am Amboss schmiedest du **Mischverben**: Sie ändern den Vokal wie unregelmäßige Verben, haben aber die Endung -te wie regelmäßige.",
+        aufgaben: [
+          { typ:"schmieden", verb:"bringen", form:"Präteritum",
+            bausteine:["br", ["i","a"], ["ng","ch"], ["te","en"]], loesung:"brachte",
+            thema:"Präteritum: Mischverben",
+            tipp:"Mischverben ändern Vokal UND Konsonant – und bekommen -te.",
+            erklaerung_de:"**bringen – brachte – gebracht:** Mischverb: neuer Stamm **brach-** + **-te**.",
+            erklaerung_es:"„bringen“ (traer) es mixto: cambia la raíz (brach-) y lleva -te: er brachte." },
+          { typ:"schmieden", verb:"denken", form:"Präteritum",
+            bausteine:["d", ["e","a"], ["nk","ch"], ["te","en"]], loesung:"dachte",
+            thema:"Präteritum: Mischverben",
+            tipp:"Wie „bringen“: aus -nk- wird -ch-.",
+            erklaerung_de:"**denken – dachte – gedacht:** wie bringen: **dach-** + **-te**.",
+            erklaerung_es:"„denken“ (pensar): er dachte. Ojo: pensar **en** → denken **an**." },
+          { typ:"schmieden", verb:"kennen", form:"Präteritum",
+            bausteine:["k", ["e","a"], "nn", ["te","en"]], loesung:"kannte",
+            thema:"Präteritum: Mischverben",
+            tipp:"Nur der Vokal ändert sich – die Endung ist regelmäßig.",
+            erklaerung_de:"**kennen – kannte – gekannt** (genauso: nennen – nannte, rennen – rannte).",
+            erklaerung_es:"„kennen“ = conocer (personas, lugares); „wissen“ = saber (datos). Präteritum: er kannte." },
+        ] },
+      { id:"haus", art:"aufgabe", name:"das neue Holzhaus", symbol:"", schloss:"🏠", ort:[560, 180, 200, 200], ziffer:2,
+        titel:"Das neue Holzhaus",
+        text:"An der Tür des Holzhauses hängt ein Schloss mit drei Ringen. Die Siedler erzählen von den ersten Wochen – mit **Modalverben im Präteritum**.",
+        aufgaben: [
+          { typ:"zahnrad", satz:"Zuerst ___ die Siedler den Wald roden.",
+            ringe:["PERSON", ["muss","müss","mocht"], ["te","test","ten","tet"]], loesung:["sie/Sie","muss","ten"],
+            thema:"Modalverben im Präteritum: kein Umlaut",
+            tipp:"Im Präteritum verlieren die Modalverben ihre Punkte.",
+            erklaerung_de:"**müssen – mussten:** Modalverben haben im Präteritum **keinen Umlaut** und die Endung **-te**: sie muss**ten**.",
+            erklaerung_es:"Los modales en Präteritum pierden la diéresis: müssen → **mussten** (tuvieron que / tenían que)." },
+          { typ:"zahnrad", satz:"Ich ___ damals noch nicht schwimmen, erzählt die Siedlerin.",
+            ringe:["PERSON", ["konn","könn","kann"], ["te","test","ten","tet"]], loesung:["ich","konn","te"],
+            thema:"Modalverben im Präteritum: können",
+            tipp:"können → ich k…te. Ohne Umlaut!",
+            erklaerung_de:"**können – konnte:** ich konn**te**, du konn**test**, er konn**te**.",
+            erklaerung_es:"„können“ → ich konnte (pude / podía). Sin diéresis." },
+          { typ:"zahnrad", satz:"Ihr ___ unbedingt meinen Kuchen probieren!",
+            ringe:["PERSON", ["woll","will","wöll"], ["te","test","ten","tet"]], loesung:["ihr","woll","tet"],
+            thema:"Modalverben im Präteritum: wollen",
+            tipp:"Die Siedlerin erinnert sich: Mit „ihr“ hat sie Benja und Matías angesprochen.",
+            erklaerung_de:"**wollen – wollten:** ihr woll**tet**. Der Satz ist ein Präteritum-Satz aus ihrer Erinnerung.",
+            erklaerung_es:"„wollen“ (querer) en Präteritum: ihr wolltet (queríais / quisisteis)." },
+        ] },
+      { id:"tagebuch", art:"aufgabe", name:"das Tagebuch einer Siedlerin", symbol:"📔", ort:[330, 440, 80, 70], ziffer:5,
+        titel:"Das Tagebuch einer Siedlerin",
+        text:"Die Siedlerin schreibt ihr Tagebuch natürlich im Präteritum. Ergänze die Verben.",
+        aufgaben: [
+          { typ:"luecke", satz:"Am Abend ___ wir lange am Feuer und sangen Lieder.", hinweis:"sitzen", loesung:["saßen","sassen"],
+            thema:"Präteritum: unregelmäßige Verben",
+            tipp:"sitzen – ? – gesessen. Der Vokal wird ein a, und das tz verändert sich.",
+            erklaerung_de:"**sitzen – saß – gesessen:** wir **saßen**.",
+            erklaerung_es:"„sitzen“ (estar sentado): wir saßen (estábamos sentados / nos sentamos)." },
+          { typ:"luecke", satz:"Die Kinder ___ jeden Morgen Wasser aus dem See.", hinweis:"holen", loesung:["holten"],
+            thema:"Präteritum: regelmäßige Verben",
+            tipp:"„holen“ ist regelmäßig.",
+            erklaerung_de:"Regelmäßig: hol + **-ten**: die Kinder **holten**.",
+            erklaerung_es:"Regular: hol-**ten** (traían / trajeron)." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 3: Salpeter-Oficina ---------- */
+  {
+    name: "Eine Salpeter-Oficina in der Atacama",
+    szene: "oficina",
+    jahr: "um 1910",
+    thema: "Plusquamperfekt; in der Zeitung: Perfekt → Präteritum",
+    geschichte: "Hitze schlägt euch entgegen. Die Maschine ist mitten in der Atacama-Wüste gelandet, um das Jahr 1910. Vor euch liegt eine Salpeter-Oficina: eine Arbeiterstadt mit Fabrik, Bahngleisen, einem Laden und sogar einer eigenen Zeitung.\n\nDer Salpeter wurde damals in die ganze Welt verschifft, vor allem als Dünger. Bezahlt wurden die Arbeiter oft nicht mit Pesos, sondern mit Marken, die nur in der Oficina galten.\n\nDie Maschine ist voller Staub. Der Redakteur der Zeitung braucht dringend Hilfe – und eure Maschine braucht das **Plusquamperfekt**.",
+    geschafft: "Die Zeitung ist gedruckt, die Maschine glänzt. Auf der ersten Seite steht: „Rätselhafte Kinder helfen in der Redaktion“.",
+    gegenstaende: [
+      { id:"werkstatt", art:"aufgabe", name:"die Werkstatt", symbol:"🛠️", ort:[70, 390, 100, 90], ziffer:3,
+        titel:"Die Werkstatt",
+        text:"In der Werkstatt braucht die Maschine Energiezellen fürs **Plusquamperfekt**: hatte oder war?",
+        aufgaben: [
+          { typ:"zelle", satz:"Als die Arbeiter kamen, ___ die Sonne schon aufgegangen.", loesung:"sein", form:"war",
+            thema:"Plusquamperfekt mit sein",
+            tipp:"Zuerst ging die Sonne auf, dann kamen die Arbeiter. „aufgehen“ ist eine Veränderung.",
+            erklaerung_de:"Plusquamperfekt = Vorvergangenheit: **war/hatte + Partizip II**. aufgehen → **sein**: die Sonne **war** aufgegangen.",
+            erklaerung_es:"El Plusquamperfekt corresponde al pluscuamperfecto: „había salido“. Con verbos de cambio/movimiento: **war** + participio." },
+          { typ:"zelle", satz:"Nachdem der Mechaniker die Lok repariert ___, fuhr der Zug ab.", loesung:"haben", form:"hatte",
+            thema:"Plusquamperfekt mit haben",
+            tipp:"Wie heißt das Perfekt von „reparieren“? Das Plusquamperfekt nimmt dasselbe Hilfsverb.",
+            erklaerung_de:"Perfekt: hat repariert → Plusquamperfekt: **hatte** repariert. Nach **nachdem** steht oft das Plusquamperfekt.",
+            erklaerung_es:"„después de que había reparado“: nachdem er repariert **hatte**. El auxiliar es el mismo que en el Perfekt." },
+          { typ:"zelle", satz:"Benja ___ seinen Hut vergessen, deshalb bekam er einen Sonnenbrand.", loesung:"haben", form:"hatte",
+            thema:"Plusquamperfekt mit haben",
+            tipp:"Ist „vergessen“ eine Bewegung?",
+            erklaerung_de:"vergessen → **haben**: Benja **hatte** seinen Hut vergessen (vorher), dann bekam er einen Sonnenbrand (später).",
+            erklaerung_es:"„había olvidado“ → hatte vergessen. Primero olvidó el sombrero, después se quemó." },
+        ] },
+      { id:"laden", art:"aufgabe", name:"der Laden der Arbeiter", symbol:"🏪", ort:[300, 300, 110, 100], ziffer:6,
+        titel:"Der Laden der Arbeiter",
+        text:"Im Laden erzählen alle von gestern. Was war zuerst, was danach?",
+        aufgaben: [
+          { typ:"auswahl", satz:"Als wir im Laden ankamen, ___ der Verkäufer schon alles Brot ___.", optionen:["hatte … verkauft","hat … verkauft","war … verkauft"], loesung:"hatte … verkauft",
+            thema:"Plusquamperfekt: Vorvergangenheit",
+            tipp:"Zwei Zeiten in der Vergangenheit: Was passierte früher?",
+            erklaerung_de:"Das Verkaufen passierte **vor** dem Ankommen → Plusquamperfekt: Der Verkäufer **hatte** alles **verkauft**.",
+            erklaerung_es:"„ya había vendido“ → hatte schon verkauft. Una acción anterior a otra acción pasada." },
+          { typ:"auswahl", satz:"Nachdem wir ___, gingen wir zur Redaktion.", optionen:["gegessen hatten","gegessen haben","aßen"], loesung:"gegessen hatten",
+            thema:"nachdem + Plusquamperfekt",
+            tipp:"Der Hauptsatz steht im Präteritum. Was braucht dann der nachdem-Satz?",
+            erklaerung_de:"**nachdem** + Plusquamperfekt, Hauptsatz im Präteritum: Nachdem wir gegessen **hatten**, gingen wir …",
+            erklaerung_es:"„después de haber comido“: nachdem wir gegessen hatten. Tras „nachdem“ se usa un tiempo anterior." },
+        ] },
+      { id:"redaktion", art:"aufgabe", name:"die Zeitungsredaktion", symbol:"📰", ort:[560, 260, 110, 100], ziffer:8,
+        titel:"Der Zeitungsraum",
+        text:"Der Redakteur hat seine Artikel im Perfekt geschrieben. „So spricht man, aber so schreibt man nicht!“, ruft er. Schreib die Sätze ins **Präteritum** um.",
+        aufgaben: [
+          { typ:"umschreiben", von:"Perfekt", nach:"Präteritum", satz:"Der Zug ist heute pünktlich angekommen.",
+            loesung:["Der Zug kam heute pünktlich an."],
+            thema:"Präteritum: trennbare Verben",
+            tipp:"ankommen – kam an. Das „an“ wandert wieder ans Ende.",
+            erklaerung_de:"**ankommen → kam … an:** Im Präteritum ist das trennbare Verb wieder getrennt: Der Zug **kam** pünktlich **an**.",
+            erklaerung_es:"Perfekt = sobre todo oral, Präteritum = sobre todo escrito (periódicos, libros). Separable: kam … an." },
+          { typ:"umschreiben", von:"Perfekt", nach:"Präteritum", satz:"Die Arbeiter haben lange auf ihren Lohn gewartet.",
+            loesung:["Die Arbeiter warteten lange auf ihren Lohn."],
+            thema:"Präteritum: regelmäßige Verben",
+            tipp:"warten ist regelmäßig, der Stamm endet auf -t.",
+            erklaerung_de:"**warten – wartete:** Die Arbeiter **warteten** lange auf ihren Lohn.",
+            erklaerung_es:"esperar **a** algo → warten **auf** etwas. Präteritum: warteten (esperaban / esperaron)." },
+          { typ:"umschreiben", von:"Perfekt", nach:"Präteritum", satz:"Drei Kinder sind plötzlich aus einer Maschine gestiegen.",
+            loesung:["Drei Kinder stiegen plötzlich aus einer Maschine."],
+            thema:"Präteritum: unregelmäßige Verben",
+            tipp:"steigen – ? – gestiegen. Hörst du den Vokal im Partizip?",
+            erklaerung_de:"**steigen – stieg – gestiegen:** Drei Kinder **stiegen** plötzlich aus einer Maschine. (Über wen schreibt der Redakteur da wohl?)",
+            erklaerung_es:"„steigen“ (subir / bajar de un vehículo): stiegen (bajaron)." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 4: Forschungsstation 2126 ---------- */
+  {
+    name: "Die Forschungsstation",
+    szene: "station",
+    jahr: "2126",
+    thema: "Futur I (werden + Infinitiv)",
+    geschichte: "Glas, Metall und leises Summen: Die Maschine ist in einer Forschungsstation gelandet. Draußen schweben Busse ohne Räder vorbei. Eine Anzeige an der Wand zeigt das Datum: Jahr 2126.\n\nEin Roboter rollt heran. „Ich begrüßte Sie. Ich war für Gäste zuständig.“ Er spricht seltsamerweise nur im Präteritum – als wäre die Zukunft für ihn schon vorbei.\n\nDie Maschine braucht jetzt Energie aus der Zukunft: das **Futur I**.",
+    geschafft: "Der Roboter sagte: „Ihr werdet zurückkommen. Das wusste ich schon gestern.“",
+    gegenstaende: [
+      { id:"pult", art:"aufgabe", name:"das Steuerpult", symbol:"🎛️", ort:[90, 380, 110, 90], ziffer:5,
+        titel:"Das Steuerpult",
+        text:"Das Steuerpult wartet auf Befehle in der Zukunft. Dreh die Ringe: Wie heißt **werden**?",
+        aufgaben: [
+          { typ:"zahnrad", satz:"Morgen ___ wir wieder in Frutillar sein.",
+            ringe:["PERSON", ["werd","wir","wurd"], ["e","st","d","en","et"]], loesung:["wir","werd","en"],
+            thema:"Futur I: werden",
+            tipp:"Futur I = Präsens von werden + Infinitiv am Ende.",
+            erklaerung_de:"**Futur I:** werden (Präsens) + Infinitiv: Wir **werden** wieder in Frutillar **sein**.",
+            erklaerung_es:"Futuro: werden + infinitivo al final. Wir werden … sein = estaremos. (En el habla, a menudo basta el presente: Morgen sind wir …)" },
+          { typ:"zahnrad", satz:"Du ___ es nicht glauben, Benja: Hier gibt es kein Handy-Netz!",
+            ringe:["PERSON", ["werd","wir","wurd"], ["e","st","d","en","et"]], loesung:["du","wir","st"],
+            thema:"Futur I: werden mit Vokalwechsel",
+            tipp:"werden hat bei du und er/sie/es einen besonderen Stamm.",
+            erklaerung_de:"**du wirst**, er **wird** – bei du und er/sie/es: e → i und das d fällt weg (du wirst).",
+            erklaerung_es:"werden: du **wirst**, er **wird**. Futur: Du wirst es nicht glauben (no lo vas a creer)." },
+        ] },
+      { id:"hologramm", art:"aufgabe", name:"das Hologramm", symbol:"💠", ort:[330, 170, 110, 110], ziffer:7,
+        titel:"Das Hologramm",
+        text:"Das Hologramm zeigt zwei Tabellen: eine für die Zukunft, eine für den Roboter.",
+        aufgaben: [
+          { typ:"tabelle", verb:"reisen", zeit:"Futur I",
+            zellen:{ "ich":"werde reisen", "du":"?", "er/sie/es":"?", "wir":"werden reisen", "ihr":"?", "sie/Sie":"werden reisen" },
+            loesung:{ "du":"wirst reisen", "er/sie/es":"wird reisen", "ihr":"werdet reisen" },
+            thema:"Futur I: alle Personen",
+            tipp:"Nur werden ändert sich – der Infinitiv bleibt immer gleich.",
+            erklaerung_de:"Futur I: ich werde, du **wirst**, er **wird**, wir werden, ihr **werdet**, sie werden + **reisen**.",
+            erklaerung_es:"Solo cambia „werden“; el infinitivo (reisen) no cambia: du wirst reisen (viajarás)." },
+          { typ:"tabelle", verb:"werden", zeit:"Präteritum (Roboter-Sprache)",
+            zellen:{ "ich":"wurde", "du":"?", "er/sie/es":"?", "wir":"wurden", "ihr":"?", "sie/Sie":"wurden" },
+            loesung:{ "du":"wurdest", "er/sie/es":"wurde", "ihr":"wurdet" },
+            thema:"Präteritum: werden",
+            tipp:"wurde – wie ein regelmäßiges Präteritum, aber ohne -te.",
+            erklaerung_de:"**werden – wurde – geworden:** du **wurdest**, er **wurde**, ihr **wurdet**.",
+            erklaerung_es:"„werden“ en Präteritum: wurde (se volvió / llegó a ser). No confundir con el futuro (wird)." },
+        ] },
+      { id:"roboter", art:"aufgabe", name:"der Roboter", symbol:"🤖", ort:[560, 330, 100, 120], ziffer:2,
+        titel:"Der Roboter",
+        text:"Der Roboter redet nur über die Vergangenheit. Bring ihm die Zukunft bei!\n\nRoboter: „Ich lernte nie, was morgen passierte.“",
+        aufgaben: [
+          { typ:"luecke", satz:"Roboter: „Ich reparierte die Maschine.“ – Sofía: „Nein, du ___ sie morgen reparieren!“", loesung:["wirst"],
+            thema:"Futur I: du",
+            tipp:"Sofía spricht über morgen. Welche Form von werden passt zu du?",
+            erklaerung_de:"Futur I mit du: Du **wirst** sie morgen **reparieren**.",
+            erklaerung_es:"„la vas a reparar mañana“ → du wirst sie morgen reparieren." },
+          { typ:"umschreiben", von:"Präsens", nach:"Futur I", satz:"Wir fahren morgen nach Hause zurück.",
+            loesung:["Wir werden morgen nach Hause zurückfahren."],
+            thema:"Futur I mit trennbarem Verb",
+            tipp:"Der Infinitiv steht am Ende – und dort ist „zurückfahren“ wieder ein Wort.",
+            erklaerung_de:"Im Futur steht der Infinitiv am Ende, trennbare Verben bleiben zusammen: Wir **werden** morgen nach Hause **zurückfahren**.",
+            erklaerung_es:"En el infinitivo el verbo separable va junto: zurückfahren. Wir werden … zurückfahren (volveremos)." },
+          { typ:"auswahl", satz:"Benja ist nicht da. Er ___ wohl noch beim Hologramm sein.", optionen:["wird","würde","wurde"], loesung:"wird",
+            thema:"Futur I als Vermutung",
+            tipp:"„wohl“ zeigt: Sofía vermutet etwas über jetzt.",
+            erklaerung_de:"Futur I + **wohl** = Vermutung: Er **wird** wohl noch beim Hologramm **sein** (= Er ist wahrscheinlich dort).",
+            erklaerung_es:"Como en español „estará con el holograma“: el futuro expresa una suposición." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 5: Finale ---------- */
+  {
+    name: "Zurück in Frutillar",
+    szene: "frutillar",
+    jahr: "heute",
+    thema: "Konjunktiv II der Gegenwart: Was wäre, wenn …?",
+    geschichte: "Die Maschine landet mit einem Krachen am Steg von Frutillar. Zu Hause! Doch die Zeiger der großen Uhr drehen sich wild, und aus dem Schornstein steigt schwarzer Rauch.\n\n„Wenn sie nicht stabil wird, springt sie wieder in eine andere Zeit“, ruft Sofía. Matías schluckt: „Was wäre, wenn wir in der Steinzeit landen würden?“\n\nJetzt hilft nur noch der **Konjunktiv II**.",
+    geschafft: "Die Uhr bleibt stehen: HEUTE. Die Maschine schnurrt wie eine Katze. Von oben ruft Oma: „Wenn ihr jetzt kommen würdet, wäre der Kuchen noch warm!“",
+    gegenstaende: [
+      { id:"kern", art:"aufgabe", name:"der Kern der Maschine", symbol:"🔩", ort:[700, 330, 70, 70], ziffer:8,
+        titel:"Der Kern der Maschine",
+        text:"Der Kern der Maschine braucht Energie aus irrealen Sätzen: **hätte** oder **wäre**?",
+        aufgaben: [
+          { typ:"zelle", satz:"Wenn wir mehr Zeit ___, würden wir noch einmal nach Rapa Nui reisen.", loesung:"haben", form:"hätten",
+            thema:"Konjunktiv II: hätte",
+            tipp:"Im Indikativ: Wir haben mehr Zeit.",
+            erklaerung_de:"Konjunktiv II von haben: **hätte**. Wenn wir mehr Zeit **hätten**, würden wir … (Wir haben aber keine Zeit.)",
+            erklaerung_es:"Si tuviéramos más tiempo → Wenn wir mehr Zeit **hätten**. El Konjunktiv II expresa algo **irreal**." },
+          { typ:"zelle", satz:"Wenn die Maschine stabil ___, könnten wir endlich aussteigen.", loesung:"sein", form:"wäre",
+            thema:"Konjunktiv II: wäre",
+            tipp:"Im Indikativ: Die Maschine ist stabil.",
+            erklaerung_de:"Konjunktiv II von sein: **wäre**. Wenn die Maschine stabil **wäre**, … (Sie ist es aber nicht.)",
+            erklaerung_es:"Si la máquina estuviera estable → wenn sie stabil **wäre**. ser/estar = sein → wäre." },
+          { typ:"zahnrad", satz:"Ich ___ gern noch einmal in die Zukunft reisen, sagt Matías.",
+            ringe:["PERSON", ["würd","werd","wurd"], ["e","est","en","et"]], loesung:["ich","würd","e"],
+            thema:"Konjunktiv II: würde + Infinitiv",
+            tipp:"Ein Wunsch, nicht die Zukunft. Mit Punkten!",
+            erklaerung_de:"Wünsche: **würde** + Infinitiv: Ich **würde** gern in die Zukunft **reisen**.",
+            erklaerung_es:"Me gustaría viajar → Ich **würde** gern reisen. „würde“ = condicional (-ría)." },
+        ] },
+      { id:"boot", art:"aufgabe", name:"das Ruderboot am Steg", symbol:"🚣", ort:[350, 420, 100, 80], ziffer:4,
+        titel:"Das Ruderboot",
+        text:"Im Ruderboot liegt ein kleiner Amboss. Benja hat ihn aus dem Jahr 1852 mitgebracht. Schmiede noch zwei Präteritumformen!",
+        aufgaben: [
+          { typ:"schmieden", verb:"schwimmen", form:"Präteritum",
+            bausteine:["schw", ["i","a","o"], "mm", ["","te"]], loesung:"schwamm",
+            thema:"Präteritum: unregelmäßige Verben",
+            tipp:"schwimmen – ? – geschwommen. Präteritum mit a.",
+            erklaerung_de:"**schwimmen – schwamm – geschwommen.**",
+            erklaerung_es:"„schwimmen“ (nadar): er schwamm (nadó / nadaba)." },
+          { typ:"schmieden", verb:"fahren", form:"Präteritum",
+            bausteine:["f", ["a","u","ä"], "hr", ["","te"]], loesung:"fuhr",
+            thema:"Präteritum: unregelmäßige Verben",
+            tipp:"fahren – ? – gefahren. Der Vokal wird ein u.",
+            erklaerung_de:"**fahren – fuhr – gefahren.**",
+            erklaerung_es:"„fahren“ (ir en vehículo): er fuhr (fue / iba)." },
+        ] },
+      { id:"brief", art:"aufgabe", name:"ein Brief von Oma", symbol:"💌", ort:[150, 380, 80, 70], ziffer:6,
+        titel:"Ein Brief von Oma",
+        text:"Am Steg liegt ein Brief von Oma: „Für die Zeitreisenden“. Hat sie etwa alles gewusst?",
+        aufgaben: [
+          { typ:"luecke", satz:"„Wenn ich jünger ___, würde ich sofort mitfahren“, schreibt Oma.", hinweis:"sein", loesung:["wäre","waere"],
+            thema:"Konjunktiv II: wäre",
+            tipp:"Oma ist nicht mehr jung. Also: irreal.",
+            erklaerung_de:"**wäre** = Konjunktiv II von sein: Wenn ich jünger **wäre** … (Ich bin aber nicht jung.)",
+            erklaerung_es:"Si yo fuera más joven → Wenn ich jünger **wäre**. Ojo: el Konjunktiv II **no** se usa después de „dass“ como el subjuntivo español." },
+          { typ:"auswahl", satz:"„An eurer Stelle ___ ich die Maschine sofort abschalten.“", optionen:["würde","wurde","werde"], loesung:"würde",
+            thema:"Konjunktiv II: Ratschläge",
+            tipp:"„An eurer Stelle“ = Oma ist nicht an eurer Stelle. Also: irreal.",
+            erklaerung_de:"Ratschlag: An eurer Stelle **würde** ich … abschalten. (wurde = Präteritum, werde = Futur.)",
+            erklaerung_es:"Yo en su lugar apagaría la máquina → An eurer Stelle **würde** ich … abschalten." },
+          { typ:"luecke", satz:"„Wenn ihr mehr Zeit ___, könntet ihr mir beim Backen helfen.“", hinweis:"haben", loesung:["hättet","haettet"],
+            thema:"Konjunktiv II: hätte (ihr)",
+            tipp:"ihr habt → Konjunktiv II: mit ä und der ihr-Endung.",
+            erklaerung_de:"**ihr hättet** = Konjunktiv II von haben mit ihr.",
+            erklaerung_es:"si tuvierais / tuvieran más tiempo → wenn ihr mehr Zeit **hättet**." },
+        ] },
+    ],
+  },
+  ],
+
+  /* ---------- Bonusraum ---------- */
+  bonus: {
+    name: "Bonus: Die Steinzeit",
+    szene: "steinzeit",
+    jahr: "Steinzeit",
+    thema: "Präteritum: unregelmäßige Verben",
+    geschichte: "Du hast alle Zeitfehler gefunden! Die Maschine macht vor Freude einen Sprung – leider einen sehr großen. Ihr landet in der Steinzeit.\n\nIn einer Höhle brennt ein Feuer. Benja nimmt einen Stein als Hammer: „In der Steinzeit schmiedet man eben Präteritum.“ Fünf Verben bringen Extrapunkte.",
+    geschafft: "Ein Mammut schaut neugierig aus der Höhle. „Nichts wie weg“, flüstert Matías.",
+    gegenstaende: [
+      { id:"feuer", art:"aufgabe", name:"das Feuer", symbol:"🔥", ort:[420, 380, 90, 90],
+        titel:"Am Feuer",
+        text:"Am Feuer werden die Steine heiß. Schmiede das Präteritum (er/sie/es)!",
+        aufgaben: [
+          { typ:"schmieden", verb:"gehen", form:"Präteritum",
+            bausteine:["g", ["e","i"], ["h","ng"], ["","te"]], loesung:"ging",
+            thema:"Präteritum: unregelmäßige Verben", tipp:"gehen – ? – gegangen.",
+            erklaerung_de:"**gehen – ging – gegangen.**",
+            erklaerung_es:"„gehen“ (ir): er ging (fue / iba)." },
+          { typ:"schmieden", verb:"sehen", form:"Präteritum",
+            bausteine:["s", ["e","a","ie"], ["h",""], ["","te"]], loesung:"sah",
+            thema:"Präteritum: unregelmäßige Verben", tipp:"sehen – ? – gesehen. Kurz und mit a.",
+            erklaerung_de:"**sehen – sah – gesehen.**",
+            erklaerung_es:"„sehen“ (ver): er sah (vio / veía)." },
+          { typ:"schmieden", verb:"essen", form:"Präteritum",
+            bausteine:[["e","a"], ["ss","ß"], ["","te"]], loesung:"aß",
+            thema:"Präteritum: unregelmäßige Verben", tipp:"Nach einem langen Vokal schreibt man ß.",
+            erklaerung_de:"**essen – aß – gegessen:** langes a → **ß**.",
+            erklaerung_es:"„essen“ (comer): er aß (comió / comía)." },
+        ] },
+      { id:"hoehle", art:"aufgabe", name:"die Höhle", symbol:"", ort:[60, 160, 230, 260],
+        titel:"In der Höhle",
+        text:"An der Höhlenwand sind Bilder – und ein Amboss aus Stein.",
+        aufgaben: [
+          { typ:"schmieden", verb:"trinken", form:"Präteritum",
+            bausteine:["tr", ["i","a","u"], "nk", ["","te"]], loesung:"trank",
+            thema:"Präteritum: unregelmäßige Verben", tipp:"trinken – ? – getrunken.",
+            erklaerung_de:"**trinken – trank – getrunken:** i – a – u.",
+            erklaerung_es:"„trinken“ (beber): er trank (bebió / bebía)." },
+          { typ:"schmieden", verb:"schlafen", form:"Präteritum",
+            bausteine:["schl", ["a","ie","ä"], "f", ["","te"]], loesung:"schlief",
+            thema:"Präteritum: unregelmäßige Verben", tipp:"schlafen – ? – geschlafen. Wie bei „schreiben – schrieb“.",
+            erklaerung_de:"**schlafen – schlief – geschlafen.**",
+            erklaerung_es:"„schlafen“ (dormir): er schlief (durmió / dormía)." },
+        ] },
+    ],
+  },
+},
+
+/* =========================== NIVEAU B2 =========================== */
+B2: {
+  titel: "Passiv und Konjunktiv II der Vergangenheit",
+  schwerpunkt: "Passiv in allen Zeiten und mit Modalverb, Konjunktiv II der Vergangenheit (auch doppelter Infinitiv), Verben mit Präposition und Pronominaladverbien",
+  schluss: "Die Zeitmaschine ist wieder unter der Decke verschwunden, als wäre nichts geschehen.\n\n„Hätten wir den Knopf nie gedrückt“, sagt Sofía nachdenklich, „hätten wir die Moai nie gesehen.“ Benja grinst: „Siehst du? Ich hätte ihn sogar früher drücken sollen.“",
+  raeume: [
+
+  /* ---------- Raum 0: Dachboden ---------- */
+  {
+    name: "Der Dachboden in Frutillar",
+    szene: "dachboden",
+    jahr: "heute",
+    thema: "Verben mit Präposition, Pronominaladverbien; Passiv im Überblick",
+    geschichte: "Ein verregneter Nachmittag in Frutillar. Auf dem Dachboden des alten Siedlerhauses, das Sofías Familie seit Generationen gehört, stoßen Sofía, Matías und Benja auf etwas, das dort eigentlich nicht stehen dürfte: eine Maschine aus Messing und Holz, übersät mit Zahnrädern, mit einer großen Uhr in der Mitte.\n\nAuf einem verblichenen Schild steht: **ZEITMASCHINE – läuft nur mit richtigen Verbformen.** Ehe die anderen protestieren können, hat Benja den roten Knopf gedrückt. Ein Brummen – dann Stille.\n\n„Offenbar muss sie erst mit Energie versorgt werden“, stellt Sofía fest. „Fragt sich nur, womit.“",
+    anleitung: "🔍 Klick auf die Gegenstände im Raum. Dort warten Aufgaben.\n⚡ Jede richtige Verbform gibt der Maschine Energie.\n🔢 Ist ein Gegenstand gelöst, zeigt er eine Ziffer.\n🔒 Klick auf die Maschine: Stell die Ziffern am Zeitschloss ein und zieh den Hebel.\n🕰️ In jeder Zeit versteckt sich ein Zeitfehler: etwas, das nicht in diese Zeit passt. Findest du alle?",
+    geschafft: "Die Zahnräder greifen ineinander, die Uhr beginnt rückwärts zu laufen. „Jetzt wird nicht mehr gezögert“, sagt Benja – und zieht.",
+    gegenstaende: [
+      { id:"koffer", art:"aufgabe", name:"ein alter Koffer", symbol:"🧳", ort:[60, 360, 130, 110], ziffer:2,
+        titel:"Der alte Koffer",
+        text:"Das Schloss des Koffers hat drei Ringe: **da/wo – (r) – Präposition**. Bilde das passende Pronominaladverb. „–“ heißt: kein r.",
+        aufgaben: [
+          { typ:"zahnrad", satz:"Benja wartet schon lange ___, dass die Maschine endlich anspringt.",
+            ringe:[["da","wo"], ["r","–"], ["auf","an","von","über","mit"]], ringnamen:["da / wo","Bindungs-r","Präposition"], loesung:["da","r","auf"],
+            thema:"Pronominaladverb: warten auf",
+            tipp:"warten + welche Präposition? Und wenn die Präposition mit einem Vokal beginnt, braucht man ein r.",
+            erklaerung_de:"**warten auf** → **darauf** (verweist auf den dass-Satz). Beginnt die Präposition mit einem Vokal, kommt ein **r** dazu: da-r-auf, wo-r-an." },
+          { typ:"zahnrad", satz:"Sofía fragt: „Und ___ erinnerst du dich am liebsten?“",
+            ringe:[["da","wo"], ["r","–"], ["auf","an","von","über","mit"]], ringnamen:["da / wo","Bindungs-r","Präposition"], loesung:["wo","r","an"],
+            thema:"Frage-Pronominaladverb: sich erinnern an",
+            tipp:"Eine Frage nach einer Sache: wo(r) + Präposition.",
+            erklaerung_de:"**sich erinnern an** → Frage nach einer Sache: **Woran** erinnerst du dich? (Nach Personen fragt man: An wen?)" },
+          { typ:"zahnrad", satz:"Matías träumt ___, eines Tages zum Mars zu fliegen.",
+            ringe:[["da","wo"], ["r","–"], ["auf","an","von","über","mit"]], ringnamen:["da / wo","Bindungs-r","Präposition"], loesung:["da","–","von"],
+            thema:"Pronominaladverb: träumen von",
+            tipp:"träumen + Präposition? Sie beginnt mit einem Konsonanten.",
+            erklaerung_de:"**träumen von** → **davon** (ohne r, weil „von“ mit einem Konsonanten beginnt)." },
+        ] },
+      { id:"bauplan", art:"aufgabe", name:"ein Bauplan an der Wand", symbol:"📜", ort:[300, 120, 120, 120], ziffer:7,
+        titel:"Der Bauplan der Zeitmaschine",
+        text:"Der Bauplan erklärt, wie die Maschine gebaut wurde – natürlich im **Passiv**. Ergänze die Tabellen (Subjekt: die Maschine).",
+        aufgaben: [
+          { typ:"tabelle", verb:"bauen (Passiv)", zeit:"alle Zeiten",
+            zellen:{ "Präsens":"wird gebaut", "Präteritum":"?", "Perfekt":"?", "Plusquamperfekt":"?", "Futur I":"?" },
+            loesung:{ "Präteritum":"wurde gebaut", "Perfekt":"ist gebaut worden", "Plusquamperfekt":"war gebaut worden", "Futur I":"wird gebaut werden" },
+            thema:"Passiv in allen Zeiten",
+            tipp:"Im Perfekt und Plusquamperfekt heißt es nicht „geworden“, sondern …",
+            erklaerung_de:"Passiv = **werden + Partizip II**. Perfekt/Plusquamperfekt mit **sein** und **worden** (nicht „geworden“): ist/war gebaut **worden**. Futur: wird gebaut **werden**." },
+          { typ:"tabelle", verb:"reparieren (Passiv mit Modalverb)", zeit:"Präsens und Präteritum",
+            zellen:{ "müssen, Präsens":"muss repariert werden", "müssen, Präteritum":"?", "können, Präsens":"?", "können, Präteritum":"konnte repariert werden", "dürfen, Präsens":"?" },
+            loesung:{ "müssen, Präteritum":"musste repariert werden", "können, Präsens":"kann repariert werden", "dürfen, Präsens":"darf repariert werden" },
+            thema:"Passiv mit Modalverb",
+            tipp:"Nur das Modalverb ändert sich. Am Ende steht immer: Partizip II + werden.",
+            erklaerung_de:"Passiv mit Modalverb: **Modalverb + Partizip II + werden**: Die Maschine **muss/musste/kann/darf** repariert **werden**." },
+        ] },
+      { id:"energiefach", art:"aufgabe", name:"das Energiefach der Maschine", symbol:"🔋", ort:[630, 420, 90, 80], ziffer:5,
+        titel:"Das Energiefach",
+        text:"Aktiv oder Passiv? Die richtige Energiezelle verrät es.",
+        aufgaben: [
+          { typ:"zelle", satz:"Die Maschine ___ offenbar schon oft repariert worden.", loesung:"sein", form:"ist",
+            thema:"Passiv Perfekt: sein + Partizip II + worden",
+            tipp:"„worden“ zeigt: Das ist Passiv Perfekt.",
+            erklaerung_de:"Passiv Perfekt: **ist** repariert **worden**. Das Hilfsverb ist immer **sein**, weil werden das Perfekt mit sein bildet." },
+          { typ:"zelle", satz:"Wer ___ diese Maschine eigentlich gebaut?", loesung:"haben", form:"hat",
+            thema:"Aktiv Perfekt",
+            tipp:"„Wer“ ist das Subjekt, das etwas tut. Steht hier „worden“?",
+            erklaerung_de:"Aktiv Perfekt: Wer **hat** die Maschine gebaut? Kein „worden“ → kein Passiv." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 1: Rapa Nui ---------- */
+  {
+    name: "Rapa Nui",
+    szene: "rapanui",
+    jahr: "Zeit der Moai",
+    thema: "Passiv Präteritum und Passiv mit Modalverb",
+    geschichte: "Grelles Licht, ein Ruck – und plötzlich riecht es nach Salz und Gras. Die Maschine ist auf einer Anhöhe über dem Pazifik gelandet. In der Ferne erheben sich große Steinfiguren auf einer Plattform: die Moai von Rapa Nui, viele Jahrhunderte vor eurer Zeit.\n\nSofía hält die anderen zurück. „Wir gehen nicht näher heran. Für die Menschen hier ist das ein heiliger Ort.“\n\nBei der Landung ist die Maschine beschädigt worden. Matías notiert alles im Logbuch – und zwar im **Passiv**, „weil es wissenschaftlicher klingt“.",
+    geschafft: "Matías schreibt: „Die Maschine wurde repariert, nichts wurde berührt, und Rapa Nui wurde mit Respekt verlassen.“",
+    gegenstaende: [
+      { id:"logbuch", art:"aufgabe", name:"Matías’ Logbuch", symbol:"📓", ort:[70, 420, 90, 80], ziffer:9,
+        titel:"Matías’ Logbuch",
+        text:"Matías hat Informationen über die Moai gesammelt – im Passiv Präteritum. Dreh die Ringe.",
+        aufgaben: [
+          { typ:"zahnrad", satz:"Die Moai ___ aus Vulkangestein gehauen.",
+            ringe:["PERSON", ["wurd","werd","wird"], ["e","est","en","et"]], loesung:["sie/Sie","wurd","en"],
+            thema:"Passiv Präteritum: wurde + Partizip II",
+            tipp:"Subjekt im Plural, Vergangenheit, Passiv.",
+            erklaerung_de:"Passiv Präteritum: **wurden** + Partizip II: Die Moai **wurden** aus Vulkangestein gehauen. Der Steinbruch lag am Vulkan Rano Raraku." },
+          { typ:"zahnrad", satz:"Das Logbuch ___ jeden Abend von Matías ergänzt.",
+            ringe:["PERSON", ["wurd","werd","wird"], ["e","est","en","et"]], loesung:["er/sie/es","wurd","e"],
+            thema:"Passiv Präteritum mit von + Dativ",
+            tipp:"Das Logbuch = es. Wer handelt, steht nach „von“.",
+            erklaerung_de:"Das Logbuch **wurde** von Matías ergänzt. Der Handelnde steht im Passiv mit **von + Dativ**." },
+        ] },
+      { id:"werkzeug", art:"aufgabe", name:"die Werkzeugkiste", symbol:"🧰", ort:[250, 430, 100, 80], ziffer:4,
+        titel:"Die Werkzeugkiste",
+        text:"In der Werkzeugkiste liegt Matías’ Liste: Was wurde gemacht, was muss noch gemacht werden?",
+        aufgaben: [
+          { typ:"auswahl", satz:"Die Figuren ___ von den Menschen auf Rapa Nui selbst auf Plattformen gestellt.", optionen:["wurden","worden","würden"], loesung:"wurden",
+            thema:"Passiv Präteritum",
+            tipp:"„worden“ steht nie allein. Und „würden“ wäre ein Konjunktiv.",
+            erklaerung_de:"Passiv Präteritum: **wurden** … gestellt. „worden“ gibt es nur im Perfekt/Plusquamperfekt (ist … worden), „würden“ ist Konjunktiv II." },
+          { typ:"luecke", satz:"Das verlorene Zahnrad ist von Benja im Gras ___ worden.", hinweis:"finden", loesung:["gefunden"],
+            thema:"Passiv Perfekt: Partizip II + worden",
+            tipp:"Zwischen „ist“ und „worden“ steht das Partizip II des Vollverbs.",
+            erklaerung_de:"Passiv Perfekt: ist + **gefunden** + worden." },
+          { typ:"luecke", satz:"Die Maschine muss sofort ___ werden, sonst bleiben wir hier.", hinweis:"reparieren", loesung:["repariert"],
+            thema:"Passiv mit Modalverb",
+            tipp:"Modalverb + Partizip II + werden.",
+            erklaerung_de:"Passiv mit Modalverb: muss **repariert** werden." },
+        ] },
+      { id:"teile", art:"aufgabe", name:"Teile im Gras", symbol:"⚙️", ort:[470, 470, 80, 70], ziffer:1,
+        titel:"Teile im Gras",
+        text:"Zwischen den Teilen liegt ein kleiner Amboss. Schmiede die Partizipien, die im Logbuch fehlen.",
+        aufgaben: [
+          { typ:"schmieden", verb:"ziehen", form:"Partizip II",
+            bausteine:[["","ge"], "z", ["ie","o","u"], ["h","g"], ["en","t"]], loesung:"gezogen",
+            thema:"Partizip II: Konsonantenwechsel",
+            tipp:"ziehen – zog – ge…? Auch der Konsonant ändert sich.",
+            erklaerung_de:"**ziehen – zog – gezogen:** ie → o und **h → g**." },
+          { typ:"schmieden", verb:"heben", form:"Partizip II",
+            bausteine:[["","ge"], "h", ["e","o","a"], "b", ["en","t"]], loesung:"gehoben",
+            thema:"Partizip II: unregelmäßige Verben",
+            tipp:"heben – hob – ge…?",
+            erklaerung_de:"**heben – hob – gehoben:** Die Teile wurden aus dem Gras **gehoben**." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 2: Llanquihue-See ---------- */
+  {
+    name: "Am Llanquihue-See",
+    szene: "llanquihue",
+    jahr: "um 1852",
+    thema: "Passiv Perfekt und Plusquamperfekt",
+    geschichte: "Am Ufer des Llanquihue-Sees, ungefähr im Jahr 1852, liegt der Geruch von frisch geschlagenem Holz in der Luft. Über dem Wasser erhebt sich der Osorno.\n\nDie Siedlerfamilien, die nach einer monatelangen Überfahrt hier angekommen sind, stehen vor einer gewaltigen Aufgabe: Wald muss gerodet, Land urbar gemacht, ein Haus vor dem Winter fertiggestellt werden.\n\nIhr habt passende Kleidung bekommen und fallt kaum auf. Die Maschine dagegen verlangt nach dem **Passiv im Perfekt**.",
+    geschafft: "„Danke für die Hilfe“, sagt die Siedlerin. „Ohne euch wäre das Dach heute nicht fertig geworden.“",
+    gegenstaende: [
+      { id:"amboss", art:"aufgabe", name:"der Amboss", symbol:"⚒️", ort:[80, 400, 100, 90], ziffer:3,
+        titel:"Der Amboss",
+        text:"Am Amboss wartet der Schmied der Siedlung. Schmiede drei Partizipien – Vorsicht, eins davon hat schon ein ge- im Infinitiv!",
+        aufgaben: [
+          { typ:"schmieden", verb:"gewinnen", form:"Partizip II",
+            bausteine:[["","ge"], "gew", ["i","a","o"], "nn", ["en","t"]], loesung:"gewonnen",
+            thema:"Partizip II: Verben mit untrennbarem ge-",
+            tipp:"„ge-“ gehört hier schon zum Verb. Braucht das Partizip noch ein zweites?",
+            erklaerung_de:"**gewinnen – gewann – gewonnen:** ge- ist ein untrennbares Präfix → **kein zusätzliches ge-** (nicht „gegewonnen“)." },
+          { typ:"schmieden", verb:"werfen", form:"Partizip II",
+            bausteine:[["","ge"], "w", ["e","a","o"], "rf", ["en","t"]], loesung:"geworfen",
+            thema:"Partizip II: unregelmäßige Verben",
+            tipp:"werfen – warf – ge…?",
+            erklaerung_de:"**werfen – warf – geworfen:** e – a – o." },
+          { typ:"schmieden", verb:"schließen", form:"Partizip II",
+            bausteine:[["","ge"], "schl", ["ie","o"], ["ß","ss"], ["en","t"]], loesung:"geschlossen",
+            thema:"Partizip II: ß oder ss?",
+            tipp:"Nach kurzem Vokal schreibt man ss, nach langem ß.",
+            erklaerung_de:"**schließen – schloss – geschlossen:** kurzes o → **ss**." },
+        ] },
+      { id:"haus", art:"aufgabe", name:"das neue Holzhaus", symbol:"", schloss:"🏠", ort:[560, 180, 200, 200], ziffer:6,
+        titel:"Das neue Holzhaus",
+        text:"Im Holzhaus ist ein Energiefach. Aktiv oder Passiv? Die richtige Zelle entscheidet.",
+        aufgaben: [
+          { typ:"zelle", satz:"Das Haus ___ in nur drei Wochen gebaut worden.", loesung:"sein", form:"ist",
+            thema:"Passiv Perfekt",
+            tipp:"gebaut worden …",
+            erklaerung_de:"Passiv Perfekt: Das Haus **ist** gebaut **worden**." },
+          { typ:"zelle", satz:"Die Siedler ___ das Holz selbst geschlagen.", loesung:"haben", form:"haben",
+            thema:"Aktiv Perfekt",
+            tipp:"Die Siedler tun etwas selbst. Gibt es ein „worden“?",
+            erklaerung_de:"Aktiv Perfekt: Die Siedler **haben** das Holz geschlagen." },
+          { typ:"zelle", satz:"Bevor der erste Regen kam, ___ das Dach schon gedeckt worden.", loesung:"sein", form:"war",
+            thema:"Passiv Plusquamperfekt",
+            tipp:"Zuerst das Dach, dann der Regen – also Vorvergangenheit.",
+            erklaerung_de:"Passiv Plusquamperfekt: Das Dach **war** gedeckt **worden** (vor dem Regen)." },
+        ] },
+      { id:"tagebuch", art:"aufgabe", name:"das Tagebuch einer Siedlerin", symbol:"📔", ort:[330, 440, 80, 70], ziffer:8,
+        titel:"Das Tagebuch einer Siedlerin",
+        text:"Die Siedlerin möchte für ihre Enkel schreiben, **was** getan wurde – nicht so sehr, **wer** es getan hat. Schreib die Sätze ins **Passiv** (gleiche Zeit).",
+        aufgaben: [
+          { typ:"umschreiben", von:"Aktiv Perfekt", nach:"Passiv Perfekt", satz:"Die Siedler haben die Kirche gebaut.",
+            loesung:["Die Kirche ist von den Siedlern gebaut worden.","Die Kirche ist gebaut worden.","Von den Siedlern ist die Kirche gebaut worden."],
+            thema:"Aktiv → Passiv im Perfekt",
+            tipp:"Das Akkusativobjekt wird zum Subjekt. Hilfsverb: sein. Am Ende: Partizip II + worden.",
+            erklaerung_de:"Die Kirche **ist** (von den Siedlern) **gebaut worden**. Akkusativobjekt → Subjekt, Subjekt → von + Dativ (kann wegfallen)." },
+          { typ:"umschreiben", von:"Aktiv Perfekt (man)", nach:"Passiv Perfekt", satz:"Man hat die Kühe mit Booten über den See gebracht.",
+            loesung:["Die Kühe sind mit Booten über den See gebracht worden.","Die Kühe sind über den See mit Booten gebracht worden."],
+            thema:"man-Sätze im Passiv",
+            tipp:"„man“ fällt im Passiv weg. Achtung: Die Kühe sind Plural.",
+            erklaerung_de:"„man“ verschwindet: Die Kühe **sind** mit Booten über den See **gebracht worden**. Plural → **sind**." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 3: Salpeter-Oficina ---------- */
+  {
+    name: "Eine Salpeter-Oficina in der Atacama",
+    szene: "oficina",
+    jahr: "um 1910",
+    thema: "Passiv mit Modalverb, unpersönliches Passiv; Zeitung: Aktiv → Passiv",
+    geschichte: "Gleißende Sonne, Staub in der Luft, das Stampfen von Maschinen: Ihr seid in einer Salpeter-Oficina in der Atacama gelandet, um das Jahr 1910. Damals wurde der Salpeter hier abgebaut, gekocht, getrocknet und mit der Bahn zu den Häfen gebracht, um als Dünger in die ganze Welt verschifft zu werden.\n\nDie Arbeiter wurden oft mit Marken bezahlt, die nur im Laden der Oficina eingelöst werden konnten.\n\nIn der Redaktion der kleinen Zeitung herrscht Chaos. Der Redakteur hat eine Regel: „In der Zeitung steht, **was** passiert – im Passiv!“",
+    geschafft: "Die Zeitung wird gedruckt. Der Redakteur liest die erste Seite und nickt: „So wird geschrieben.“",
+    gegenstaende: [
+      { id:"werkstatt", art:"aufgabe", name:"die Werkstatt", symbol:"🛠️", ort:[70, 390, 100, 90], ziffer:5,
+        titel:"Die Werkstatt",
+        text:"Auf der Tafel der Werkstatt stehen die Aufgaben des Tages – im Passiv mit Modalverb.",
+        aufgaben: [
+          { typ:"luecke", satz:"Die Lokomotive ___ heute noch repariert werden.", hinweis:"müssen, Präsens", loesung:["muss"],
+            thema:"Passiv mit Modalverb: Präsens",
+            tipp:"Das Modalverb steht an Position 2 und richtet sich nach dem Subjekt.",
+            erklaerung_de:"Die Lokomotive **muss** repariert werden." },
+          { typ:"luecke", satz:"Der Kessel ___ gestern leider nicht geöffnet werden.", hinweis:"können, Präteritum", loesung:["konnte"],
+            thema:"Passiv mit Modalverb: Präteritum",
+            tipp:"Modalverb im Präteritum: ohne Umlaut.",
+            erklaerung_de:"Der Kessel **konnte** nicht geöffnet werden." },
+        ] },
+      { id:"laden", art:"aufgabe", name:"der Laden der Arbeiter", symbol:"🏪", ort:[300, 300, 110, 100], ziffer:8,
+        titel:"Der Laden der Arbeiter",
+        text:"Am Laden hängt ein Schild mit den Regeln. Es gibt kein Subjekt – nur ein **es** oder gar nichts.",
+        aufgaben: [
+          { typ:"auswahl", satz:"Hier ___ nur mit Marken der Oficina bezahlt.", optionen:["wird","ist","hat"], loesung:"wird",
+            thema:"unpersönliches Passiv",
+            tipp:"Wer bezahlt? Das ist egal. Ein Vorgang ohne Subjekt.",
+            erklaerung_de:"Unpersönliches Passiv: Hier **wird** bezahlt. Ohne Subjekt steht das Verb in der 3. Person Singular." },
+          { typ:"auswahl", satz:"Es ___ in der Oficina von früh bis spät gearbeitet.", optionen:["wurde","war","hatte"], loesung:"wurde",
+            thema:"unpersönliches Passiv mit es",
+            tipp:"Ein Vorgang in der Vergangenheit, im Passiv.",
+            erklaerung_de:"Es **wurde** gearbeitet = Man arbeitete. Das „es“ steht nur auf Position 1 („In der Oficina wurde … gearbeitet“)." },
+        ] },
+      { id:"redaktion", art:"aufgabe", name:"die Zeitungsredaktion", symbol:"📰", ort:[560, 260, 110, 100], ziffer:9,
+        titel:"Der Zeitungsraum",
+        text:"Der Redakteur will alle Meldungen im **Passiv**. Behalte die Zeit bei. Den Handelnden (von …) kannst du nennen oder weglassen.",
+        aufgaben: [
+          { typ:"umschreiben", von:"Aktiv Präsens", nach:"Passiv Präsens", satz:"Ein Ingenieur kontrolliert jeden Morgen die Eisenbahn.",
+            loesung:["Die Eisenbahn wird jeden Morgen von einem Ingenieur kontrolliert.","Die Eisenbahn wird von einem Ingenieur jeden Morgen kontrolliert.","Jeden Morgen wird die Eisenbahn von einem Ingenieur kontrolliert.","Die Eisenbahn wird jeden Morgen kontrolliert.","Jeden Morgen wird die Eisenbahn kontrolliert."],
+            thema:"Aktiv → Passiv: Präsens",
+            tipp:"werden (Präsens) + Partizip II am Ende.",
+            erklaerung_de:"Die Eisenbahn **wird** jeden Morgen (von einem Ingenieur) **kontrolliert**." },
+          { typ:"umschreiben", von:"Aktiv Präteritum", nach:"Passiv Präteritum", satz:"Die Arbeiter luden den Salpeter auf die Züge.",
+            loesung:["Der Salpeter wurde von den Arbeitern auf die Züge geladen.","Der Salpeter wurde auf die Züge geladen.","Der Salpeter wurde von den Arbeitern auf die Züge verladen."],
+            thema:"Aktiv → Passiv: Präteritum",
+            tipp:"laden – lud – geladen. Präteritum von werden: wurde.",
+            erklaerung_de:"Der Salpeter **wurde** (von den Arbeitern) auf die Züge **geladen**." },
+          { typ:"umschreiben", von:"Aktiv mit Modalverb", nach:"Passiv mit Modalverb", satz:"Man muss die Zeitung bis morgen früh drucken.",
+            loesung:["Die Zeitung muss bis morgen früh gedruckt werden."],
+            thema:"Aktiv → Passiv mit Modalverb",
+            tipp:"man fällt weg. Am Ende: Partizip II + werden.",
+            erklaerung_de:"Die Zeitung **muss** bis morgen früh **gedruckt werden**." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 4: Forschungsstation 2126 ---------- */
+  {
+    name: "Die Forschungsstation",
+    szene: "station",
+    jahr: "2126",
+    thema: "Verben mit Präposition, Pronominaladverbien; Passiv Futur",
+    geschichte: "Lautlos öffnen sich Glastüren. Die Maschine steht in einer Forschungsstation des Jahres 2126; draußen gleiten Busse ohne Räder durch die Luft.\n\nEin Roboter begrüßt euch: „Ich wurde für Gespräche programmiert. Ich interessierte mich für alte Maschinen.“ Dass er ausschließlich im Präteritum spricht, scheint ihn selbst nicht zu stören.\n\nDie Zeitmaschine verlangt nach **Verben mit Präposition** – und nach einem Blick in die Zukunft: dem **Passiv Futur**.",
+    geschafft: "Der Roboter sagte: „Ich wartete darauf, dass ihr geht. Das war ein Scherz.“",
+    gegenstaende: [
+      { id:"pult", art:"aufgabe", name:"das Steuerpult", symbol:"🎛️", ort:[90, 380, 110, 90], ziffer:1,
+        titel:"Das Steuerpult",
+        text:"Das Steuerpult reagiert nur auf Pronominaladverbien. „–“ heißt: kein r.",
+        aufgaben: [
+          { typ:"zahnrad", satz:"Der Roboter wartete ___, dass jemand ihm einen Befehl gab.",
+            ringe:[["da","wo"], ["r","–"], ["auf","an","von","über","mit"]], ringnamen:["da / wo","Bindungs-r","Präposition"], loesung:["da","r","auf"],
+            thema:"Pronominaladverb mit Nebensatz",
+            tipp:"warten + Präposition; das Pronominaladverb kündigt den dass-Satz an.",
+            erklaerung_de:"**warten auf** → **darauf**, dass … Das Pronominaladverb verweist auf den folgenden Nebensatz." },
+          { typ:"zahnrad", satz:"Sofía fragt Benja: „Und ___ denkst du gerade?“",
+            ringe:[["da","wo"], ["r","–"], ["auf","an","von","über","mit"]], ringnamen:["da / wo","Bindungs-r","Präposition"], loesung:["wo","r","an"],
+            thema:"Frage-Pronominaladverb: denken an",
+            tipp:"denken + Präposition? Eine Frage nach einer Sache.",
+            erklaerung_de:"**denken an** → **Woran** denkst du? (Bei Personen: An wen denkst du?)" },
+        ] },
+      { id:"hologramm", art:"aufgabe", name:"das Hologramm", symbol:"💠", ort:[330, 170, 110, 110], ziffer:6,
+        titel:"Das Hologramm",
+        text:"Das Hologramm zeigt ein Wörterbuch der Zukunft – und eine Prognose.",
+        aufgaben: [
+          { typ:"tabelle", verb:"Verben mit Präposition", zeit:"Welche Präposition?",
+            zellen:{ "warten":"auf", "sich erinnern":"?", "träumen":"?", "sich interessieren":"?", "Angst haben":"?", "sich ärgern":"über" },
+            loesung:{ "sich erinnern":"an", "träumen":"von", "sich interessieren":"für", "Angst haben":"vor" },
+            thema:"feste Präpositionen",
+            tipp:"Bilde im Kopf einen Satz: Ich interessiere mich ___ Technik.",
+            erklaerung_de:"sich erinnern **an**, träumen **von**, sich interessieren **für**, Angst haben **vor** – diese Präpositionen lernt man am besten mit dem Verb zusammen." },
+          { typ:"umschreiben", von:"Aktiv Futur I", nach:"Passiv Futur I", satz:"Roboter werden die Station bald reparieren.",
+            loesung:["Die Station wird bald von Robotern repariert werden.","Die Station wird von Robotern bald repariert werden.","Die Station wird bald repariert werden."],
+            thema:"Passiv Futur I",
+            tipp:"werden (Präsens) + Partizip II + werden.",
+            erklaerung_de:"Passiv Futur I: Die Station **wird** bald (von Robotern) **repariert werden** – zweimal werden!" },
+        ] },
+      { id:"roboter", art:"aufgabe", name:"der Roboter", symbol:"🤖", ort:[560, 330, 100, 120], ziffer:3,
+        titel:"Der Roboter",
+        text:"Der Roboter erzählt von sich – im Präteritum. Hilf ihm mit den Präpositionen.",
+        aufgaben: [
+          { typ:"luecke", satz:"Roboter: „Ich interessierte mich schon immer ___ alte Maschinen.“", loesung:["für"],
+            thema:"sich interessieren für",
+            tipp:"Welche Präposition hast du gerade im Hologramm gesehen?",
+            erklaerung_de:"sich interessieren **für** + Akkusativ: für alte Maschinen." },
+          { typ:"auswahl", satz:"Sofía: „___ hast du am meisten Angst?“ – Roboter: „Vor Wasser. Ich rostete einmal.“", optionen:["Wovor","Davor","Vor was"], loesung:"Wovor",
+            thema:"Frage nach einer Sache: wo(r) + Präposition",
+            tipp:"Eine Frage nach einer Sache in der Standardsprache.",
+            erklaerung_de:"**Wovor** hast du Angst? „Vor was“ hört man in der gesprochenen Sprache, gilt aber als umgangssprachlich. „Davor“ ist keine Frage." },
+          { typ:"luecke", satz:"Benja freut sich schon ___, bald wieder Kuchen zu essen.", loesung:["darauf"],
+            thema:"sich freuen auf + Pronominaladverb",
+            tipp:"Freude auf etwas in der Zukunft. Und dann folgt ein Infinitivsatz.",
+            erklaerung_de:"**sich freuen auf** (Zukunft) → **darauf**, … zu essen. (sich freuen **über** = über etwas, das schon da ist.)" },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 5: Finale ---------- */
+  {
+    name: "Zurück in Frutillar",
+    szene: "frutillar",
+    jahr: "heute",
+    thema: "Konjunktiv II der Vergangenheit (auch mit Modalverb)",
+    geschichte: "Mit einem Knall setzt die Maschine am Steg von Frutillar auf. Zu Hause – aber nicht in Sicherheit: Die Zeiger drehen sich wild, der Schornstein spuckt schwarzen Rauch.\n\n„Hätten wir sie doch vorher gewartet“, stöhnt Matías. Sofía schüttelt den Kopf. „Was wir hätten tun sollen, hilft jetzt nicht. Aber wenn wir sie nicht stabilisieren, springt sie wieder.“\n\nDie letzte Energiequelle: der **Konjunktiv II der Vergangenheit**.",
+    geschafft: "Die Uhr bleibt auf HEUTE stehen. „Wäre Oma nicht gewesen“, sagt Benja, „hätten wir das nie geschafft.“ Von oben ruft Oma: „Kuchen!“",
+    gegenstaende: [
+      { id:"kern", art:"aufgabe", name:"der Kern der Maschine", symbol:"🔩", ort:[700, 330, 70, 70], ziffer:4,
+        titel:"Der Kern der Maschine",
+        text:"Der Kern braucht Energie aus irrealen Sätzen über die Vergangenheit: **hätte** oder **wäre**?",
+        aufgaben: [
+          { typ:"zelle", satz:"Wenn Benja den Knopf nicht gedrückt ___, wären wir nie gereist.", loesung:"haben", form:"hätte",
+            thema:"Konjunktiv II Vergangenheit: hätte + Partizip II",
+            tipp:"Perfekt: Benja hat den Knopf gedrückt.",
+            erklaerung_de:"Konjunktiv II der Vergangenheit: **hätte/wäre + Partizip II**. drücken → haben: Wenn Benja … gedrückt **hätte** …" },
+          { typ:"zelle", satz:"Wenn wir in der Steinzeit geblieben ___, hätten wir nie wieder Kuchen gegessen.", loesung:"sein", form:"wären",
+            thema:"Konjunktiv II Vergangenheit: wäre + Partizip II",
+            tipp:"Perfekt: Wir sind geblieben.",
+            erklaerung_de:"bleiben → Perfekt mit sein → Konjunktiv II: Wenn wir geblieben **wären** …" },
+          { typ:"zahnrad", satz:"Wir ___ die Maschine vor der Reise überprüfen müssen.",
+            ringe:["PERSON", ["hätt","hatt","hab"], ["e","est","en","et"]], loesung:["wir","hätt","en"],
+            thema:"Konjunktiv II Vergangenheit mit Modalverb",
+            tipp:"Ein Vorwurf an sich selbst: Man hat es nicht getan.",
+            erklaerung_de:"Mit Modalverb: **hätten** + Infinitiv + Modalverb im Infinitiv (doppelter Infinitiv): Wir **hätten** sie überprüfen **müssen**." },
+        ] },
+      { id:"boot", art:"aufgabe", name:"das Ruderboot am Steg", symbol:"🚣", ort:[350, 420, 100, 80], ziffer:7,
+        titel:"Das Ruderboot",
+        text:"Im Boot sitzt Matías und zählt auf, was alles hätte anders laufen sollen. Ergänze den **doppelten Infinitiv**.",
+        aufgaben: [
+          { typ:"luecke", satz:"Wir hätten nicht so lange in der Oficina bleiben ___.", hinweis:"sollen", loesung:["sollen"],
+            thema:"doppelter Infinitiv",
+            tipp:"Nach „hätten … bleiben“ steht das Modalverb nicht als Partizip, sondern …",
+            erklaerung_de:"Doppelter Infinitiv: hätten … bleiben **sollen** (nicht „gesollt“)." },
+          { typ:"luecke", satz:"Benja hätte sein Handy einfach zu Hause ___ können.", hinweis:"lassen", loesung:["lassen"],
+            thema:"doppelter Infinitiv",
+            tipp:"Zwei Infinitive am Ende: Vollverb + Modalverb.",
+            erklaerung_de:"Benja hätte das Handy zu Hause **lassen können**. Vollverb und Modalverb stehen beide im Infinitiv am Ende." },
+        ] },
+      { id:"brief", art:"aufgabe", name:"ein Brief von Oma", symbol:"💌", ort:[150, 380, 80, 70], ziffer:2,
+        titel:"Ein Brief von Oma",
+        text:"Am Steg liegt ein Brief von Oma: „Für die Zeitreisenden“. Sie scheint mehr zu wissen, als sie zugibt.",
+        aufgaben: [
+          { typ:"auswahl", satz:"„Ohne euch ___ die Maschine für immer kaputt gewesen“, schreibt Oma.", optionen:["wäre","hätte","würde"], loesung:"wäre",
+            thema:"Konjunktiv II Vergangenheit von sein",
+            tipp:"„gewesen“ ist das Partizip von sein. Welches Hilfsverb braucht sein im Perfekt?",
+            erklaerung_de:"sein → Perfekt mit sein → Konjunktiv II: **wäre** … gewesen." },
+          { typ:"umschreiben", von:"Indikativ", nach:"irrealer Wunsch (Konjunktiv II der Vergangenheit)", satz:"Wir sind nicht vorsichtig gewesen.",
+            loesung:["Wären wir doch vorsichtig gewesen!","Wenn wir doch vorsichtig gewesen wären!","Wären wir nur vorsichtig gewesen!","Wenn wir nur vorsichtig gewesen wären!"],
+            thema:"irreale Wünsche",
+            tipp:"Ein Wunsch mit „doch“ oder „nur“ – mit oder ohne wenn.",
+            erklaerung_de:"Irrealer Wunsch: **Wären** wir doch vorsichtig **gewesen**! / Wenn wir doch vorsichtig gewesen **wären**!" },
+        ] },
+    ],
+  },
+  ],
+
+  /* ---------- Bonusraum ---------- */
+  bonus: {
+    name: "Bonus: Die Steinzeit",
+    szene: "steinzeit",
+    jahr: "Steinzeit",
+    thema: "Partizip II: unregelmäßige Verben",
+    geschichte: "Du hast alle Zeitfehler gefunden! Zur Belohnung – oder aus Versehen – katapultiert euch die Maschine in die Steinzeit.\n\nMetall wurde hier noch nicht erfunden, also wird mit Stein geschmiedet. Fünf Partizipien bringen Extrapunkte und neue Karten.",
+    geschafft: "Ein Mammut trompetet. Die Maschine hätte nicht schneller anspringen können.",
+    gegenstaende: [
+      { id:"feuer", art:"aufgabe", name:"das Feuer", symbol:"🔥", ort:[420, 380, 90, 90],
+        titel:"Am Feuer",
+        text:"Am Feuer werden die Steine heiß. Schmiede die Partizipien!",
+        aufgaben: [
+          { typ:"schmieden", verb:"steigen", form:"Partizip II",
+            bausteine:[["","ge"], "st", ["ei","ie"], "g", ["en","t"]], loesung:"gestiegen",
+            thema:"Partizip II: ei → ie", tipp:"steigen – stieg – ge…?",
+            erklaerung_de:"**steigen – stieg – gestiegen** (Perfekt mit sein)." },
+          { typ:"schmieden", verb:"verlieren", form:"Partizip II",
+            bausteine:[["","ge"], "verl", ["ie","o"], "r", ["en","t"]], loesung:"verloren",
+            thema:"Partizip II: untrennbare Verben", tipp:"ver- ist untrennbar.",
+            erklaerung_de:"**verlieren – verlor – verloren:** kein ge-." },
+          { typ:"schmieden", verb:"beginnen", form:"Partizip II",
+            bausteine:[["","ge"], "beg", ["i","a","o"], "nn", ["en","t"]], loesung:"begonnen",
+            thema:"Partizip II: untrennbare Verben", tipp:"be- ist untrennbar. Vokal wie bei gewonnen.",
+            erklaerung_de:"**beginnen – begann – begonnen.**" },
+        ] },
+      { id:"hoehle", art:"aufgabe", name:"die Höhle", symbol:"", ort:[60, 160, 230, 260],
+        titel:"In der Höhle",
+        text:"An der Höhlenwand wurden Bilder gemalt. Daneben liegt ein Amboss aus Stein.",
+        aufgaben: [
+          { typ:"schmieden", verb:"sprechen", form:"Partizip II",
+            bausteine:[["","ge"], "spr", ["e","a","o"], "ch", ["en","t"]], loesung:"gesprochen",
+            thema:"Partizip II: e – a – o", tipp:"sprechen – sprach – ge…?",
+            erklaerung_de:"**sprechen – sprach – gesprochen.**" },
+          { typ:"schmieden", verb:"tragen", form:"Partizip II",
+            bausteine:[["","ge"], "tr", ["a","u","ä"], "g", ["en","t"]], loesung:"getragen",
+            thema:"Partizip II: Vokal wie im Infinitiv", tipp:"Präteritum mit u – aber das Partizip?",
+            erklaerung_de:"**tragen – trug – getragen:** Das Partizip hat wieder den Vokal des Infinitivs." },
+        ] },
+    ],
+  },
+},
+
+/* =========================== NIVEAU C1 =========================== */
+C1: {
+  titel: "Indirekte Rede und Passiv-Varianten",
+  schwerpunkt: "Konjunktiv I in der indirekten Rede (mit Ersatzformen), Zustands- und Vorgangspassiv, Passiversatzformen, seltenere unregelmäßige Verben",
+  schluss: "Die Zeitmaschine ruht wieder unter ihrer Decke. Im Familienarchiv taucht später ein Zeitungsartikel aus dem Jahr 1910 auf: Ein Zeuge habe drei Kinder aus einer Maschine steigen sehen, die anschließend spurlos verschwunden sei.\n\n„Er habe das alles nur geträumt“, steht ganz unten. Benja grinst. „Natürlich hat er das.“",
+  raeume: [
+
+  /* ---------- Raum 0: Dachboden ---------- */
+  {
+    name: "Der Dachboden in Frutillar",
+    szene: "dachboden",
+    jahr: "heute",
+    thema: "Konjunktiv I: Formen; Zustands- und Vorgangspassiv",
+    geschichte: "Es ist einer dieser Regentage, an denen Frutillar im Nebel verschwindet. Auf dem Dachboden des alten Siedlerhauses suchen Sofía, Matías und Benja nach Fotos für ein Schulprojekt – und finden stattdessen eine Apparatur, die eher in ein Museum gehörte: Messing, Holz, ineinandergreifende Zahnräder, in der Mitte eine große Uhr.\n\nDas Schild ist eindeutig: **ZEITMASCHINE – läuft nur mit richtigen Verbformen.** Benja drückt, noch bevor jemand widersprechen kann, den roten Knopf. Ein kurzes Aufheulen, dann Stille.\n\nSofías Oma, so erzählt man in der Familie, habe immer behauptet, auf dem Dachboden stehe „etwas Besonderes“. Offenbar hatte sie recht.",
+    anleitung: "🔍 Klick auf die Gegenstände im Raum. Dort warten Aufgaben.\n⚡ Jede richtige Verbform gibt der Maschine Energie.\n🔢 Ist ein Gegenstand gelöst, zeigt er eine Ziffer.\n🔒 Klick auf die Maschine: Stell die Ziffern am Zeitschloss ein und zieh den Hebel.\n🕰️ In jeder Zeit versteckt sich ein Zeitfehler: etwas, das nicht in diese Zeit passt. Findest du alle?",
+    geschafft: "Die Zahnräder greifen, die Uhr läuft rückwärts. „Oma sagte, man solle nie an diesem Hebel ziehen“, flüstert Sofía. Benja zieht.",
+    gegenstaende: [
+      { id:"koffer", art:"aufgabe", name:"ein alter Koffer", symbol:"🧳", ort:[60, 360, 130, 110], ziffer:6,
+        titel:"Der alte Koffer",
+        text:"Im Koffer liegen Briefe, in denen jemand berichtet, was andere gesagt haben – im **Konjunktiv I**. Das Schloss hat drei Ringe: **Person – Stamm – Endung**. „–“ heißt: keine Endung.",
+        aufgaben: [
+          { typ:"zahnrad", satz:"Oma erzählt, das Haus ___ über hundert Jahre alt.",
+            ringe:["PERSON", ["sei","sein","is"], ["–","e","en","st"]], loesung:["er/sie/es","sei","–"],
+            thema:"Konjunktiv I: sein",
+            tipp:"sein ist auch im Konjunktiv I unregelmäßig – und in der 3. Person ohne Endung.",
+            erklaerung_de:"Konjunktiv I von **sein**: ich sei, du sei(e)st, er **sei**, wir seien, ihr seiet, sie seien." },
+          { typ:"zahnrad", satz:"Benja behauptet, er ___ den Knopf nur ganz leicht berührt.",
+            ringe:["PERSON", ["hab","hätt","ha"], ["e","est","en","t"]], loesung:["er/sie/es","hab","e"],
+            thema:"Konjunktiv I: haben (3. Person Singular)",
+            tipp:"Konjunktiv I = Infinitivstamm + -e. In der 3. Person Singular unterscheidet er sich vom Indikativ „hat“.",
+            erklaerung_de:"Konjunktiv I: Stamm **hab-** + **-e**: er **habe** berührt. Weil er sich vom Indikativ (hat) unterscheidet, ist er hier eindeutig." },
+          { typ:"zahnrad", satz:"Matías meint, die Maschine ___ nur mit korrekten Verbformen.",
+            ringe:["PERSON", ["lauf","läuf","lief"], ["e","est","t","en"]], loesung:["er/sie/es","lauf","e"],
+            thema:"Konjunktiv I: Verben mit Vokalwechsel",
+            tipp:"Der Konjunktiv I wird vom Infinitivstamm gebildet – ohne Vokalwechsel.",
+            erklaerung_de:"Konjunktiv I: **lauf-e** (nicht „läuft“): Der Vokalwechsel des Präsens fällt weg." },
+        ] },
+      { id:"bauplan", art:"aufgabe", name:"ein Bauplan an der Wand", symbol:"📜", ort:[300, 120, 120, 120], ziffer:2,
+        titel:"Der Bauplan der Zeitmaschine",
+        text:"Auf dem Bauplan stehen Formtabellen für die indirekte Rede. Wo Konjunktiv I und Indikativ gleich aussehen, braucht man eine **Ersatzform**.",
+        aufgaben: [
+          { typ:"tabelle", verb:"sein", zeit:"Konjunktiv I",
+            zellen:{ "ich":"sei", "du":"?", "er/sie/es":"?", "wir":"?", "ihr":"seiet", "sie/Sie":"seien" },
+            loesung:{ "du":["seiest","seist"], "er/sie/es":"sei", "wir":"seien" },
+            thema:"Konjunktiv I: sein",
+            tipp:"sein ist der einzige Fall, bei dem der Konjunktiv I in allen Personen eindeutig ist.",
+            erklaerung_de:"Konjunktiv I von **sein** ist in allen Personen vom Indikativ verschieden: sei, sei(e)st, sei, **seien**, seiet, seien." },
+          { typ:"tabelle", verb:"haben", zeit:"indirekte Rede (Konjunktiv I oder Ersatzform)",
+            zellen:{ "ich":"?", "du":"habest", "er/sie/es":"?", "wir":"?", "ihr":"habet", "sie/Sie":"hätten (Ersatzform)" },
+            loesung:{ "ich":"hätte", "er/sie/es":"habe", "wir":"hätten" },
+            thema:"Konjunktiv I und Ersatzform (Konjunktiv II)",
+            tipp:"Sieht der Konjunktiv I aus wie der Indikativ, nimmt man den Konjunktiv II.",
+            erklaerung_de:"ich habe / wir haben wären mit dem Indikativ identisch → **Ersatzform** Konjunktiv II: ich **hätte**, wir **hätten**. Eindeutig ist dagegen er **habe**." },
+        ] },
+      { id:"energiefach", art:"aufgabe", name:"das Energiefach der Maschine", symbol:"🔋", ort:[630, 420, 90, 80], ziffer:9,
+        titel:"Das Energiefach",
+        text:"Vorgang oder Zustand? Zieh die passende Zelle in die Maschine.",
+        aufgaben: [
+          { typ:"zelle", satz:"Achtung, der Dachboden ___ gerade aufgeräumt – bitte nicht stören!", optionen:["werden","sein"], loesung:"werden", form:"wird",
+            thema:"Vorgangspassiv",
+            tipp:"„gerade“: Passiert es noch?",
+            erklaerung_de:"**Vorgangspassiv** (werden + Partizip II) beschreibt einen Prozess: Der Dachboden **wird** gerade aufgeräumt." },
+          { typ:"zelle", satz:"Die Maschine ___ seit Jahren abgeschaltet.", optionen:["werden","sein"], loesung:"sein", form:"ist",
+            thema:"Zustandspassiv",
+            tipp:"„seit Jahren“: ein Ergebnis, das andauert.",
+            erklaerung_de:"**Zustandspassiv** (sein + Partizip II) beschreibt das Ergebnis eines Vorgangs: Die Maschine **ist** abgeschaltet." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 1: Rapa Nui ---------- */
+  {
+    name: "Rapa Nui",
+    szene: "rapanui",
+    jahr: "Zeit der Moai",
+    thema: "Zustands- und Vorgangspassiv",
+    geschichte: "Als sich das Licht legt, steht die Maschine auf einer Anhöhe über dem Pazifik. In der Ferne sind auf einer steinernen Plattform die Moai zu erkennen – Figuren, die die Menschen von Rapa Nui zu Ehren ihrer Vorfahren geschaffen haben. Ihr seid Jahrhunderte vor eurer eigenen Zeit gelandet.\n\nSofía legt Matías die Hand auf den Arm. „Wir beobachten aus der Distanz. Alles andere wäre respektlos.“\n\nDie Landung war hart: Teile sind im Gras verstreut. Matías’ Logbuch soll präzise sein – und Präzision heißt hier: **Vorgang** oder **Zustand**?",
+    geschafft: "Matías notiert: „Die Maschine ist repariert, die Spuren sind beseitigt. Nichts wurde berührt.“",
+    gegenstaende: [
+      { id:"logbuch", art:"aufgabe", name:"Matías’ Logbuch", symbol:"📓", ort:[70, 420, 90, 80], ziffer:3,
+        titel:"Matías’ Logbuch",
+        text:"Matías unterscheidet sorgfältig: Wird etwas getan (Vorgang) – oder ist es schon getan (Zustand)?",
+        aufgaben: [
+          { typ:"auswahl", satz:"Die Figuren ___ damals in einem Steinbruch aus Vulkangestein gehauen.", optionen:["wurden","waren","sind"], loesung:"wurden",
+            thema:"Vorgangspassiv Präteritum",
+            tipp:"„damals“ – es geht um den Prozess der Herstellung.",
+            erklaerung_de:"Vorgangspassiv: Die Figuren **wurden** gehauen (Prozess in der Vergangenheit). „waren gehauen“ würde nur einen Zustand beschreiben." },
+          { typ:"auswahl", satz:"Die Plattform am Meer ___ sorgfältig aus Steinblöcken gefügt.", optionen:["ist","wird","werden"], loesung:"ist",
+            thema:"Zustandspassiv Präsens",
+            tipp:"Matías beschreibt, was er jetzt sieht – das Ergebnis.",
+            erklaerung_de:"Zustandspassiv: Die Plattform **ist** aus Steinblöcken gefügt – so sieht sie aus (Ergebnis). „wird gefügt“ hieße: Man baut gerade daran." },
+          { typ:"umschreiben", von:"Vorgangspassiv", nach:"Zustandspassiv", satz:"Das Zahnrad wird gerade eingebaut.",
+            loesung:["Das Zahnrad ist eingebaut.","Das Zahnrad ist jetzt eingebaut.","Jetzt ist das Zahnrad eingebaut."],
+            thema:"Vorgangs- → Zustandspassiv",
+            tipp:"Lass „gerade“ weg und beschreib das Ergebnis.",
+            erklaerung_de:"Zustandspassiv: Das Zahnrad **ist eingebaut** (= Ergebnis des Einbauens)." },
+        ] },
+      { id:"werkzeug", art:"aufgabe", name:"die Werkzeugkiste", symbol:"🧰", ort:[250, 430, 100, 80], ziffer:7,
+        titel:"Die Werkzeugkiste",
+        text:"In der Werkzeugkiste liegt ein kleiner Amboss. Schmiede die Partizipien seltenerer Verben.",
+        aufgaben: [
+          { typ:"schmieden", verb:"schleifen", form:"Partizip II",
+            bausteine:[["","ge"], "schl", ["ei","i","ie"], ["f","ff"], ["en","t"]], loesung:"geschliffen",
+            thema:"Partizip II: schleifen (schärfen)",
+            tipp:"schleifen – schliff – ge…? Kurzer Vokal, doppelter Konsonant.",
+            erklaerung_de:"**schleifen – schliff – geschliffen** (= schärfen, glätten). Achtung: „schleifen“ im Sinn von „ziehen“ ist regelmäßig: schleifte – geschleift." },
+          { typ:"schmieden", verb:"gießen", form:"Partizip II",
+            bausteine:[["","ge"], "g", ["ie","o"], ["ß","ss"], ["en","t"]], loesung:"gegossen",
+            thema:"Partizip II: ie → o, ß → ss",
+            tipp:"Wie „schließen – geschlossen“.",
+            erklaerung_de:"**gießen – goss – gegossen:** kurzes o → **ss**." },
+        ] },
+      { id:"teile", art:"aufgabe", name:"Teile im Gras", symbol:"⚙️", ort:[470, 470, 80, 70], ziffer:5,
+        titel:"Teile im Gras",
+        text:"Sofía prüft die Teile. Ergänze das Hilfsverb des Passivs.",
+        aufgaben: [
+          { typ:"luecke", satz:"Keine Sorge, die Schrauben ___ schon festgezogen.", loesung:["sind"],
+            thema:"Zustandspassiv",
+            tipp:"„schon“ – die Arbeit ist erledigt.",
+            erklaerung_de:"Zustandspassiv: Die Schrauben **sind** festgezogen (Ergebnis)." },
+          { typ:"luecke", satz:"Als Benja zurückkam, ___ das Werkzeug längst eingepackt.", loesung:["war"],
+            thema:"Zustandspassiv Präteritum",
+            tipp:"Ein Zustand in der Vergangenheit.",
+            erklaerung_de:"Zustandspassiv Präteritum: Das Werkzeug **war** eingepackt." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 2: Llanquihue-See ---------- */
+  {
+    name: "Am Llanquihue-See",
+    szene: "llanquihue",
+    jahr: "um 1852",
+    thema: "Konjunktiv I der Vergangenheit; seltenere Präteritumformen",
+    geschichte: "Der Osorno spiegelt sich im Llanquihue-See, als die Maschine am Ufer aufsetzt – ungefähr im Jahr 1852, zur Zeit der ersten deutschen Siedler. Ringsum wird gerodet und gezimmert; jedes Haus muss vor dem Winter stehen.\n\nEine Siedlerin, die gerade Wasser holt, erzählt euch von der Überfahrt. Matías schreibt mit – allerdings nicht wörtlich, sondern in **indirekter Rede**, „so wie ein Historiker“.\n\nDie Maschine verlangt nach **Konjunktiv I der Vergangenheit**.",
+    geschafft: "Die Siedlerin winkt. Matías liest vor: „Sie sagte, sie habe noch nie so seltsame Gäste gehabt.“",
+    gegenstaende: [
+      { id:"amboss", art:"aufgabe", name:"der Amboss", symbol:"⚒️", ort:[80, 400, 100, 90], ziffer:8,
+        titel:"Der Amboss",
+        text:"Der Schmied der Siedlung prüft euch mit seltenen Präteritumformen.",
+        aufgaben: [
+          { typ:"schmieden", verb:"gedeihen", form:"Präteritum",
+            bausteine:["ged", ["ei","ie"], ["h",""], ["","te"]], loesung:"gedieh",
+            thema:"Präteritum: seltene unregelmäßige Verben",
+            tipp:"gedeihen – ? – gediehen. Im Präteritum bleibt das h erhalten.",
+            erklaerung_de:"**gedeihen – gedieh – gediehen** (= gut wachsen): Die Äpfel **gediehen** am See prächtig." },
+          { typ:"schmieden", verb:"schwören", form:"Präteritum",
+            bausteine:["schw", ["ö","o","u"], "r", ["","te"]], loesung:"schwor",
+            thema:"Präteritum: seltene unregelmäßige Verben",
+            tipp:"schwören ist unregelmäßig: keine Endung -te, der Umlaut verschwindet.",
+            erklaerung_de:"**schwören – schwor – geschworen.** (Veraltet auch „schwur“.)" },
+          { typ:"schmieden", verb:"meiden", form:"Präteritum",
+            bausteine:["m", ["ei","ie"], "d", ["","ete"]], loesung:"mied",
+            thema:"Präteritum: ei → ie",
+            tipp:"Wie „schreiben – schrieb“.",
+            erklaerung_de:"**meiden – mied – gemieden.**" },
+        ] },
+      { id:"haus", art:"aufgabe", name:"das neue Holzhaus", symbol:"", schloss:"🏠", ort:[560, 180, 200, 200], ziffer:1,
+        titel:"Das neue Holzhaus",
+        text:"Matías gibt wieder, was die Siedlerin erzählt. Welche Energiezelle braucht die indirekte Rede in der Vergangenheit?",
+        aufgaben: [
+          { typ:"zelle", satz:"Die Siedlerin erzählt, sie ___ mit dem Schiff über den Atlantik gekommen.", loesung:"sein", form:"sei", anzeige:{ haben:"habe", sein:"sei" },
+            thema:"Konjunktiv I der Vergangenheit: sei + Partizip II",
+            tipp:"kommen bildet das Perfekt mit …",
+            erklaerung_de:"Konjunktiv I der Vergangenheit: **sei/habe + Partizip II**: sie **sei** gekommen." },
+          { typ:"zelle", satz:"Sie berichtet, ihr Mann ___ das Haus fast allein gebaut.", loesung:"haben", form:"habe", anzeige:{ haben:"habe", sein:"sei" },
+            thema:"Konjunktiv I der Vergangenheit: habe + Partizip II",
+            tipp:"bauen → Perfekt mit haben.",
+            erklaerung_de:"Ihr Mann **habe** das Haus gebaut (3. Person Singular: habe ≠ hat, also eindeutig)." },
+          { typ:"zelle", satz:"Die Kinder sagen, sie ___ im Wald einen seltsamen Vogel gehört.", loesung:"haben", form:"hätten", anzeige:{ haben:"hätten", sein:"wären" },
+            thema:"Ersatzform in der Vergangenheit",
+            tipp:"„sie haben“ wäre mit dem Indikativ identisch – also Ersatzform.",
+            erklaerung_de:"sie haben gehört (Konj. I = Indikativ) → Ersatzform: sie **hätten** gehört." },
+        ] },
+      { id:"tagebuch", art:"aufgabe", name:"das Tagebuch einer Siedlerin", symbol:"📔", ort:[330, 440, 80, 70], ziffer:4,
+        titel:"Das Tagebuch einer Siedlerin",
+        text:"Matías fasst das Tagebuch für die Schule zusammen. Schreib die direkte Rede in **indirekte Rede** um (mit oder ohne „dass“).",
+        aufgaben: [
+          { typ:"umschreiben", von:"direkte Rede", nach:"indirekte Rede", satz:"Die Siedlerin sagt: „Der Winter ist hier sehr hart.“",
+            loesung:["Die Siedlerin sagt, der Winter sei hier sehr hart.","Die Siedlerin sagt, dass der Winter hier sehr hart sei."],
+            thema:"indirekte Rede: Konjunktiv I",
+            tipp:"ist → Konjunktiv I.",
+            erklaerung_de:"Die Siedlerin sagt, der Winter **sei** hier sehr hart. Mit „dass“: …, dass der Winter hier sehr hart **sei**." },
+          { typ:"umschreiben", von:"direkte Rede", nach:"indirekte Rede", satz:"Sie sagt: „Wir haben monatelang auf dem Schiff gelebt.“",
+            loesung:["Sie sagt, sie hätten monatelang auf dem Schiff gelebt.","Sie sagt, dass sie monatelang auf dem Schiff gelebt hätten."],
+            thema:"indirekte Rede: Ersatzform",
+            tipp:"wir → sie. Und „sie haben“ ist nicht eindeutig.",
+            erklaerung_de:"Pronomen anpassen (wir → sie) und Ersatzform: sie **hätten** gelebt (weil „sie haben“ = Indikativ)." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 3: Salpeter-Oficina ---------- */
+  {
+    name: "Eine Salpeter-Oficina in der Atacama",
+    szene: "oficina",
+    jahr: "um 1910",
+    thema: "Zeitung: indirekte Rede mit Ersatzformen",
+    geschichte: "Die Luft flirrt über der Atacama. Die Maschine ist in einer Salpeter-Oficina gelandet, um das Jahr 1910 – auf dem Höhepunkt des Salpeterbooms, als der Rohstoff von hier aus in alle Welt exportiert wurde. Die Arbeiter lebten mit ihren Familien in der Oficina; bezahlt wurden sie häufig in Marken, die nur im eigenen Laden galten.\n\nIn der Redaktion der Oficina-Zeitung sitzt ein Redakteur, der sich selbst „objektiv bis auf die Knochen“ nennt. Alles, was er nicht selbst gesehen hat, schreibt er in **indirekter Rede**.\n\n„Und wer den Konjunktiv nicht beherrscht“, sagt er und schaut euch über die Brille an, „der beherrscht auch die Wahrheit nicht.“",
+    geschafft: "Der Redakteur liest den Artikel und murmelt: „Man könnte meinen, ihr wäret Profis.“",
+    gegenstaende: [
+      { id:"werkstatt", art:"aufgabe", name:"die Werkstatt", symbol:"🛠️", ort:[70, 390, 100, 90], ziffer:4,
+        titel:"Die Werkstatt",
+        text:"Der Vorarbeiter erzählt, der Redakteur notiert. Ergänze die Form der indirekten Rede.",
+        aufgaben: [
+          { typ:"luecke", satz:"Der Ingenieur meint, die Arbeiter ___ den Kessel erst morgen reparieren.", loesung:["würden"],
+            thema:"Ersatzform mit würde",
+            tipp:"„sie reparieren“ = Indikativ, „sie reparierten“ = Präteritum. Was bleibt?",
+            erklaerung_de:"Konjunktiv I (reparieren) = Indikativ, Konjunktiv II (reparierten) = Präteritum → Ersatzform **würden** + Infinitiv." },
+          { typ:"luecke", satz:"Der Vorarbeiter behauptet, er ___ heute keine Zeit für Interviews.", hinweis:"haben", loesung:["habe"],
+            thema:"Konjunktiv I: 3. Person Singular",
+            tipp:"In der 3. Person Singular ist der Konjunktiv I eindeutig.",
+            erklaerung_de:"er **habe** (≠ hat) – eindeutig, also Konjunktiv I." },
+        ] },
+      { id:"laden", art:"aufgabe", name:"der Laden der Arbeiter", symbol:"🏪", ort:[300, 300, 110, 100], ziffer:7,
+        titel:"Der Laden der Arbeiter",
+        text:"Vor dem Laden sammelt der Redakteur Stimmen.",
+        aufgaben: [
+          { typ:"auswahl", satz:"Der Verkäufer versichert, das Brot ___ jeden Morgen frisch.", optionen:["sei","ist","wäre"], loesung:"sei",
+            thema:"Konjunktiv I in der Zeitungssprache",
+            tipp:"Der Redakteur will neutral wiedergeben – weder bestätigen noch anzweifeln.",
+            erklaerung_de:"Neutral berichtet: das Brot **sei** frisch. „ist“ übernimmt die Aussage als Tatsache, „wäre“ deutet Zweifel an." },
+          { typ:"auswahl", satz:"Die Arbeiter klagen, sie ___ zu wenig Marken für ihre Arbeit.", optionen:["bekämen","bekommen","bekommten"], loesung:"bekämen",
+            thema:"Ersatzform: Konjunktiv II",
+            tipp:"„sie bekommen“ ist nicht eindeutig. Und „bekommten“ gibt es nicht.",
+            erklaerung_de:"Konjunktiv I „bekommen“ = Indikativ → Ersatzform Konjunktiv II: sie **bekämen** (bekommen – bekam – bekämen)." },
+        ] },
+      { id:"redaktion", art:"aufgabe", name:"die Zeitungsredaktion", symbol:"📰", ort:[560, 260, 110, 100], ziffer:1,
+        titel:"Der Zeitungsraum",
+        text:"Der Redakteur diktiert Zitate. Schreib sie als **indirekte Rede** für die Zeitung (mit oder ohne „dass“).",
+        aufgaben: [
+          { typ:"umschreiben", von:"direkte Rede", nach:"indirekte Rede", satz:"Der Direktor erklärt: „Die Produktion steigt jedes Jahr.“",
+            loesung:["Der Direktor erklärt, die Produktion steige jedes Jahr.","Der Direktor erklärt, dass die Produktion jedes Jahr steige."],
+            thema:"Konjunktiv I: 3. Person Singular",
+            tipp:"steigt → Infinitivstamm + -e.",
+            erklaerung_de:"Der Direktor erklärt, die Produktion **steige** jedes Jahr." },
+          { typ:"umschreiben", von:"direkte Rede", nach:"indirekte Rede", satz:"Ein Arbeiter sagt: „Wir arbeiten zwölf Stunden am Tag.“",
+            loesung:["Ein Arbeiter sagt, sie würden zwölf Stunden am Tag arbeiten.","Ein Arbeiter sagt, dass sie zwölf Stunden am Tag arbeiten würden.","Ein Arbeiter sagt, sie arbeiteten zwölf Stunden am Tag.","Ein Arbeiter sagt, dass sie zwölf Stunden am Tag arbeiteten."],
+            thema:"Ersatzform: würde + Infinitiv",
+            tipp:"wir → sie. Konjunktiv I und Konjunktiv II von „arbeiten“ helfen hier nicht weiter …",
+            erklaerung_de:"sie arbeiten (= Indikativ), sie arbeiteten (= Präteritum) → meist Ersatzform **würden … arbeiten**. „arbeiteten“ ist auch korrekt, aber mehrdeutig." },
+          { typ:"umschreiben", von:"direkte Rede", nach:"indirekte Rede", satz:"Ein Zeuge berichtet: „Drei Kinder sind aus einer Maschine gestiegen.“",
+            loesung:["Ein Zeuge berichtet, drei Kinder seien aus einer Maschine gestiegen.","Ein Zeuge berichtet, dass drei Kinder aus einer Maschine gestiegen seien."],
+            thema:"Konjunktiv I der Vergangenheit",
+            tipp:"sind gestiegen → Konjunktiv I von sein + Partizip II.",
+            erklaerung_de:"Ein Zeuge berichtet, drei Kinder **seien** aus einer Maschine **gestiegen**. (Der Redakteur glaubt es natürlich nicht.)" },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 4: Forschungsstation 2126 ---------- */
+  {
+    name: "Die Forschungsstation",
+    szene: "station",
+    jahr: "2126",
+    thema: "Passiversatzformen: sich lassen, sein + zu, -bar",
+    geschichte: "Eine Forschungsstation des Jahres 2126: Glas, Licht, Busse, die lautlos an den Fenstern vorbeigleiten. Ein Roboter empfängt euch. „Ich war für die Wartung zuständig. Ich reparierte alles, was sich reparieren ließ.“ Dass er ausschließlich im Präteritum spricht, nimmt er offenbar als Charakterzug.\n\nDie Station ist hochmodern – und trotzdem lässt sich die Zeitmaschine hier nicht ohne Weiteres starten. Ihr braucht **Passiversatzformen**: Ausdrücke, die passivisch gemeint sind, ohne die Form des Passivs zu haben.",
+    geschafft: "Der Roboter sagte: „Ihr wart nicht aufzuhalten. Das war vorhersehbar.“",
+    gegenstaende: [
+      { id:"pult", art:"aufgabe", name:"das Steuerpult", symbol:"🎛️", ort:[90, 380, 110, 90], ziffer:2,
+        titel:"Das Steuerpult",
+        text:"Das Steuerpult zeigt Statusmeldungen – alle mit Passiversatzformen.",
+        aufgaben: [
+          { typ:"auswahl", satz:"Die Zeitmaschine ___ hier leicht reparieren.", optionen:["lässt sich","wird","ist zu"], loesung:"lässt sich",
+            thema:"Passiversatz: sich lassen + Infinitiv",
+            tipp:"Am Ende steht ein Infinitiv, kein Partizip und kein „zu“.",
+            erklaerung_de:"**sich lassen + Infinitiv** = kann … werden: Die Maschine **lässt sich** reparieren = kann repariert werden." },
+          { typ:"luecke", satz:"Dieser Fehler ist sofort ___.", hinweis:"beheben", loesung:["zu beheben"],
+            thema:"Passiversatz: sein + zu + Infinitiv",
+            tipp:"sein + zu + Infinitiv – eine Notwendigkeit.",
+            erklaerung_de:"**sein + zu + Infinitiv** = muss/kann … werden: Der Fehler ist **zu beheben** = muss behoben werden." },
+        ] },
+      { id:"hologramm", art:"aufgabe", name:"das Hologramm", symbol:"💠", ort:[330, 170, 110, 110], ziffer:8,
+        titel:"Das Hologramm",
+        text:"Das Hologramm will alle Meldungen kürzer. Formuliere sie mit der angegebenen **Passiversatzform**.",
+        aufgaben: [
+          { typ:"umschreiben", von:"Passiv mit können", nach:"sich lassen + Infinitiv", satz:"Die Tür kann nicht geöffnet werden.",
+            loesung:["Die Tür lässt sich nicht öffnen."],
+            thema:"sich lassen + Infinitiv",
+            tipp:"können … werden → lässt sich + Infinitiv.",
+            erklaerung_de:"Die Tür **lässt sich** nicht **öffnen**." },
+          { typ:"umschreiben", von:"man kann", nach:"Adjektiv auf -bar", satz:"Das Wasser der Station kann man trinken.",
+            loesung:["Das Wasser der Station ist trinkbar."],
+            thema:"Adjektive auf -bar",
+            tipp:"Verbstamm + -bar = „kann … werden“.",
+            erklaerung_de:"**trinkbar** = kann getrunken werden: Das Wasser ist **trinkbar**." },
+          { typ:"umschreiben", von:"Passiv mit müssen", nach:"sein + zu + Infinitiv", satz:"Der Befehl muss sofort ausgeführt werden.",
+            loesung:["Der Befehl ist sofort auszuführen."],
+            thema:"sein + zu + Infinitiv bei trennbaren Verben",
+            tipp:"Bei trennbaren Verben steht „zu“ zwischen Präfix und Verb.",
+            erklaerung_de:"Der Befehl **ist** sofort **auszuführen** – bei trennbaren Verben: aus-**zu**-führen." },
+        ] },
+      { id:"roboter", art:"aufgabe", name:"der Roboter", symbol:"🤖", ort:[560, 330, 100, 120], ziffer:6,
+        titel:"Der Roboter",
+        text:"Der Roboter erzählt von seinen Erfahrungen – im Präteritum, versteht sich.",
+        aufgaben: [
+          { typ:"luecke", satz:"Roboter: „Diese Station ___ sich früher kaum steuern.“", hinweis:"lassen, Präteritum", loesung:["ließ","liess"],
+            thema:"sich lassen im Präteritum",
+            tipp:"lassen – ? – gelassen.",
+            erklaerung_de:"**lassen – ließ – gelassen:** Die Station **ließ** sich kaum steuern = konnte kaum gesteuert werden." },
+          { typ:"auswahl", satz:"Die Luft ist inzwischen so schlecht, dass die Station nicht mehr ___ ist.", optionen:["bewohnbar","bewohnt","bewohnend"], loesung:"bewohnbar",
+            thema:"Adjektive auf -bar",
+            tipp:"Gemeint ist: Man kann dort nicht mehr wohnen.",
+            erklaerung_de:"**bewohnbar** = kann bewohnt werden. „bewohnt“ hieße: Es wohnt (gerade) niemand dort." },
+        ] },
+    ],
+  },
+
+  /* ---------- Raum 5: Finale ---------- */
+  {
+    name: "Zurück in Frutillar",
+    szene: "frutillar",
+    jahr: "heute",
+    thema: "Alles zusammen: indirekte Rede, Passivvarianten, Konjunktiv II",
+    geschichte: "Mit einem dumpfen Schlag landet die Maschine am Steg von Frutillar. Die Uhr rast, Funken sprühen. „Sie ist instabil“, ruft Sofía. „Wenn sie nicht sofort beruhigt wird, springt sie wieder.“\n\nAuf dem Steg liegt ein Brief, adressiert an „die Zeitreisenden“. Die Handschrift kommt euch bekannt vor.\n\nEin letztes Mal braucht die Maschine alles, was ihr gelernt habt.",
+    geschafft: "Die Uhr kommt bei HEUTE zum Stehen. Die Maschine summt nur noch leise. Von oben ruft Oma, der Kuchen sei fertig – und sie habe es ja immer gesagt.",
+    gegenstaende: [
+      { id:"kern", art:"aufgabe", name:"der Kern der Maschine", symbol:"🔩", ort:[700, 330, 70, 70], ziffer:5,
+        titel:"Der Kern der Maschine",
+        text:"Der Kern der Maschine braucht drei letzte Formen.",
+        aufgaben: [
+          { typ:"zelle", satz:"Gott sei Dank, die Maschine ___ endlich stabilisiert – sie zittert nicht mehr.", optionen:["werden","sein"], loesung:"sein", form:"ist",
+            thema:"Zustandspassiv",
+            tipp:"„endlich … nicht mehr“: ein Ergebnis.",
+            erklaerung_de:"Zustandspassiv: Die Maschine **ist** stabilisiert (Ergebnis)." },
+          { typ:"zelle", satz:"Hört ihr das? Die Maschine ___ gerade von jemandem abgeschaltet!", optionen:["werden","sein"], loesung:"werden", form:"wird",
+            thema:"Vorgangspassiv",
+            tipp:"„gerade“ und „von jemandem“: Jemand tut es in diesem Moment.",
+            erklaerung_de:"Vorgangspassiv: Die Maschine **wird** gerade abgeschaltet (Prozess, mit Handelndem)." },
+          { typ:"zahnrad", satz:"Oma behauptet, sie ___ von Anfang an alles gewusst.",
+            ringe:["PERSON", ["hab","hätt","hat"], ["e","est","en","–"]], loesung:["er/sie/es","hab","e"],
+            thema:"Konjunktiv I der Vergangenheit",
+            tipp:"Oma = sie (Singular). Ist der Konjunktiv I hier eindeutig?",
+            erklaerung_de:"sie (Singular) **habe** gewusst – eindeutig, also Konjunktiv I." },
+        ] },
+      { id:"boot", art:"aufgabe", name:"das Ruderboot am Steg", symbol:"🚣", ort:[350, 420, 100, 80], ziffer:3,
+        titel:"Das Ruderboot",
+        text:"Im Ruderboot liegt ein Amboss aus dem Jahr 1852. Zwei seltene Partizipien fehlen noch.",
+        aufgaben: [
+          { typ:"schmieden", verb:"schmelzen", form:"Partizip II",
+            bausteine:[["","ge"], "schm", ["e","o","i"], "lz", ["en","t"]], loesung:"geschmolzen",
+            thema:"Partizip II: seltene unregelmäßige Verben",
+            tipp:"schmelzen – schmolz – ge…?",
+            erklaerung_de:"**schmelzen – schmolz – geschmolzen** (intransitiv mit sein: Der Schnee ist geschmolzen)." },
+          { typ:"schmieden", verb:"bergen", form:"Partizip II",
+            bausteine:[["","ge"], "b", ["e","a","o"], "rg", ["en","t"]], loesung:"geborgen",
+            thema:"Partizip II: seltene unregelmäßige Verben",
+            tipp:"bergen – barg – ge…? (vgl. „verborgen“)",
+            erklaerung_de:"**bergen – barg – geborgen** (= retten, in Sicherheit bringen)." },
+        ] },
+      { id:"brief", art:"aufgabe", name:"ein Brief von Oma", symbol:"💌", ort:[150, 380, 80, 70], ziffer:9,
+        titel:"Ein Brief von Oma",
+        text:"„An die Zeitreisenden“ – der Brief ist von Oma. Was schreibt sie?",
+        aufgaben: [
+          { typ:"luecke", satz:"„Eigentlich hättet ihr die Maschine nie benutzen ___“, schreibt Oma.", hinweis:"dürfen", loesung:["dürfen"],
+            thema:"Konjunktiv II der Vergangenheit: doppelter Infinitiv",
+            tipp:"hättet … benutzen + Modalverb im Infinitiv.",
+            erklaerung_de:"Doppelter Infinitiv: hättet … benutzen **dürfen**." },
+          { typ:"auswahl", satz:"Oma schreibt, sie ___ die Maschine schon als Kind auf dem Dachboden gefunden.", optionen:["habe","hätte","hat"], loesung:"habe",
+            thema:"Konjunktiv I der Vergangenheit",
+            tipp:"Neutrale Wiedergabe in der 3. Person Singular.",
+            erklaerung_de:"sie **habe** gefunden – eindeutiger Konjunktiv I; „hätte“ ist nur als Ersatzform nötig, wenn der Konjunktiv I nicht eindeutig ist." },
+          { typ:"umschreiben", von:"direkte Rede", nach:"indirekte Rede", satz:"Oma schreibt: „Ich werde euch alles erklären.“",
+            loesung:["Oma schreibt, sie werde uns alles erklären.","Oma schreibt, dass sie uns alles erklären werde."],
+            thema:"indirekte Rede: Futur und Pronomen",
+            tipp:"Oma schreibt an euch – aus eurer Sicht: „uns“. werden → Konjunktiv I.",
+            erklaerung_de:"Oma schreibt, sie **werde** uns alles erklären. Pronomen anpassen (ich → sie, euch → uns), werde = eindeutiger Konjunktiv I." },
+        ] },
+    ],
+  },
+  ],
+
+  /* ---------- Bonusraum ---------- */
+  bonus: {
+    name: "Bonus: Die Steinzeit",
+    szene: "steinzeit",
+    jahr: "Steinzeit",
+    thema: "Partizip II: seltenere unregelmäßige Verben",
+    geschichte: "Alle Zeitfehler gefunden! Die Maschine, so scheint es, will euch belohnen – und schickt euch in die Steinzeit.\n\nBenja behauptet, hier lasse sich nichts schmieden. Sofía hält ihm einen Stein hin. Fünf seltene Partizipien bringen Extrapunkte und Sammelkarten.",
+    geschafft: "Ein Mammut beobachtet euch skeptisch. Matías: „Ein Zeuge, der nicht sprechen kann. Perfekt.“",
+    gegenstaende: [
+      { id:"feuer", art:"aufgabe", name:"das Feuer", symbol:"🔥", ort:[420, 380, 90, 90],
+        titel:"Am Feuer",
+        text:"Am Feuer werden die Steine heiß. Schmiede die Partizipien!",
+        aufgaben: [
+          { typ:"schmieden", verb:"pfeifen", form:"Partizip II",
+            bausteine:[["","ge"], "pf", ["ei","i","ie"], "ff", ["en","t"]], loesung:"gepfiffen",
+            thema:"Partizip II: ei → i", tipp:"pfeifen – pfiff – ge…?",
+            erklaerung_de:"**pfeifen – pfiff – gepfiffen.**" },
+          { typ:"schmieden", verb:"gleiten", form:"Partizip II",
+            bausteine:[["","ge"], "gl", ["ei","i","ie"], "tt", ["en","t"]], loesung:"geglitten",
+            thema:"Partizip II: ei → i", tipp:"gleiten – glitt – ge…?",
+            erklaerung_de:"**gleiten – glitt – geglitten** (Perfekt mit sein)." },
+          { typ:"schmieden", verb:"verschwinden", form:"Partizip II",
+            bausteine:[["","ge"], "verschw", ["i","a","u"], "nd", ["en","t"]], loesung:"verschwunden",
+            thema:"Partizip II: untrennbare Verben", tipp:"ver- ist untrennbar. Vokal wie bei „gefunden“.",
+            erklaerung_de:"**verschwinden – verschwand – verschwunden:** kein ge-." },
+        ] },
+      { id:"hoehle", art:"aufgabe", name:"die Höhle", symbol:"", ort:[60, 160, 230, 260],
+        titel:"In der Höhle",
+        text:"In der Höhle ist es eiskalt. Neben den Wandbildern liegt ein Amboss aus Stein.",
+        aufgaben: [
+          { typ:"schmieden", verb:"frieren", form:"Partizip II",
+            bausteine:[["","ge"], "fr", ["ie","o"], "r", ["en","t"]], loesung:"gefroren",
+            thema:"Partizip II: ie → o", tipp:"frieren – fror – ge…?",
+            erklaerung_de:"**frieren – fror – gefroren.**" },
+          { typ:"schmieden", verb:"schwören", form:"Partizip II",
+            bausteine:[["","ge"], "schw", ["ö","o"], "r", ["en","t"]], loesung:"geschworen",
+            thema:"Partizip II: ö → o", tipp:"schwören – schwor – ge…?",
+            erklaerung_de:"**schwören – schwor – geschworen.**" },
+        ] },
     ],
   },
 },
@@ -1139,8 +2515,10 @@ function normTask(a, id){
   if(t.typ==='zahnrad'){ t.pRing = asList(a.ringe)[0]==='PERSON'; t.ringe=asList(a.ringe).map(r=>r==='PERSON'?PERSONEN.slice():asList(r)); }
   return t;
 }
+function gegenst(R){ return asList(R.gegenstaende).concat(R.ohneStandard?[]:asList((STANDARD[R.szene]||{}).extras)); }
+function std(R,f){ return R[f]!=null ? R[f] : (STANDARD[R.szene]||{})[f]; }
 function normRoom(R, r, bonus){
-  const objs=asList(R.gegenstaende).map((O,oi)=>({ O, oi, tasks: O.art==='aufgabe' ? asList(O.aufgaben).map((a,i)=>normTask(a,(bonus?'b':r)+'.'+oi+'.'+i)) : [] }));
+  const objs=gegenst(R).map((O,oi)=>({ O, oi, tasks: O.art==='aufgabe' ? asList(O.aufgaben).map((a,i)=>normTask(a,(bonus?'b':r)+'.'+oi+'.'+i)) : [] }));
   const tasks=[]; objs.forEach(o=>o.tasks.forEach((t,i)=>{ t.oi=o.oi; t.k=i; tasks.push(t); }));
   return { R, r, objs, tasks, bonus:!!bonus, lockObjs: objs.filter(o=>o.O.art==='aufgabe' && o.O.ziffer!=null && o.O.ziffer!=='') };
 }
@@ -1189,7 +2567,7 @@ function checkTask(a, tw, w){
 function checkRoom(R, where, w, bonus){
   if(!SCENES[R.szene]) w.push(where+': unbekannte szene „'+R.szene+'“.');
   const ids={};
-  asList(R.gegenstaende).forEach((O,i)=>{
+  gegenst(R).forEach((O,i)=>{
     const ow=where+', Gegenstand '+(i+1)+' ('+(O.id||'?')+'): ';
     if(!O.id) w.push(ow+'id fehlt.'); else if(ids[O.id]) w.push(ow+'id kommt doppelt vor.'); ids[O.id]=1;
     if(!ARTEN.includes(O.art)) w.push(ow+'unbekannte art „'+O.art+'“.');
@@ -1200,7 +2578,7 @@ function checkRoom(R, where, w, bonus){
       asList(O.aufgaben).forEach((a,k)=>checkTask(a, ow+'Aufgabe '+(k+1)+': ', w));
     }
   });
-  if(!asList(R.gegenstaende).some(O=>O.art==='aufgabe')) w.push(where+': keine Gegenstände mit Aufgaben.');
+  if(!gegenst(R).some(O=>O.art==='aufgabe')) w.push(where+': keine Gegenstände mit Aufgaben.');
 }
 function dataWarnings(){
   const w=[];
@@ -1441,9 +2819,9 @@ function solutionText(t){
   switch(t.typ){
     case 'zahnrad': return plain(t.satz).replace('___', zahnWort(t, t.loesung))+(t.pRing?' ('+t.loesung[0]+')':'');
     case 'tabelle': return Object.keys(t.loesung).map(k=>k+' '+asList(t.loesung[k])[0]).join(' · ');
-    case 'zelle': return plain(t.satz).replace('___', t.form)+' ('+t.loesung+')';
+    case 'zelle': return plain(t.satz).replace('___', t.form);
     case 'schmieden': return t.loesung;
-    case 'auswahl': return plain(t.satz).replace('___', t.loesung);
+    case 'auswahl': return fillGaps(t.satz, t.loesung);
     case 'luecke': return plain(t.satz).replace('___', asList(t.loesung)[0]);
     default: return asList(t.loesung)[0];
   }
@@ -1526,7 +2904,7 @@ function energyHTML(){
   return '<div class="energy'+(full?' full':'')+'" id="energy" title="Energie der Zeitmaschine">⚡<span class="segs">'+X.tasks.map(t=>{ const r=state.done[t.id]; return '<span class="seg'+(r?(r.ok?' ok':' half'):'')+'"></span>'; }).join('')+'</span>'+(full?' voll!':'')+'</div>';
 }
 function drawWorld(){
-  const X=curRoom(), R=X.R, S=scene(), hats=asList(R.kostuem), en=energy();
+  const X=curRoom(), R=X.R, S=scene(), hats=asList(std(R,'kostuem')), en=energy();
   let h='<svg class="bg" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+S.svg()+'</svg>';
   h+='<div class="machine'+(en>0?' run':'')+'" id="machine" style="'+pos(S.m)+'">'+machineSVG(en)+'</div>';
   h+=S.figs.map((p,i)=>'<div class="fig bob" id="fig'+i+'" style="left:'+(p[0]/10)+'%;top:'+(p[1]/5.6)+'%;animation-delay:'+(i*0.35)+'s">'+(hats[i]?'<span class="hat'+(hats[i]==='🥽'?' eyes':'')+'">'+hats[i]+'</span>':'')+KINDER[i]+'</div>').join('');
@@ -1550,7 +2928,7 @@ function drawBar(){
   const X=curRoom(), b=$('#bar'); if(!b) return;
   b.innerHTML=(X.lockObjs.length?'<div class="digits" title="Ziffern für das Zeitschloss">🔒 '+X.lockObjs.map(o=>'<span class="d" title="'+esc(o.O.name)+'">'+esc(lockSym(o))+' <b>'+(objDone(o)?esc(o.O.ziffer):'?')+'</b></span>').join('')+'</div>':'')+
     '<span class="spacer"></span><button type="button" id="btnHandy">📱 Benjas Handy</button><button type="button" id="btnAlbumG">🃏 Album</button><button type="button" class="primary" id="btnMachine">⏳ Zeitmaschine</button>';
-  $('#btnHandy').addEventListener('click',()=>{ toast('📱 **Benjas Handy:** '+(X.R.handy||'Kein Netz.'),5000); sound('tick'); });
+  $('#btnHandy').addEventListener('click',()=>{ toast('📱 **Benjas Handy:** '+(std(X.R,'handy')||'Kein Netz.'),5000); sound('tick'); });
   $('#btnAlbumG').addEventListener('click',openAlbumOver);
   $('#btnMachine').addEventListener('click',openMachine);
 }
@@ -1586,9 +2964,9 @@ function openIntro(){
   const o=$('#stage .over'); o.classList.add('locked'); o.querySelector('.oclose').remove();
   b.innerHTML='<div class="panelhead"><span class="chip">🕰️ '+esc(R.jahr||'')+'</span>'+(R.thema?'<span class="chip">🎯 '+esc(R.thema)+'</span>':'')+'</div>'+paras(R.geschichte)+
     (R.anleitung?'<div class="anleitung"><p><strong>So funktioniert die Zeitmaschine</strong></p>'+String(R.anleitung).split('\n').map(z=>'<p>'+fmt(z)+'</p>').join('')+'</div>':'')+
-    (asList(R.kostuem).length?'<p class="small">👗 <strong>Kostümwechsel!</strong> Die Maschine hat euch passende Kleidung für diese Zeit gegeben: '+asList(R.kostuem).join(' ')+'</p>':'')+
+    (asList(std(R,'kostuem')).length?'<p class="small">👗 <strong>Kostümwechsel!</strong> Die Maschine hat euch passende Kleidung für diese Zeit gegeben: '+asList(std(R,'kostuem')).join(' ')+'</p>':'')+
     '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnGo">Los geht’s ➜</button></div>';
-  $('#btnGo').addEventListener('click',()=>{ state.intro[roomKey()]=true; save(); closeOver(true); if(asList(R.kostuem).length) poofFigures(); const f=$('#world .hot.task'); if(f) f.focus({preventScroll:true}); });
+  $('#btnGo').addEventListener('click',()=>{ state.intro[roomKey()]=true; save(); closeOver(true); if(asList(std(R,'kostuem')).length) poofFigures(); const f=$('#world .hot.task'); if(f) f.focus({preventScroll:true}); });
   focusEl('#btnGo');
 }
 function poofFigures(){ const st=$('#stage'); if(!st || ruhig()) return; scene().figs.forEach(p=>{ const d=document.createElement('div'); d.className='poof'; d.textContent='✨'; d.style.left=(p[0]/10)+'%'; d.style.top=(p[1]/5.6)+'%'; st.appendChild(d); setTimeout(()=>d.remove(),1200); }); sound('card'); }
@@ -1773,7 +3151,13 @@ function afterAnswer(t, out, el, rerender){
   if(out!=='retry'){ const nb=$('#btnNextTask',el); if(nb) nb.focus({preventScroll:true}); }
 }
 function bindNext(el, onNext){ const b=$('#btnNextTask',el); if(b) b.addEventListener('click',onNext); }
-function satzHTML(s, inner, cls){ return '<p class="satz">'+fmt(String(s)).replace('___','<span class="gap'+(cls?' '+cls:'')+'" id="gap">'+(inner==null?'&nbsp;':inner)+'</span>')+'</p>'; }
+function satzHTML(s, inner, cls){
+  const parts=String(s).split('___'), n=parts.length-1, vals = n>1 && inner && String(inner).includes(' … ') ? String(inner).split(' … ') : null;
+  let h=fmt(parts[0]);
+  for(let i=1;i<parts.length;i++){ const v = vals ? vals[i-1] : (i===1 ? inner : null); h+='<span class="gap'+(cls?' '+cls:'')+'"'+(i===1?' id="gap"':'')+'>'+(v==null||v===''?'&nbsp;':v)+'</span>'+fmt(parts[i]); }
+  return '<p class="satz">'+h+'</p>';
+}
+function fillGaps(s, val){ const parts=plain(s).split('___'), vals=parts.length>2 && String(val).includes(' … ') ? String(val).split(' … ') : null; return parts.reduce((a,p,i)=>a+(i? (vals?vals[i-1]:(i===1?val:'…')) : '')+p,''); }
 function umlautBar(){ return '<div class="umlauts" aria-label="Sonderzeichen">'+['ä','ö','ü','ß','Ä','Ö','Ü'].map(c=>'<button type="button" class="uml" data-u="'+c+'" tabindex="-1">'+c+'</button>').join('')+'<span class="small muted">oder ae, oe, ue, ss</span></div>'; }
 function bindUmlauts(el, getInput){
   $$('.uml',el).forEach(b=>{ b.addEventListener('mousedown',e=>e.preventDefault()); b.addEventListener('click',()=>{ const inp=getInput(); if(!inp || inp.readOnly) return; const s=inp.selectionStart??inp.value.length, en=inp.selectionEnd??inp.value.length; inp.value=inp.value.slice(0,s)+b.dataset.u+inp.value.slice(en); inp.dispatchEvent(new Event('input')); inp.focus(); inp.setSelectionRange(s+1,s+1); }); });
@@ -1790,7 +3174,7 @@ const T = {
     const names=asList(t.ringnamen).length?t.ringnamen:(t.pRing?['Person','Verbstamm','Endung','Teil 4']:['Teil 1','Teil 2','Teil 3','Teil 4']);
     const word=()=>zahnWort(t, vals())||'–';
     const ringInner=i=>{ const r=R[i], p=ui.pos[i], n=r.length, sh=v=>v==='–'?'(keine)':v; return (n>2?'<span class="rv side">'+esc(sh(r[(p-1+n)%n]))+'</span>':'')+'<span class="rv cur">'+esc(sh(r[p]))+'</span>'+(n>1?'<span class="rv side">'+esc(sh(r[(p+1)%n]))+'</span>':''); };
-    let h='<p class="auftrag">Dreh die Ringe, bis die Verbform passt.</p><p class="bedienung">🖱️ Klick auf ▲ ▼ oder auf den Ring · ⌨️ ← → Ring wählen, ↑ ↓ drehen, Enter = einrasten</p>'+
+    let h='<p class="auftrag">Dreh die Ringe, bis '+(t.pRing?'die Verbform':'das Wort')+' passt.</p><p class="bedienung">🖱️ Klick auf ▲ ▼ oder auf den Ring · ⌨️ ← → Ring wählen, ↑ ↓ drehen, Enter = einrasten</p>'+
       satzHTML(t.satz, esc(word()), res&&res.ok?'lit':'')+
       '<div class="rings'+(res&&res.ok?' mesh':'')+'" id="rings">'+R.map((r,i)=>(i?'<span class="gearsep" aria-hidden="true">'+smallGear()+'</span>':'')+
         '<div class="ringwrap"><span class="rl">'+esc(names[i]||'')+'</span><button type="button" class="arr" data-r="'+i+'" data-d="-1" tabindex="-1"'+(res?' disabled':'')+' aria-label="nach oben drehen">▲</button>'+
@@ -1827,7 +3211,8 @@ const T = {
     const res=state.done[t.id], z=t.zellen||{}, rerender=()=>T.tabelle(t,el,onNext);
     ui.vals=ui.vals||{}; ui.okc=ui.okc||{}; ui.bad=ui.bad||{};
     if(res && !res.ok) Object.keys(t.loesung).forEach(k=>{ if(!ui.okc[k]) ui.bad[k]='sol'; });
-    let h='<p class="auftrag">Füll die Lücken in der Tabelle aus.</p><p class="bedienung">⌨️ Tab = nächste Lücke · Enter = prüfen</p>'+
+    const lang=Math.max(8, ...Object.keys(z).map(k=>z[k]==='?'?Math.max(...asList(t.loesung[k]).map(x=>String(x).length)):String(z[k]).length));
+    let h='<style>#task .ztable .given,#task .ztable input{width:'+(lang*0.62+2).toFixed(1)+'em}</style><p class="auftrag">Füll die Lücken in der Tabelle aus.</p><p class="bedienung">⌨️ Tab = nächste Lücke · Enter = prüfen</p>'+
       '<table class="ztable"><caption>'+esc(t.verb)+' – '+esc(t.zeit)+'</caption>'+Object.keys(z).map(k=>'<tr><th scope="row">'+esc(k)+'</th><td>'+
         (z[k]==='?' ? '<input '+INPUT_ATTR+' data-k="'+esc(k)+'" aria-label="'+esc(t.verb)+', '+esc(k)+'" value="'+esc(ui.vals[k]||'')+'" class="'+(ui.okc[k]?'lit':(ui.bad[k]?'wrongcell':''))+'"'+(ui.okc[k]||res?' readonly':'')+'>'+(ui.bad[k]==='sol'?' <span class="small badline">✗ richtig: '+esc(asList(t.loesung[k])[0])+'</span>':'')
                     : '<span class="given">'+esc(z[k])+'</span>')+'</td></tr>').join('')+'</table>';
@@ -1859,11 +3244,10 @@ const T = {
     const res=state.done[t.id], opts=asList(t.optionen).length?asList(t.optionen):['haben','sein'], rerender=()=>T.zelle(t,el,onNext);
     if(!optOrder[t.id]) optOrder[t.id]=shuffle(range(opts.length));
     ui.used=ui.used||[];
-    const solved = res ? (res.ok ? t.form : null) : null;
     let h='<p class="auftrag">Welche Energiezelle passt? Zieh sie in die Lücke oder in die Maschine – oder klick sie an.</p><p class="bedienung">🖱️ Ziehen oder klicken · ⌨️ Tab + Enter</p>'+
       satzHTML(t.satz, res ? esc(t.form) : '?', 'dropzone'+(res?' lit':''))+
       '<div class="cells">'+optOrder[t.id].map(i=>{ const v=opts[i], used=ui.used.includes(v), right=res && v===t.loesung;
-        return '<button type="button" class="cell'+(used?' used':'')+(right?' right':'')+'" data-v="'+esc(v)+'"'+(res||used?' disabled':'')+' aria-label="Energiezelle '+esc(v)+'">🔋 '+esc(v)+'</button>'; }).join('')+'</div>';
+        return '<button type="button" class="cell'+(used?' used':'')+(right?' right':'')+'" data-v="'+esc(v)+'"'+(res||used?' disabled':'')+' aria-label="Energiezelle '+esc(zellText(t,v))+'">🔋 '+esc(zellText(t,v))+'</button>'; }).join('')+'</div>';
     if(!res) h+='<div class="row">'+tipHTML(t)+'</div>';
     h+=feedbackHTML(t)+(res?nextBtn():'');
     el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
@@ -1874,9 +3258,9 @@ const T = {
     if(st){ const p=document.createElement('div'); p.className='mport dropzone'; p.textContent='⚡ hier hinein';
       p.style.cssText=pos([S.m[0]+S.m[2]*84/220, S.m[1]+S.m[3]*246/330, S.m[2]*108/220, S.m[3]*56/330]); st.appendChild(p); }
     const choose=v=>{ if(state.done[t.id]) return;
-      const ok=v===t.loesung, out=attempt(t, ok, v);
+      const ok=v===t.loesung, out=attempt(t, ok, zellText(t,v));
       if(!ok) ui.used.push(v);
-      ui.fb={ type:out, msg: ok?'':'Mit „'+v+'“ läuft die Maschine nicht.' };
+      ui.fb={ type:out, msg: ok?'':'Mit „'+zellText(t,v)+'“ läuft die Maschine nicht.' };
       $$('#stage .mport').forEach(x=>x.remove());
       afterAnswer(t,out,el,rerender);
       if(out==='ok') sparksAt($('#gap',el), 12, '#5ff0d8');
@@ -1974,6 +3358,19 @@ const T = {
     textCheck(t, el, rerender);
   },
 };
+/* Energiezellen zeigen die konjugierte Form (ist / hat …) */
+const HILFSFORMEN = {
+  haben:  [['habe','hast','hat','haben','habt'],['hatte','hattest','hatte','hatten','hattet'],['hätte','hättest','hätte','hätten','hättet'],['habe','habest','habe','haben','habet']],
+  sein:   [['bin','bist','ist','sind','seid'],['war','warst','war','waren','wart'],['wäre','wärest','wäre','wären','wäret'],['sei','seiest','sei','seien','seiet']],
+  werden: [['werde','wirst','wird','werden','werdet'],['wurde','wurdest','wurde','wurden','wurdet'],['würde','würdest','würde','würden','würdet'],['werde','werdest','werde','werden','werdet']],
+};
+function zellText(t, v){
+  if(t.anzeige && t.anzeige[v]) return t.anzeige[v];
+  if(v===t.loesung && t.form) return t.form;
+  const H=HILFSFORMEN[t.loesung], f=String(t.form||'').toLowerCase();
+  if(H && HILFSFORMEN[v]) for(let z=0;z<H.length;z++){ const i=H[z].indexOf(f); if(i>=0) return HILFSFORMEN[v][z][i]; }
+  return v;
+}
 function textCheck(t, el, rerender){
   const inp=$('#ans',el);
   inp.addEventListener('input',()=>{ ui.val=inp.value; });
@@ -2172,7 +3569,7 @@ function renderEditor(){
     '<label>Raum <select id="edRm">'+list.map((x,i)=>'<option value="'+i+'"'+(i===ri?' selected':'')+'>'+(i<asList(S.raeume).length?(i+1):'Bonus')+' – '+esc(x.name)+'</option>').join('')+'</select></label><span class="spacer"></span><button type="button" id="edBack">← Zurück zum Spiel</button></div>'+
     '<div class="stage" id="edStage" style="cursor:crosshair;touch-action:none"><svg class="bg" viewBox="0 0 1000 560" style="position:absolute;inset:0;width:100%;height:100%">'+Sc.svg()+'</svg>'+
     '<div class="machine" style="'+pos(Sc.m)+'">'+machineSVG(.5)+'</div>'+
-    asList(Rm.gegenstaende).map(o=>'<div class="edold" style="'+pos(o.ort)+';display:flex;align-items:center;justify-content:center;font-size:'+(Math.min(o.ort[2],o.ort[3])*0.075).toFixed(2)+'cqw"><span>'+esc(o.id)+' ('+esc(o.art)+')</span>'+(o.symbol||'')+'</div>').join('')+
+    gegenst(Rm).map(o=>'<div class="edold" style="'+pos(o.ort)+';display:flex;align-items:center;justify-content:center;font-size:'+(Math.min(o.ort[2],o.ort[3])*0.075).toFixed(2)+'cqw"><span>'+esc(o.id)+' ('+esc(o.art)+')</span>'+(o.symbol||'')+'</div>').join('')+
     '<div class="edold" style="'+pos(Sc.m)+';border-color:#ffd166"><span>Zeitmaschine</span></div></div>'+
     '<pre class="code" id="edOut">Noch kein Rahmen gezogen.</pre><button type="button" id="edCopy">📋 Zeile kopieren</button>'+
     '<p class="small muted">Als <code>symbol</code> kann jedes Emoji stehen (z. B. "🧳"). Ist der Gegenstand schon im Raumbild gezeichnet, schreiben Sie <code>symbol:""</code> und für das Zeitschloss <code>schloss:"🏠"</code>.</p></section>';
