@@ -25,6 +25,7 @@
      bild        : 1–3 Emojis für das Titelbild, z. B. "🔐🔭✨"
      farbe       : Farbe des Titelbilds, z. B. "#1f618d"
      kurz        : ein Satz – worum geht es?
+     themen      : 2–5 kurze Stichwörter für die Kachel, z. B. ["Artikel", "Kasus"]
      beschreibung: 2–3 Sätze für die Schülerinnen und Schüler (du-Form)
      sospielst   : Liste mit 2–4 kurzen Schritten
      niveaus     : pro Niveau eine kurze Themenangabe
@@ -54,6 +55,7 @@ const SPIELE = [
     bild: "🕵️✉️🔑",
     farbe: "#6e2c00",
     kurz: "Ein Point-and-Click-Abenteuer: Untersuche gezeichnete Räume und finde die Schlüssel.",
+    themen: ["Artikel","Kasus","Possessivartikel","Adjektivendungen","Nominalstil"],
     beschreibung: "Klick auf Briefe, Postkarten und Zettel – darauf stehen Rätsel zu Artikeln und Possessivartikeln. Jeder gelöste Gegenstand gibt dir ein Schlüsselteil. Aber Vorsicht: Nicht alles hilft dir. Manche Zettel sind Fallen – und manche verstecken einen Witz!",
     sospielst: [
       "Wähle dein Niveau (A2–C1).",
@@ -80,6 +82,7 @@ const SPIELE = [
     bild: "🌭🥑🍅",
     farbe: "#7b2d26",
     kurz: "Ein Satzbau-Abenteuer durch Chile: Bau richtige Sätze und sammle die Zutaten für den Super-Completo.",
+    themen: ["Satzbau","Verbstellung","Nebensätze","Hörverstehen"],
     beschreibung: "Tía Carmens Rezept ist gestohlen! Reise mit Sofía, Matías und Benja von Valparaíso über Santiago bis zum Vulkan Villarrica. Hör Tía Carmen zu, bau Sätze, finde das Verb und entlarve den Dieb. Merk dir: Das Verb ist das Brot – oben und unten!",
     sospielst: [
       "Spiel allein oder zu zweit und wähle dein Niveau (A2–C1).",
@@ -106,6 +109,7 @@ const SPIELE = [
     bild: "🧱⬇️🟧",
     farbe: "#1d2a5e",
     kurz: "Satzbau-Arcade: Die Verben fallen als Blöcke – bring sie an die richtige Stelle!",
+    themen: ["Verbstellung","Satzklammer","Nebensätze","Passiv"],
     beschreibung: "Unten liegt ein Satz mit Lücken, von oben fallen die Verben. Schieb jedes Verb über die richtige Lücke: Platz 2, nach „Gestern“, am Ende nach „weil“ … Richtige Sätze verschwinden, falsche werden zu Schrott – und der Stapel wächst. Wie weit kommst du?",
     sospielst: [
       "Wähle dein Niveau (A2–C1).",
@@ -131,6 +135,7 @@ const SPIELE = [
     bild: "🧙🥟🏺",
     farbe: "#7a3e1d",
     kurz: "Ein Escape Room in Pomaire: Verbinde Sätze mit Konnektor-Steinen und rette das Rezept der Super-Empanada.",
+    themen: ["Konnektoren","Haupt- und Nebensätze","Satzverbindungen"],
     beschreibung: "Der Zauberer Magister Lehmann hat die Rezept-Tafel zerschlagen und zerbricht mit „Zerbröckel!“ jede Verbindung zwischen Sätzen. Klebe Satzscherben, löse Rätsel auf dem Marktplatz, entkomme seiner Falle, gewinne das Wortduell und besiege ihn mit dem Gegenzauber – mit Konnektoren!",
     sospielst: [
       "Wähle dein Niveau.",
@@ -157,6 +162,7 @@ const SPIELE = [
     bild: "⏳⚙️🔨",
     farbe: "#5a3a12",
     kurz: "Ein Escape Room durch die Zeit: Die alte Zeitmaschine läuft nur mit richtigen Verbformen.",
+    themen: ["Konjugation","Zeitformen","Passiv","Konjunktiv"],
     beschreibung: "Auf dem Dachboden in Frutillar drückt Benja auf den Knopf – und schon reisen Sofía, Matías und Benja nach Rapa Nui, zu den Siedlern am Llanquihue-See, in eine Salpeter-Oficina und in die Zukunft. Dreh die Zahnrad-Ringe, füll Konjugationstabellen, zieh Energiezellen in die Maschine und schmiede Partizipien am Amboss. Sammle Verbkarten für dein Album und finde die versteckten Zeitfehler!",
     sospielst: [
       "Wähle dein Niveau.",
@@ -185,6 +191,7 @@ const SPIELE = [
     bild: "🎲",
     farbe: "#117864",
     kurz: "…",
+    themen: ["…", "…"],
     beschreibung: "…",
     sospielst: ["…", "…"],
     niveaus: { A2: "…", B1: "…" },
@@ -214,15 +221,24 @@ header.hero{text-align:center;padding:1em 0 .5em}
 .filter{display:flex;gap:.5em;justify-content:center;flex-wrap:wrap;margin:1.2em 0 1.4em}
 .filter button{font:inherit;color:var(--text);background:var(--panel2);border:2px solid var(--line);border-radius:999px;padding:.3em 1.1em;min-height:46px;cursor:pointer}
 .filter button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-weight:800}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,500px),1fr));gap:1.2em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:1.1em;align-items:start}
 .game{background:var(--panel);border:2px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 28px rgba(0,0,0,.35)}
-.banner{position:relative;height:150px;display:flex;align-items:center;justify-content:center;font-size:64px;letter-spacing:.15em}
+.banner{position:relative;height:104px;display:flex;align-items:flex-end;padding-bottom:10px;justify-content:center;font-size:42px;letter-spacing:.12em;text-decoration:none;color:inherit}
 .banner::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.18),transparent 60%)}
 .tagneu{position:absolute;top:12px;right:12px;background:var(--accent);color:var(--accent-text);font-weight:800;font-size:15px;letter-spacing:.05em;line-height:1.6;border-radius:8px;padding:.1em .6em}
 .typ{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.45);border-radius:8px;padding:.1em .6em;font-size:15px;letter-spacing:normal;line-height:1.6}
-.body{padding:1em 1.3em 1.3em;display:flex;flex-direction:column;gap:.5em;flex:1}
-.body h2{margin:0;font-size:1.5em}
-.kurz{font-weight:700;margin:0}
+.body{padding:.8em 1.1em 1em;display:flex;flex-direction:column;gap:.55em;flex:1}
+.body h2{margin:0;font-size:1.22em;line-height:1.25}
+.kurz{margin:0;font-size:.92em;color:#e3e8f0}
+.tags{display:flex;flex-wrap:wrap;gap:.35em}
+.tag{font-size:.78em;font-weight:700;background:#26406a;border:1px solid #4b6fa3;border-radius:999px;padding:.05em .7em}
+.lvrow{display:flex;gap:.35em;flex-wrap:wrap}
+.lvrow .lv.off{opacity:.3}
+.lvrow .lv.hit{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
+details.more{font-size:.88em;border-top:1px solid var(--line);padding-top:.4em}
+details.more summary{cursor:pointer;color:var(--muted);min-height:34px;display:flex;align-items:center}
+details.more[open] summary{color:var(--accent)}
+details.more .desc,details.more ol,details.more ul{margin:.35em 0}
 .desc{margin:0;color:#e3e8f0}
 .es{color:var(--muted);font-size:.88em;margin:0}
 h3{font-size:.95em;margin:.5em 0 .1em;color:var(--accent)}
@@ -232,9 +248,9 @@ ol.steps li{margin:.1em 0}
 .levels li{display:flex;gap:.6em;align-items:baseline}
 .lv{display:inline-block;min-width:2.6em;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;font-weight:800;font-size:.85em;padding:0 .3em}
 .levels li.hit .lv{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
-.meta{color:var(--muted);font-size:.85em;margin:.3em 0 0}
-.actions{display:flex;gap:.6em;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:.8em}
-.play{display:inline-flex;align-items:center;gap:.4em;background:var(--accent);color:var(--accent-text);font-weight:800;text-decoration:none;border-radius:14px;padding:.55em 1.3em;min-height:48px}
+.meta{color:var(--muted);font-size:.82em;margin:0}
+.actions{display:flex;gap:.6em;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:.4em}
+.play{display:inline-flex;align-items:center;gap:.4em;background:var(--accent);color:var(--accent-text);font-weight:800;text-decoration:none;border-radius:14px;padding:.45em 1.2em;min-height:46px}
 .play:hover{background:#ffe08f}
 .saved{font-size:.85em;background:#103a26;border:2px solid #5ee08f;border-radius:999px;padding:.1em .8em}
 .empty{text-align:center;color:var(--muted);padding:2em}
@@ -248,7 +264,7 @@ details.teacher summary{cursor:pointer;font-weight:700;min-height:40px;display:f
 details.teacher li{margin:.3em 0}
 .warnbox{background:#4a3a00;border:2px solid var(--accent);border-radius:12px;padding:.6em 1em;margin:1em 0;font-size:.9em}
 footer{text-align:center;color:var(--muted);font-size:.85em;margin-top:2.5em}
-@media (max-width:600px){ body{font-size:18px} .hero h1{font-size:1.8em} .banner{height:110px;font-size:48px} }
+@media (max-width:600px){ body{font-size:18px} .hero h1{font-size:1.8em} }
 @media (prefers-reduced-motion:no-preference){ .game{transition:transform .15s} .game:hover{transform:translateY(-3px)} }
 </style>
 </head>
@@ -342,19 +358,21 @@ function drawGames(){
   const list = games.filter(g => filter==='alle' || (g.niveaus && g.niveaus[filter]));
   if(!list.length){ $('#spiele').innerHTML = '<p class="empty">Für '+esc(filter)+' gibt es noch kein Spiel.</p>'; return; }
   $('#spiele').innerHTML = list.map(g => {
-    const lv = g.niveaus ? LEVELS.filter(l => g.niveaus[l]) : [];
     const saved = savedInfo(g);
+    const more = (g.beschreibung?'<p class="desc">'+esc(g.beschreibung)+'</p>':'')+
+      (g.sospielst && g.sospielst.length ? '<h3>So spielst du</h3><ol class="steps">'+g.sospielst.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol>' : '')+
+      (g.niveaus ? '<h3>Themen pro Niveau</h3><ul class="levels">'+LEVELS.filter(l=>g.niveaus[l]).map(l=>'<li class="'+(filter===l?'hit':'')+'"><span class="lv">'+l+'</span><span>'+esc(g.niveaus[l])+'</span></li>').join('')+'</ul>' : '')+
+      (g.spanisch?'<p class="es" lang="es">🇨🇱 '+esc(g.spanisch)+'</p>':'');
     return '<article class="game" aria-labelledby="t-'+esc(g.datei)+'">'+
-      '<div class="banner" style="background:'+esc(g.farbe||'#1f3a68')+'" aria-hidden="true">'+(g.typ?'<span class="typ">'+esc(g.typ)+'</span>':'')+(g.neu?'<span class="tagneu">NEU</span>':'')+esc(g.bild||'🎮')+'</div>'+
+      '<a class="banner" href="'+esc(g.datei)+'" tabindex="-1" aria-hidden="true" style="background:'+esc(g.farbe||'#1f3a68')+'">'+(g.typ?'<span class="typ">'+esc(g.typ)+'</span>':'')+(g.neu?'<span class="tagneu">NEU</span>':'')+esc(g.bild||'🎮')+'</a>'+
       '<div class="body">'+
         '<h2 id="t-'+esc(g.datei)+'">'+esc(g.titel)+'</h2>'+
         (g.kurz?'<p class="kurz">'+esc(g.kurz)+'</p>':'')+
-        (g.beschreibung?'<p class="desc">'+esc(g.beschreibung)+'</p>':'')+
-        (g.spanisch?'<p class="es" lang="es">🇨🇱 '+esc(g.spanisch)+'</p>':'')+
-        (g.sospielst && g.sospielst.length ? '<h3>So spielst du</h3><ol class="steps">'+g.sospielst.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol>' : '')+
-        (lv.length ? '<h3>Niveaus und Themen</h3><ul class="levels">'+lv.map(l=>'<li class="'+(filter===l?'hit':'')+'"><span class="lv">'+l+'</span><span>'+esc(g.niveaus[l])+'</span></li>').join('')+'</ul>' : '')+
+        (g.themen && g.themen.length ? '<div class="tags" aria-label="Themen">'+g.themen.map(t=>'<span class="tag">'+esc(t)+'</span>').join('')+'</div>' : '')+
+        (g.niveaus ? '<div class="lvrow" aria-label="Niveaus">'+LEVELS.map(l=>'<span class="lv'+(g.niveaus[l]?(filter===l?' hit':''):' off')+'"'+(g.niveaus[l]?' title="'+esc(g.niveaus[l])+'"':'')+'>'+l+'</span>').join('')+'</div>' : '')+
         (g.dauer?'<p class="meta">⏱ '+esc(g.dauer)+'</p>':'')+
         '<div class="actions"><a class="play" href="'+esc(g.datei)+'">'+(saved && !/abgeschlossen/.test(saved)?'▶ Weiterspielen':'▶ Spielen')+'</a>'+saved+'</div>'+
+        (more ? '<details class="more"><summary>ℹ️ Mehr zum Spiel</summary>'+more+'</details>' : '')+
       '</div></article>';
   }).join('');
 }
