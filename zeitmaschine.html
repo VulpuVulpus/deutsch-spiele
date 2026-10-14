@@ -104,6 +104,7 @@
                satz    : Ausgangssatz
                loesung : ALLE richtigen Varianten als Liste
      auswahl – Multiple Choice: satz (mit ___), optionen, loesung
+               (mehrere richtige als Liste: ["Wovor","Vor was"])
      luecke  – Lücke mit Texteingabe: satz (mit ___), hinweis (optional,
                steht in Klammern dahinter), loesung (Liste der Varianten)
      satz    – ganzen Satz schreiben: auftrag, woerter (optional),
@@ -1556,10 +1557,10 @@ B2: {
             thema:"sich interessieren für",
             tipp:"Welche Präposition hast du gerade im Hologramm gesehen?",
             erklaerung_de:"sich interessieren **für** + Akkusativ: für alte Maschinen." },
-          { typ:"auswahl", satz:"Sofía: „___ hast du am meisten Angst?“ – Roboter: „Vor Wasser. Ich rostete einmal.“", optionen:["Wovor","Davor","Vor was"], loesung:"Wovor",
+          { typ:"auswahl", satz:"Sofía: „___ hast du am meisten Angst?“ – Roboter: „Vor Wasser. Ich rostete einmal.“", optionen:["Wovor","Davor","Vor was"], loesung:["Wovor","Vor was"],
             thema:"Frage nach einer Sache: wo(r) + Präposition",
-            tipp:"Eine Frage nach einer Sache in der Standardsprache.",
-            erklaerung_de:"**Wovor** hast du Angst? „Vor was“ hört man in der gesprochenen Sprache, gilt aber als umgangssprachlich. „Davor“ ist keine Frage." },
+            tipp:"Eine Frage nach einer Sache – nicht ein Verweis.",
+            erklaerung_de:"**Wovor** hast du Angst? – In der gesprochenen Sprache sagt man auch oft **Vor was** hast du Angst? Beides ist richtig; in Texten ist „wovor“ üblicher. „Davor“ ist keine Frage, sondern verweist auf etwas." },
           { typ:"luecke", satz:"Benja freut sich schon ___, bald wieder Kuchen zu essen.", loesung:["darauf"],
             thema:"sich freuen auf + Pronominaladverb",
             tipp:"Freude auf etwas in der Zukunft. Und dann folgt ein Infinitivsatz.",
@@ -2560,7 +2561,7 @@ function checkTask(a, tw, w){
     else if(VERB[a.verb]){ const soll=a.form==='Präteritum'?VERB[a.verb].praet:VERB[a.verb].part; if(soll!==a.loesung) w.push(tw+'loesung „'+a.loesung+'“ passt nicht zu VERBEN („'+soll+'“).'); }
   }
   if(a.typ==='umschreiben'){ if(!a.satz) w.push(tw+'satz fehlt.'); if(!asList(a.loesung).length) w.push(tw+'loesung fehlt.'); }
-  if(a.typ==='auswahl'){ gap(a.satz); if(!asList(a.optionen).includes(a.loesung)) w.push(tw+'loesung steht nicht genau so in optionen.'); }
+  if(a.typ==='auswahl'){ gap(a.satz); asList(a.loesung).forEach(l=>{ if(!asList(a.optionen).includes(l)) w.push(tw+'loesung „'+l+'“ steht nicht genau so in optionen.'); }); }
   if(a.typ==='luecke'){ gap(a.satz); if(!asList(a.loesung).length) w.push(tw+'loesung fehlt.'); }
   if(a.typ==='satz'){ if(!asList(a.loesung).length) w.push(tw+'loesung fehlt.'); }
 }
@@ -2821,7 +2822,7 @@ function solutionText(t){
     case 'tabelle': return Object.keys(t.loesung).map(k=>k+' '+asList(t.loesung[k])[0]).join(' · ');
     case 'zelle': return plain(t.satz).replace('___', t.form);
     case 'schmieden': return t.loesung;
-    case 'auswahl': return fillGaps(t.satz, t.loesung);
+    case 'auswahl': return fillGaps(t.satz, asList(t.loesung)[0])+(asList(t.loesung).length>1?' (auch: '+asList(t.loesung).slice(1).join(', ')+')':'');
     case 'luecke': return plain(t.satz).replace('___', asList(t.loesung)[0]);
     default: return asList(t.loesung)[0];
   }
@@ -3323,14 +3324,14 @@ const T = {
     const res=state.done[t.id], rerender=()=>T.auswahl(t,el,onNext);
     if(!optOrder[t.id]) optOrder[t.id]=shuffle(range(t.optionen.length));
     ui.wrongs=ui.wrongs||[];
-    let h='<p class="auftrag">Wähl das richtige Wort.</p>'+satzHTML(t.satz, res?esc(t.loesung):'&nbsp;', res&&res.ok?'lit':'')+
-      '<div class="opts">'+optOrder[t.id].map(i=>{ const o=t.optionen[i], w=ui.wrongs.includes(o), r=res && o===t.loesung;
+    let h='<p class="auftrag">Wähl das richtige Wort.</p>'+satzHTML(t.satz, res?esc(ui.chosen && res.ok ? ui.chosen : asList(t.loesung)[0]):'&nbsp;', res&&res.ok?'lit':'')+
+      '<div class="opts">'+optOrder[t.id].map(i=>{ const o=t.optionen[i], w=ui.wrongs.includes(o), r=res && (res.ok && ui.chosen ? o===ui.chosen : asList(t.loesung).includes(o));
         return '<button type="button" class="opt'+(w?' wrong':'')+(r?' right':'')+'" data-o="'+esc(o)+'"'+(res||w?' disabled':'')+'>'+esc(o)+'</button>'; }).join('')+'</div>';
     if(!res) h+='<div class="row" style="margin-top:.5em">'+tipHTML(t)+'</div>';
     h+=feedbackHTML(t)+(res?nextBtn():'');
     el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
     if(res) return;
-    $$('.opt',el).forEach(b=>b.addEventListener('click',()=>{ const o=b.dataset.o, ok=o===t.loesung, out=attempt(t,ok,o); if(!ok) ui.wrongs.push(o); ui.fb={ type:out, msg:'' }; afterAnswer(t,out,el,rerender); if(out==='retry'){ const n=$('.opt:not([disabled])',el); if(n) n.focus({preventScroll:true}); } }));
+    $$('.opt',el).forEach(b=>b.addEventListener('click',()=>{ const o=b.dataset.o, ok=asList(t.loesung).includes(o), out=attempt(t,ok,o); if(!ok) ui.wrongs.push(o); else ui.chosen=o; ui.fb={ type:out, msg:'' }; afterAnswer(t,out,el,rerender); if(out==='retry'){ const n=$('.opt:not([disabled])',el); if(n) n.focus({preventScroll:true}); } }));
     if(!ui.focused){ ui.focused=true; const f=$('.opt',el); if(f) f.focus({preventScroll:true}); }
   },
 
