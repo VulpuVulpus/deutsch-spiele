@@ -3308,7 +3308,7 @@ const T = {
   /* Satz umformen */
   umschreiben(t, el, onNext){
     const res=state.done[t.id], rerender=()=>T.umschreiben(t,el,onNext);
-    let h='<p class="auftrag">Schreib den Satz '+(t.nach?'im <strong>'+esc(t.nach)+'</strong>':'neu')+'.</p>'+(t.von?'<p class="small muted">'+esc(t.von)+' → '+esc(t.nach||'')+'</p>':'')+
+    let h='<p class="auftrag">Schreib den Satz um'+(t.nach?' – Ziel: <strong>'+esc(t.nach)+'</strong>':'')+'.</p>'+(t.von?'<p class="small muted">'+esc(t.von)+' → '+esc(t.nach||'')+'</p>':'')+
       '<div class="paper"><p>'+fmt(t.satz)+'</p></div>'+
       '<p><input '+INPUT_ATTR+' id="ans" class="fullin" aria-label="Dein Satz" value="'+esc(ui.val||'')+'"'+(res?' readonly':'')+'></p>';
     if(!res) h+=umlautBar()+'<div class="row"><button type="button" class="primary" id="btnCheck">✓ Prüfen</button>'+tipHTML(t)+'</div>';
