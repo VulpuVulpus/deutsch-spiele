@@ -1,0 +1,1755 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Falsche Freunde, echte Freunde – Dialog-Abenteuer</title>
+<script>
+/* =====================================================================
+   FALSCHE FREUNDE, ECHTE FREUNDE · Dialog-Abenteuer
+   =====================================================================
+
+   ANLEITUNG FÜR LEHRKRÄFTE
+   ---------------------------------------------------------------------
+   Alles, was Sie ändern können, steht in diesem ersten Abschnitt
+   (EINSTELLUNGEN, FIGUREN, WOERTER, SPIEL). Die Spiel-Logik weiter
+   unten müssen Sie nicht anfassen.
+
+   IDEE
+   Sofía, Matías und Benja machen einen Schüleraustausch in Lindenfeld.
+   Jede Aufgabe gehört zu einer deutschen Figur. Richtige Wörter lassen
+   ihr Freundschaftsbarometer steigen, Missverständnisse lassen es
+   sinken. Beim Abschiedsfest kommen nur echte Freunde.
+
+   AUFBAU
+   SPIEL → Niveau (A2, B1 …) → kapitel → aufgaben
+
+   FELDER EINES KAPITELS
+     name       : Überschrift
+     szene      : Bild: "flughafen" | "kueche" | "klasse" | "schulhof" |
+                  "sportplatz" | "cafe" | "stadt" | "fest"
+     hauptfigur : um wen es vor allem geht (Name aus FIGUREN)
+     intro      : Text am Anfang (\n\n = neuer Absatz)
+     geheimnisse: (optional) versteckte Dinge in der Szene:
+                  [{ seite:"geheim_ml", symbol:"🏺", name:"ein Tonkrug",
+                     ort:[x, y, Breite, Höhe] }]   (Szene = 1000 × 360)
+                  Ein Klick darauf schenkt eine Extraseite im Freundebuch.
+     aufgaben   : Liste der Aufgaben
+
+   FELDER, DIE JEDE AUFGABE HAT
+     typ           : siehe AUFGABENTYPEN
+     figur         : wessen Freundschaft zählt ("brandt", "lena" …)
+     szene         : (optional) anderes Bild nur für diese Aufgabe
+     dialog        : (optional) Sätze davor: [{ wer:"brandt", text:"…" }]
+                     wer = Name aus FIGUREN (auch "sofia", "matias", "benja")
+     sprecher      : wer von den dreien antwortet ("sofia" …)
+     wort          : (optional) Eintrag aus WOERTER → Seite im Freundebuch
+     thema         : Denkhilfe nach dem 1. Fehlversuch
+     tipp          : Tipp (kostet Punkte, verrät nicht die Lösung)
+     erklaerung_de : Erklärung nach der Antwort
+     erklaerung_es : „Ayuda en español“ – nur A2 und B1
+     reaktion      : was die Figur sagt, wenn die Antwort stimmt
+     Jede Aufgabe hat 2 Versuche: 10 Punkte beim 1., 5 beim 2. Versuch.
+     Freundschaft: richtig beim 1. Versuch +2, beim 2. Versuch +1,
+     falsch −1 (nie unter 0).
+
+   AUFGABENTYPEN
+     chat    – Gespräch: Die Spieler wählen, was gesagt wird.
+               optionen  : Sätze zur Auswahl (2–3)
+               loesung   : der richtige Satz (genau wie in optionen)
+               reaktionen: { "falscher Satz": "Reaktion der Figur" }
+               Beispiel:
+               { typ:"chat", figur:"brandt", sprecher:"sofia",
+                 dialog:[{ wer:"brandt", text:"Was fehlt noch?" }],
+                 optionen:["Meine Unterschrift!", "Meine Firma!"],
+                 loesung:"Meine Unterschrift!",
+                 reaktionen:{ "Meine Firma!":"Hast du schon eine Firma?" },
+                 reaktion:"Genau, hier unten bitte.", … }
+     schreiben – Lücke im Gespräch (Texteingabe):
+               satz      : Satz mit ___ (wird vom sprecher gesagt)
+               hinweis   : (optional) Hilfe in Klammern
+               loesung   : alle richtigen Varianten als Liste
+               Groß-/Kleinschreibung ist egal; das Feedback zeigt die
+               richtige Schreibung (die erste Variante).
+     kino    – Missverständnis-Kino: Ein Satz ging schief.
+               satz      : der Satz mit dem falschen Freund
+               ausloeser : das Wort, das man anklicken muss (genau wie im Satz)
+               bild      : Emoji für die falsche Bedeutung
+               missverstaendnis: was die Figur verstanden hat
+               korrektur : { optionen:[…], loesung:"…" }  (Auswahl) oder
+                           { frage:"…___…", loesung:["…"] } (Eingabe)
+     sortieren – Freund, Feind oder halber Freund?
+               woerter   : Liste von ids aus WOERTER (Kategorie steht dort)
+               Bitte immer genug echte Freunde (🟢) mitmischen!
+     auswahl – Multiple Choice: satz (mit ___), optionen, loesung
+     luecke  – Lücke mit Texteingabe: satz (mit ___), hinweis, loesung (Liste)
+
+   WOERTER
+     { id, de (mit Artikel), falle (das ähnliche spanische Wort),
+       falle_de (was die Falle auf Deutsch bedeutet), es (richtige
+       Übersetzung), kat ("echt" | "falsch" | "halb"), niveau, bild,
+       beispiel, erklaerung }
+     Extraseiten fürs Freundebuch: { id, geheim:true, titel, bild, text }
+
+   REGELN
+     · Texte immer in "Anführungszeichen"; im Text selbst „…“ verwenden.
+     · Nach jedem Feld und jeder } ein Komma.   **Wort** = fett.
+     · ae, oe, ue, ss werden als ä, ö, ü, ß akzeptiert.
+     · Fehler in den Daten zeigt die Startseite als gelben Hinweis an.
+   ===================================================================== */
+
+const EINSTELLUNGEN = {
+  geheimwort: "Lindenfeld-Freundebuch-7",  // für den Prüfcode – bitte geheim halten
+  punkteErsterVersuch: 10,
+  punkteZweiterVersuch: 5,
+  tippKosten: 3,
+  tippsProKapitel: 3,
+  freundSchwelle: 0.6,    // ab 60 % der möglichen Herzen ist man befreundet
+  freundeZumSieg: 3,      // so viele Freunde braucht man beim Abschiedsfest
+  wiederholungKarten: 10, // Karten pro Wiederholungsrunde
+  spanischeHilfe: { A2:true, B1:true, B2:false, C1:false },
+};
+
+/* ---------------------------------------------------------------------
+   FIGUREN
+   --------------------------------------------------------------------- */
+const FIGUREN = {
+  brandt: { name:"Frau Brandt", rolle:"Gastmutter",       art:"warmherzig, fragt höflich nach", deutsch:true,
+            haut:"#f1c7a4", haar:"#8a6a4a", frisur:"kurz", kleidung:"#5b8c5a", extra:"brille" },
+  weber:  { name:"Frau Weber",  rolle:"Deutschlehrerin",  art:"freundlich und genau, stutzt gern", deutsch:true,
+            haut:"#f3cfb0", haar:"#3b2a20", frisur:"dutt", kleidung:"#7d4f9a", extra:"brille" },
+  jonas:  { name:"Jonas",       rolle:"Klassenkamerad",   art:"ruhig, Musikfan, grübelt", deutsch:true,
+            haut:"#f5d2b8", haar:"#d9b36a", frisur:"strubbel", kleidung:"#3d6fb0", extra:"kopfhoerer" },
+  kaya:   { name:"Herr Kaya",   rolle:"Trainer",          art:"laut und lustig, lacht gern", deutsch:true,
+            haut:"#d9a67c", haar:"#2a2a2a", frisur:"kurz", kleidung:"#c0392b", extra:"pfeife" },
+  lena:   { name:"Lena",        rolle:"Freundin aus dem Sportverein", art:"sportlich und spontan, neckt gern", deutsch:true,
+            haut:"#f7d9c4", haar:"#c8642a", frisur:"zopf", kleidung:"#2e8b57", extra:"sommersprossen" },
+  sofia:  { name:"Sofía",  rolle:"aus Chile", haut:"#d9a07a", haar:"#4a2c1a", frisur:"lang",  kleidung:"#8e44ad" },
+  matias: { name:"Matías", rolle:"aus Chile", haut:"#e8c0a0", haar:"#1e1e1e", frisur:"kurz",  kleidung:"#2c7fb8" },
+  benja:  { name:"Benja",  rolle:"aus Chile", haut:"#c98f68", haar:"#2a1a10", frisur:"locken", kleidung:"#e67e22" },
+};
+
+/* ---------------------------------------------------------------------
+   WOERTER – Grundlage für Aufgaben, Sortierrunden und Freundebuch
+   kat: "falsch" = falscher Freund · "halb" = halber Freund · "echt" = echter Freund
+   --------------------------------------------------------------------- */
+const WOERTER = [
+  /* ----- A2 ----- */
+  { id:"mantel", de:"der Mantel", falle:"el mantel", falle_de:"die Tischdecke", es:"el abrigo", kat:"falsch", niveau:"A2", bild:"🧥",
+    beispiel:"Im Winter trage ich einen warmen Mantel.",
+    erklaerung:"**der Mantel** = el abrigo. **el mantel** liegt auf dem Tisch: die **Tischdecke**." },
+  { id:"gymnasium", de:"das Gymnasium", falle:"el gimnasio", falle_de:"das Fitnessstudio, die Turnhalle", es:"el liceo, el colegio", kat:"falsch", niveau:"A2", bild:"🏫",
+    beispiel:"Lena und Jonas gehen aufs Gymnasium in Lindenfeld.",
+    erklaerung:"**das Gymnasium** ist eine Schule (bis zum Abitur). **el gimnasio** = das **Fitnessstudio** oder die **Turnhalle**." },
+  { id:"professor", de:"der Professor", falle:"el profesor", falle_de:"der Lehrer", es:"el profesor universitario", kat:"halb", niveau:"A2", bild:"🎓",
+    beispiel:"Meine Tante ist Professorin an der Universität.",
+    erklaerung:"**der Professor / die Professorin** unterrichtet an der Universität. In der Schule heißt **el profesor** auf Deutsch **der Lehrer / die Lehrerin**." },
+  { id:"klasse", de:"die Klasse", falle:"la clase", falle_de:"die Unterrichtsstunde", es:"el curso; la sala de clases", kat:"halb", niveau:"A2", bild:"🧑‍🤝‍🧑",
+    beispiel:"In meiner Klasse sind 28 Schülerinnen und Schüler.",
+    erklaerung:"**die Klasse** = die Gruppe (en Chile: el curso) oder der Raum (la sala). **la clase** als Stunde heißt **die Stunde** oder **der Unterricht**: „Mañana tengo clases“ = Morgen habe ich Unterricht." },
+  { id:"kollege", de:"der Kollege", falle:"el colegio", falle_de:"die Schule", es:"el colega", kat:"falsch", niveau:"A2", bild:"🏫",
+    beispiel:"Meine Mutter fährt mit ihrer Kollegin zur Arbeit.",
+    erklaerung:"**der Kollege / die Kollegin** = el colega (bei der Arbeit). **el colegio** = die **Schule**." },
+
+  /* ----- B1 ----- */
+  { id:"probe", de:"die Probe", falle:"la prueba", falle_de:"der Test, die Klassenarbeit", es:"el ensayo", kat:"halb", niveau:"B1", bild:"🎭",
+    beispiel:"Heute Abend hat Jonas Probe mit seiner Band.",
+    erklaerung:"**die Probe** = el ensayo (Theater, Band) oder la muestra (eine Probe vom Kuchen). Eine **prueba** in der Schule heißt **Test** oder **Klassenarbeit**. Nur in „die Probezeit“ (período de prueba) oder „auf die Probe stellen“ (poner a prueba) passt es." },
+  { id:"termin", de:"der Termin", falle:"el término", falle_de:"das Ende; der Begriff", es:"la cita, la fecha", kat:"falsch", niveau:"B1", bild:"📅",
+    beispiel:"Ich habe morgen um acht einen Termin beim Arzt.",
+    erklaerung:"**der Termin** = la cita (beim Arzt), la fecha. **el término** = das **Ende** („al término de la clase“ = am Ende der Stunde) oder der Begriff." },
+  { id:"lokal", de:"das Lokal", falle:"el local", falle_de:"das Geschäft, der Laden", es:"el restaurante, el bar", kat:"halb", niveau:"B1", bild:"🍽️",
+    beispiel:"Kennst du ein gutes Lokal in der Nähe?",
+    erklaerung:"**das Lokal** = ein Restaurant, eine Kneipe, ein Café. In Chile ist **un local** meistens ein Laden – auf Deutsch **das Geschäft** oder **der Laden**. Das Adjektiv **lokal** (= aus der Gegend) ist dagegen ein echter Freund." },
+  { id:"rente", de:"die Rente", falle:"la renta", falle_de:"das Einkommen", es:"la jubilación, la pensión", kat:"falsch", niveau:"B1", bild:"👴",
+    beispiel:"Meine Oma ist seit zwei Jahren in Rente.",
+    erklaerung:"**die Rente** bekommt man, wenn man alt ist und nicht mehr arbeitet (la jubilación). **la renta** = das Einkommen; das Geld für die Arbeit heißt **das Gehalt** oder **der Lohn**." },
+  { id:"notiz", de:"die Notiz", falle:"la noticia", falle_de:"die Nachricht", es:"el apunte, la nota", kat:"falsch", niveau:"B1", bild:"📝",
+    beispiel:"Ich mache mir eine Notiz, damit ich es nicht vergesse.",
+    erklaerung:"**die Notiz** schreibt man sich auf (un apunte). **la noticia** = die **Nachricht**; las noticias im Fernsehen = die Nachrichten." },
+  { id:"mode", de:"die Mode", falle:"el modo", falle_de:"die Art, die Weise", es:"la moda", kat:"falsch", niveau:"B1", bild:"👗",
+    beispiel:"Weite Hosen sind gerade wieder in Mode.",
+    erklaerung:"**die Mode** = la moda (Kleidung, Trends). **el modo** = die **Art** oder **Weise**: „de este modo“ = so, auf diese Weise." },
+  { id:"brav", de:"brav", falle:"bravo", falle_de:"wütend; bissig", es:"obediente, que se porta bien", kat:"falsch", niveau:"B1", bild:"😇",
+    beispiel:"Unser Hund ist ganz brav, er beißt nie.",
+    erklaerung:"**brav** = obediente, que se porta bien. In Chile heißt **bravo** oft **wütend/sauer** – und ein perro bravo ist **bissig**. Nur der Ausruf „Bravo!“ ist in beiden Sprachen gleich." },
+  { id:"firma", de:"die Firma", falle:"la firma", falle_de:"die Unterschrift", es:"la empresa", kat:"halb", niveau:"B1", bild:"🏢",
+    beispiel:"Mein Vater arbeitet bei einer großen Firma.",
+    erklaerung:"**die Firma** = la empresa. **la firma** ist meistens die **Unterschrift** (firmar = unterschreiben). Nur in „una firma de abogados“ heißt firma auch Firma – deshalb ein halber Freund." },
+  { id:"karriere", de:"die Karriere", falle:"la carrera", falle_de:"das Studium; das Rennen", es:"la carrera profesional", kat:"halb", niveau:"B1", bild:"📈",
+    beispiel:"Sie hat als Ingenieurin Karriere gemacht.",
+    erklaerung:"**die Karriere** = der Aufstieg im Beruf. In Chile ist **la carrera** oft das **Studium** („estudio Medicina“ = ich studiere Medizin), und im Sport ist sie das **Rennen**." },
+  { id:"kurs", de:"der Kurs", falle:"el curso", falle_de:"die Klasse (in der Schule)", es:"el curso, el taller", kat:"halb", niveau:"B1", bild:"🧑‍🏫",
+    beispiel:"Am Wochenende mache ich einen Kochkurs.",
+    erklaerung:"**der Kurs** = ein Lehrgang (curso de cocina = Kochkurs). In Chile ist **el curso** auch die Gruppe in der Schule – auf Deutsch **die Klasse**. Kurse gibt es in deutschen Schulen erst in der Oberstufe." },
+  { id:"kasino", de:"das Kasino", falle:"el casino", falle_de:"die Mensa (in der Schule)", es:"el casino de juego", kat:"halb", niveau:"B1", bild:"🎰",
+    beispiel:"In einem Kasino spielt man um Geld.",
+    erklaerung:"**das Kasino** ist meistens ein Spielkasino. In Chile ist **el casino** in Schulen und Firmen der Speisesaal: In der Schule heißt er **die Mensa**, in einer Firma **die Kantine**." },
+  { id:"kantine", de:"die Kantine", falle:"la cantina", falle_de:"die Kneipe, die Bar", es:"el casino, el comedor de una empresa", kat:"halb", niveau:"B1", bild:"🍲",
+    beispiel:"Mittags isst meine Mutter in der Kantine ihrer Firma.",
+    erklaerung:"**die Kantine** = der Speisesaal einer Firma (en Chile: el casino). **la cantina** ist in Chile eine einfache **Kneipe** oder Bar. In Spanien kann cantina auch Kantine heißen – deshalb ein halber Freund." },
+  { id:"platz", de:"der Platz", falle:"la plaza", falle_de:"der Platz – aber: el lugar = der Ort!", es:"la plaza; el asiento; el espacio", kat:"halb", niveau:"B1", bild:"⛲",
+    beispiel:"In den Ferien war ich an vielen schönen Orten – und auf dem Marktplatz von Lindenfeld.",
+    erklaerung:"**der Platz** = la plaza (Marktplatz), el asiento (ein freier Platz), el espacio (Wir haben keinen Platz). Aber **un lugar** heißt **der Ort**: „en muchos lugares“ = **an vielen Orten** (nicht: „in vielen Plätzen“)." },
+
+  /* ----- echte Freunde (für Sortierrunden) ----- */
+  { id:"familie",     de:"die Familie",     falle:"la familia",  falle_de:"die Familie",   es:"la familia",  kat:"echt", niveau:"A2", bild:"👨‍👩‍👧", beispiel:"Meine Familie wohnt in Valparaíso.", erklaerung:"Echter Freund: **die Familie** = la familia." },
+  { id:"musik",       de:"die Musik",       falle:"la música",   falle_de:"die Musik",     es:"la música",   kat:"echt", niveau:"A2", bild:"🎵", beispiel:"Jonas hört immer Musik.", erklaerung:"Echter Freund: **die Musik** = la música." },
+  { id:"problem",     de:"das Problem",     falle:"el problema", falle_de:"das Problem",   es:"el problema", kat:"echt", niveau:"A2", bild:"❗", beispiel:"Kein Problem!", erklaerung:"Echter Freund: **das Problem** = el problema (aber: das, nicht der!)." },
+  { id:"telefon",     de:"das Telefon",     falle:"el teléfono", falle_de:"das Telefon",   es:"el teléfono", kat:"echt", niveau:"A2", bild:"☎️", beispiel:"Das Telefon klingelt.", erklaerung:"Echter Freund: **das Telefon** = el teléfono." },
+  { id:"schokolade",  de:"die Schokolade",  falle:"el chocolate",falle_de:"die Schokolade",es:"el chocolate",kat:"echt", niveau:"A2", bild:"🍫", beispiel:"Frau Brandt backt einen Schokoladenkuchen.", erklaerung:"Echter Freund: **die Schokolade** = el chocolate." },
+  { id:"theater",     de:"das Theater",     falle:"el teatro",   falle_de:"das Theater",   es:"el teatro",   kat:"echt", niveau:"A2", bild:"🎭", beispiel:"Am Freitag gehen wir ins Theater.", erklaerung:"Echter Freund: **das Theater** = el teatro." },
+  { id:"mode_moda",   de:"die Mode",        falle:"la moda",     falle_de:"die Mode",      es:"la moda",     kat:"echt", niveau:"B1", bild:"👗", beispiel:"Lena interessiert sich nicht für Mode.", erklaerung:"Echter Freund: **die Mode** = la moda. (Aber **el modo** ist die Art und Weise!)" },
+  { id:"kollege_colega", de:"der Kollege",  falle:"el colega",   falle_de:"der Kollege",   es:"el colega",   kat:"echt", niveau:"B1", bild:"🤝", beispiel:"Herr Kaya trainiert mit seinem Kollegen die Jugendmannschaft.", erklaerung:"Echter Freund: **der Kollege** = el colega. (Aber **el colegio** ist die Schule!)" },
+  { id:"sympathisch", de:"sympathisch",     falle:"simpático",   falle_de:"sympathisch",   es:"simpático",   kat:"echt", niveau:"B1", bild:"😊", beispiel:"Die Gastfamilie ist sehr sympathisch.", erklaerung:"Echter Freund: **sympathisch** = simpático (jemand, den man mag)." },
+  { id:"aktuell",     de:"aktuell",         falle:"actual",      falle_de:"aktuell",       es:"actual",      kat:"echt", niveau:"B1", bild:"📰", beispiel:"Das ist ein aktuelles Thema.", erklaerung:"Im Spanischen ein echter Freund: **aktuell** = actual (= jetzt, gegenwärtig). (Im Englischen ist das anders!)" },
+  { id:"sensibel",    de:"sensibel",        falle:"sensible",    falle_de:"sensibel",      es:"sensible",    kat:"echt", niveau:"B1", bild:"🌸", beispiel:"Jonas ist ein sehr sensibler Mensch.", erklaerung:"Im Spanischen ein echter Freund: **sensibel** = sensible (empfindsam). (Im Englischen ist das anders!)" },
+
+  /* ----- Extraseiten (Easter-Eggs) ----- */
+  { id:"geheim_ml", geheim:true, titel:"Der Tonkrug „M. L.“", bild:"🏺",
+    text:"Im Regal von Frau Brandt steht ein Tonkrug aus Pomaire. Unten stehen zwei Buchstaben: **M. L.**\n\nFrau Brandt: „Den hat mir vor Jahren ein seltsamer Herr geschenkt. Er hat dauernd ‚Zerbröckel!‘ gerufen.“" },
+  { id:"geheim_mantel", geheim:true, titel:"Ein Witz an der Tafel", bild:"🧥",
+    text:"Warum nimmt Benja zum Picknick einen Mantel mit?\n\n– Damit der Tisch nicht friert!" },
+  { id:"geheim_handy", geheim:true, titel:"Das Handy", bild:"📱",
+    text:"Benja: „In England sagt keiner Handy!“\n\nStimmt. Auf Englisch heißt es mobile phone. Das Wort **Handy** gibt es so nur im Deutschen – ein falscher Freund, den die Deutschen selbst erfunden haben." },
+  { id:"geheim_kuchen", geheim:true, titel:"Der Kuchen", bild:"🍰",
+    text:"Im Café steht ein Apfelkuchen. Sofía: „In Südchile sagen wir auch Kuchen!“\n\nEin echter Freund, den deutsche Siedler vor langer Zeit an den Llanquihue-See mitgebracht haben." },
+  { id:"geheim_completo", geheim:true, titel:"Der Completo", bild:"🌭",
+    text:"Wie heißt ein Completo auf Deutsch?\n\n… Completo! Ein echter Freund. Leider kennt ihn in Lindenfeld noch niemand. Tía Carmen wäre entsetzt." },
+];
+
+/* ---------------------------------------------------------------------
+   SPIEL
+   --------------------------------------------------------------------- */
+const SPIEL = {
+
+/* =========================== NIVEAU B1 =========================== */
+B1: {
+  titel: "Schule, Verein und Stadt",
+  schwerpunkt: "Probe, Termin, Lokal, Rente, Notiz, Mode, brav, Firma, Karriere, Kurs, Kasino, Platz/Ort",
+  intro: "Drei Wochen Schüleraustausch in Lindenfeld! Sofía, Matías und Benja wohnen in Gastfamilien, gehen aufs Gymnasium, spielen im Sportverein – und wollen echte Freunde finden.\n\nAber Achtung: Manche deutschen Wörter sehen aus wie spanische Wörter und bedeuten etwas ganz anderes. Das sind **falsche Freunde**. Hilf den dreien, das richtige Wort zu finden!",
+  kapitel: [
+
+  /* ---------- Kapitel 1 ---------- */
+  {
+    name: "Ankunft in Lindenfeld",
+    szene: "kueche",
+    hauptfigur: "brandt",
+    intro: "Nach dem langen Flug von Santiago holt Frau Brandt die drei am Flughafen ab. Sofía wohnt bei ihr, Matías und Benja bei den Nachbarn. Heute Abend essen alle zusammen in Frau Brandts Küche.\n\nFrau Brandt ist sehr nett. Aber wird sie die drei auch verstehen?",
+    geheimnisse: [ { seite:"geheim_ml", symbol:"🏺", name:"ein Tonkrug im Regal", ort:[770, 70, 60, 60] } ],
+    aufgaben: [
+      { typ:"chat", figur:"brandt", szene:"flughafen", sprecher:"matias", wort:"rente",
+        dialog:[ { wer:"brandt", text:"Herzlich willkommen in Deutschland! Erzählt mal: Was machen eure Eltern beruflich?" } ],
+        optionen:["Mein Vater arbeitet bei einer Firma und verdient ganz gut.",
+                  "Mein Vater arbeitet bei einer Firma und bekommt eine gute Rente.",
+                  "Mein Vater arbeitet in einem Lokal für Computer."],
+        loesung:"Mein Vater arbeitet bei einer Firma und verdient ganz gut.",
+        reaktionen:{ "Mein Vater arbeitet bei einer Firma und bekommt eine gute Rente.":"Eine Rente? Ist dein Vater denn schon in Rente? Er arbeitet doch noch!",
+                     "Mein Vater arbeitet in einem Lokal für Computer.":"In einem Lokal? Repariert er Computer in einer Kneipe?" },
+        reaktion:"Ah, schön! Und deine Mutter?",
+        thema:"Rente oder Gehalt?",
+        tipp:"Die Rente bekommt man erst, wenn man alt ist und nicht mehr arbeitet.",
+        erklaerung_de:"**die Rente** = la jubilación. Das Geld für die Arbeit ist **das Gehalt**; „verdienen“ = ganar dinero. Und ein **Lokal** ist ein Restaurant oder eine Kneipe, kein Laden.",
+        erklaerung_es:"„renta“ (ingreso) no es „Rente“: die Rente = la jubilación. Un „local“ (tienda) se dice das Geschäft o der Laden; das Lokal = restaurante o bar." },
+      { typ:"chat", figur:"brandt", szene:"flughafen", sprecher:"sofia", wort:"mode",
+        dialog:[ { wer:"brandt", text:"Sofía, dein Deutsch ist ja schon richtig gut! Wie hast du das gelernt?" } ],
+        optionen:["Danke! Ich lerne jeden Tag zehn neue Wörter. So mache ich das.",
+                  "Danke! Ich lerne jeden Tag zehn neue Wörter. Das ist meine Mode."],
+        loesung:"Danke! Ich lerne jeden Tag zehn neue Wörter. So mache ich das.",
+        reaktionen:{ "Danke! Ich lerne jeden Tag zehn neue Wörter. Das ist meine Mode.":"Deine Mode? Lernst du Deutsch mit Kleidern? Ach – du meinst deine Methode!" },
+        reaktion:"Zehn Wörter jeden Tag? Respekt!",
+        thema:"Mode oder Art und Weise?",
+        tipp:"Die Mode hat mit Kleidung zu tun.",
+        erklaerung_de:"**die Mode** = la moda (Kleidung). **el modo** = die Art, die Weise. „So mache ich das“ = así lo hago.",
+        erklaerung_es:"„modo“ no es „Mode“. die Mode = la moda. „de este modo“ = so / auf diese Weise." },
+      { typ:"kino", figur:"brandt", sprecher:"benja", wort:"notiz",
+        satz:"Haben Sie die Notiz gesehen? Ein Hund ist allein mit dem Bus nach Hamburg gefahren!",
+        ausloeser:"Notiz", bild:"📝",
+        missverstaendnis:"Welche Notiz? Ich habe keinen Zettel geschrieben … Liegt der auf dem Küchentisch?",
+        korrektur:{ optionen:["Nachricht","Notiz","Rechnung"], loesung:"Nachricht" },
+        reaktion:"Ach, die Nachricht! Ja, die habe ich im Radio gehört. Unglaublich!",
+        thema:"Notiz oder Nachricht?",
+        tipp:"Benja meint etwas aus dem Radio oder dem Internet.",
+        erklaerung_de:"**die Notiz** schreibt man sich selbst auf. Was in der Zeitung oder im Radio steht, ist **die Nachricht** (die Nachrichten).",
+        erklaerung_es:"„noticia“ = die Nachricht. „Notiz“ es un apunte que uno escribe." },
+      { typ:"chat", figur:"brandt", sprecher:"matias", wort:"lokal",
+        dialog:[ { wer:"brandt", text:"Morgen fahre ich in die Stadt. Braucht ihr noch etwas?" } ],
+        optionen:["Ja, ich brauche Turnschuhe. Gibt es hier einen Schuhladen?",
+                  "Ja, ich brauche Turnschuhe. Gibt es hier ein Lokal für Schuhe?",
+                  "Ja, ich brauche Turnschuhe. Gibt es hier eine Kantine für Schuhe?"],
+        loesung:"Ja, ich brauche Turnschuhe. Gibt es hier einen Schuhladen?",
+        reaktionen:{ "Ja, ich brauche Turnschuhe. Gibt es hier ein Lokal für Schuhe?":"Ein Lokal für Schuhe? Im Lokal kann man essen und trinken – Schuhe gibt es da nicht!",
+                     "Ja, ich brauche Turnschuhe. Gibt es hier eine Kantine für Schuhe?":"Eine Kantine? Da essen Leute in der Mittagspause. Schuhe essen wir hier nicht!" },
+        reaktion:"Klar, in der Hauptstraße gibt es einen guten Schuhladen.",
+        thema:"Lokal oder Laden?",
+        tipp:"Wo kauft man Schuhe? Nicht dort, wo man isst.",
+        erklaerung_de:"Ein **local** (in Chile: Geschäft) heißt **der Laden** oder **das Geschäft**. **das Lokal** = Restaurant, Kneipe, Café.",
+        erklaerung_es:"„un local de zapatos“ = ein Schuhladen / ein Schuhgeschäft. „das Lokal“ = un restaurante o bar." },
+      { typ:"schreiben", figur:"brandt", sprecher:"sofia", wort:"termin",
+        dialog:[ { wer:"brandt", text:"Wie lange bleibt ihr eigentlich in Lindenfeld?" } ],
+        satz:"Drei Wochen – bis zum ___ des Monats.", hinweis:"wenn der Monat aufhört",
+        loesung:["Ende"],
+        reaktion:"Bis Ende des Monats – dann feiern wir vorher ein großes Abschiedsfest!",
+        thema:"Termin oder Ende?",
+        tipp:"Auf Spanisch würdest du „término“ sagen. Auf Deutsch ist das ein ganz kurzes Wort.",
+        erklaerung_de:"„al término del mes“ = **bis zum Ende des Monats**. **der Termin** ist eine Verabredung (beim Arzt) oder ein Datum.",
+        erklaerung_es:"„término“ (fin) = das Ende. „Termin“ = una cita o una fecha." },
+      { typ:"kino", figur:"brandt", sprecher:"matias", wort:"brav",
+        satz:"Achtung, Frau Brandt! Der Hund vom Nachbarn ist sehr brav. Er hat mich fast gebissen!",
+        ausloeser:"brav", bild:"😇🐶",
+        missverstaendnis:"Brav? Aber brave Hunde beißen doch nicht! Der Bello ist der liebste Hund der Straße …",
+        korrektur:{ optionen:["bissig","brav","lieb"], loesung:"bissig" },
+        reaktion:"Bissig? Der Bello? Na gut, ich rede mit dem Nachbarn.",
+        thema:"brav oder bissig?",
+        tipp:"In Chile sagt man „perro bravo“. Auf Deutsch ist ein brav-er Hund das Gegenteil davon.",
+        erklaerung_de:"**brav** = obediente, lieb. Ein Hund, der beißt, ist **bissig**. Ein Mensch, der „bravo“ ist (Chile), ist **wütend** oder **sauer**.",
+        erklaerung_es:"„perro bravo“ = ein bissiger Hund. „brav“ significa obediente, que se porta bien." },
+      { typ:"chat", figur:"brandt", sprecher:"sofia", wort:"firma",
+        dialog:[ { wer:"brandt", text:"Hier ist das Formular für die Schule. Unten fehlt noch etwas, Sofía." } ],
+        optionen:["Ach ja, meine Unterschrift! Wo soll ich unterschreiben?",
+                  "Ach ja, meine Firma! Wo soll ich sie hinschreiben?",
+                  "Ach ja, mein Termin! Wo soll ich ihn hinschreiben?"],
+        loesung:"Ach ja, meine Unterschrift! Wo soll ich unterschreiben?",
+        reaktionen:{ "Ach ja, meine Firma! Wo soll ich sie hinschreiben?":"Deine Firma? Hast du mit fünfzehn schon eine eigene Firma? Haha – nein, deine Unterschrift fehlt!",
+                     "Ach ja, mein Termin! Wo soll ich ihn hinschreiben?":"Einen Termin? Nein, nein – hier unten fehlt nur deine Unterschrift." },
+        reaktion:"Genau, hier unten, neben das Datum.",
+        thema:"Firma oder Unterschrift?",
+        tipp:"Was schreibt man unter ein Formular? Seinen Namen, mit der Hand …",
+        erklaerung_de:"„la firma“ = **die Unterschrift**, „firmar“ = **unterschreiben**. **die Firma** = la empresa.",
+        erklaerung_es:"„firma“ (en un documento) = die Unterschrift. „Firma“ = una empresa." },
+    ],
+  },
+
+  /* ---------- Kapitel 2 ---------- */
+  {
+    name: "Die Schule",
+    szene: "klasse",
+    hauptfigur: "weber",
+    intro: "Erster Schultag am Gymnasium Lindenfeld! Die Deutschlehrerin Frau Weber begrüßt die drei mit einem Lächeln. Neben Matías sitzt Jonas, der in jeder Pause Kopfhörer trägt.\n\nFrau Weber ist freundlich, aber sehr genau. Bei ihr zählt jedes Wort.",
+    geheimnisse: [ { seite:"geheim_mantel", symbol:"✏️", name:"etwas an der Tafel", ort:[90, 70, 60, 50] } ],
+    aufgaben: [
+      { typ:"chat", figur:"weber", sprecher:"benja", wort:"professor",
+        dialog:[ { wer:"weber", text:"Erzählt doch mal von eurer Schule in Chile. Wie sind eure Lehrer?" } ],
+        optionen:["Meine Deutschlehrerin ist streng, aber sehr nett.",
+                  "Mein Deutschprofessor ist streng, aber sehr nett."],
+        loesung:"Meine Deutschlehrerin ist streng, aber sehr nett.",
+        reaktionen:{ "Mein Deutschprofessor ist streng, aber sehr nett.":"Ein Professor? An eurer Schule? Habt ihr etwa schon Unterricht an der Universität?" },
+        reaktion:"Streng, aber nett – so wie ich, hoffe ich!",
+        thema:"Professor oder Lehrer?",
+        tipp:"Ein Professor arbeitet an der Universität.",
+        erklaerung_de:"In der Schule: **der Lehrer / die Lehrerin**. **der Professor** unterrichtet an der Universität.",
+        erklaerung_es:"„profesor del colegio“ = der Lehrer. „Professor“ = profesor universitario." },
+      { typ:"kino", figur:"weber", sprecher:"sofia", wort:"probe",
+        satz:"Frau Weber, wann schreiben wir die nächste Probe in Deutsch?",
+        ausloeser:"Probe", bild:"🎭",
+        missverstaendnis:"Eine Probe? Schreiben? Wollt ihr ein Theaterstück spielen? Das fände ich toll!",
+        korrektur:{ optionen:["Klassenarbeit","Probe","Vorstellung"], loesung:"Klassenarbeit" },
+        reaktion:"Ach, die Klassenarbeit! Nächsten Donnerstag. Aber ein Theaterstück … die Idee merke ich mir.",
+        thema:"Probe oder Klassenarbeit?",
+        tipp:"In Chile ist eine „prueba“ ein Test. Im Theater übt man bei der Probe.",
+        erklaerung_de:"„una prueba“ = **die Klassenarbeit** oder **der Test**. **die Probe** = das Üben vor einer Aufführung (el ensayo).",
+        erklaerung_es:"„prueba“ en el colegio = die Klassenarbeit / der Test. „Probe“ = el ensayo (teatro, banda)." },
+      { typ:"schreiben", figur:"jonas", sprecher:"matias", wort:"klasse",
+        dialog:[ { wer:"jonas", text:"Hey, ich bin Jonas. Willkommen! Habt ihr schon euren Stundenplan?" } ],
+        satz:"Noch nicht. Weißt du, wann wir morgen ___ haben?", hinweis:"Mathe, Deutsch, Bio …",
+        loesung:["Unterricht","Schule"],
+        reaktion:"Um acht – leider. Die erste Stunde ist Mathe.",
+        thema:"Klasse oder Unterricht?",
+        tipp:"Die Klasse ist die Gruppe von Schülern. Was hat man aber von acht bis eins?",
+        erklaerung_de:"„Mañana tengo clases“ = **Morgen habe ich Unterricht** (oder: Schule). **die Klasse** = die Gruppe (el curso) oder der Raum.",
+        erklaerung_es:"„clase“ (hora de clase) = der Unterricht / die Stunde. „Klasse“ = el curso (el grupo)." },
+      { typ:"chat", figur:"jonas", szene:"schulhof", sprecher:"matias", wort:"kurs",
+        dialog:[ { wer:"jonas", text:"Wie viele Leute sind bei euch in der Klasse?" } ],
+        optionen:["In meiner Klasse sind 32 Schüler.",
+                  "In meinem Kurs sind 32 Schüler.",
+                  "In meinem Kollegen sind 32 Schüler."],
+        loesung:"In meiner Klasse sind 32 Schüler.",
+        reaktionen:{ "In meinem Kurs sind 32 Schüler.":"In deinem Kurs? Ach, du meinst deine Klasse! Kurse haben wir erst in der Oberstufe.",
+                     "In meinem Kollegen sind 32 Schüler.":"In deinem Kollegen?! Wie passen 32 Leute in einen Kollegen?" },
+        reaktion:"32? Wow, bei uns sind es nur 26.",
+        thema:"Kurs oder Klasse?",
+        tipp:"In Chile sagst du „mi curso“. In Deutschland sagt man in der Schule …",
+        erklaerung_de:"„mi curso“ (en el colegio) = **meine Klasse**. **der Kurs** = ein Lehrgang (Kochkurs) oder ein Kurs in der Oberstufe. Und **der Kollege** ist eine Person, keine Schule.",
+        erklaerung_es:"„curso“ (grupo del colegio) = die Klasse. „colegio“ = die Schule; „Kollege“ = colega." },
+      { typ:"kino", figur:"jonas", szene:"schulhof", sprecher:"benja", wort:"kasino",
+        satz:"Ich habe so einen Hunger! Wo ist hier das Kasino?",
+        ausloeser:"Kasino", bild:"🎰",
+        missverstaendnis:"Ein Kasino? Willst du in der Pause um Geld spielen? Wir sind doch in der Schule!",
+        korrektur:{ optionen:["die Mensa","das Kasino","die Bar"], loesung:"die Mensa" },
+        reaktion:"Die Mensa ist da drüben. Heute gibt es Nudeln!",
+        thema:"Kasino oder Mensa?",
+        tipp:"In Chile isst man im „casino“. In deutschen Schulen heißt das anders.",
+        erklaerung_de:"„el casino“ (Schule) = **die Mensa**; in einer Firma: **die Kantine**. **das Kasino** ist meistens ein Spielkasino.",
+        erklaerung_es:"„casino“ del colegio = die Mensa. „Kasino“ = casino de juego." },
+      { typ:"chat", figur:"weber", sprecher:"sofia", wort:"karriere",
+        dialog:[ { wer:"weber", text:"Sofía, was möchtest du nach der Schule machen?" } ],
+        optionen:["Ich möchte Medizin studieren.",
+                  "Ich möchte die Karriere Medizin machen."],
+        loesung:"Ich möchte Medizin studieren.",
+        reaktionen:{ "Ich möchte die Karriere Medizin machen.":"Die Karriere Medizin? Karriere macht man im Beruf … Ach so, du möchtest Medizin studieren!" },
+        reaktion:"Medizin – toll! Dafür braucht man viel Ausdauer.",
+        thema:"Karriere oder Studium?",
+        tipp:"In Chile sagt man „la carrera de Medicina“. Auf Deutsch braucht man ein Verb.",
+        erklaerung_de:"„estudiar la carrera de Medicina“ = **Medizin studieren** (das Medizinstudium). **die Karriere** = der Aufstieg im Beruf.",
+        erklaerung_es:"„carrera“ (universitaria) = das Studium; „estudiar Medicina“ = Medizin studieren. „Karriere“ = carrera profesional." },
+      { typ:"sortieren", figur:"weber",
+        dialog:[ { wer:"weber", text:"Zum Schluss ein kleines Spiel: Echter Freund, falscher Freund oder halber Freund? Sortiert die Wörter!" } ],
+        woerter:["probe","termin","familie","notiz","musik","kurs","problem","rente","sympathisch"],
+        reaktion:"Sehr gut sortiert! Ihr habt gemerkt: Nicht alles, was ähnlich klingt, ist falsch.",
+        thema:"echt, falsch oder halb?",
+        tipp:"Frag dich: Bedeutet das deutsche Wort immer, manchmal oder nie dasselbe wie das spanische?",
+        erklaerung_de:"🟢 Familie, Musik, Problem, sympathisch = gleiche Bedeutung. 🔴 Termin, Notiz, Rente = andere Bedeutung. 🟡 Probe, Kurs = manchmal gleich, manchmal nicht.",
+        erklaerung_es:"Muchas palabras parecidas sí significan lo mismo (familia, música). ¡No todo lo parecido es falso!" },
+    ],
+  },
+
+  /* ---------- Kapitel 3 ---------- */
+  {
+    name: "Im Sportverein",
+    szene: "sportplatz",
+    hauptfigur: "kaya",
+    intro: "Lena nimmt die drei zum Fußballtraining mit, in den Sportverein Lindenfeld. Der Trainer, Herr Kaya, ist laut, lustig und hat immer eine Trillerpfeife um den Hals.\n\n„Bei mir wird gerannt, gelacht und geredet!“, ruft er. Na dann …",
+    geheimnisse: [ { seite:"geheim_handy", symbol:"📱", name:"ein Handy auf der Bank", ort:[60, 250, 50, 45] } ],
+    aufgaben: [
+      { typ:"kino", figur:"kaya", sprecher:"matias", wort:"gymnasium",
+        satz:"Herr Kaya, ich gehe jeden Morgen ins Gymnasium, um zu trainieren.",
+        ausloeser:"Gymnasium", bild:"🏫",
+        missverstaendnis:"Ins Gymnasium? Da gehst du doch sowieso jeden Tag zur Schule! Haha, trainierst du da Mathe?",
+        korrektur:{ optionen:["Fitnessstudio","Gymnasium","Klassenzimmer"], loesung:"Fitnessstudio" },
+        reaktion:"Ins Fitnessstudio! Sehr gut, dann hast du ja Kraft für mein Training!",
+        thema:"Gymnasium oder Fitnessstudio?",
+        tipp:"Das Gymnasium ist eine Schule.",
+        erklaerung_de:"„el gimnasio“ = **das Fitnessstudio** (oder die Turnhalle). **das Gymnasium** ist eine Schule bis zum Abitur.",
+        erklaerung_es:"„gimnasio“ = das Fitnessstudio / die Turnhalle. „Gymnasium“ = un tipo de colegio." },
+      { typ:"chat", figur:"kaya", sprecher:"benja", wort:"karriere",
+        dialog:[ { wer:"kaya", text:"Zum Aufwärmen laufen wir zweimal um den Platz. Los geht’s!" } ],
+        optionen:["Super! Wer gewinnt das Wettrennen?",
+                  "Super! Wer gewinnt die Karriere?",
+                  "Super! Wer gewinnt die Probe?"],
+        loesung:"Super! Wer gewinnt das Wettrennen?",
+        reaktionen:{ "Super! Wer gewinnt die Karriere?":"Die Karriere? Na, vielleicht du – als Fußballprofi! Haha! Aber jetzt wird erst mal gelaufen.",
+                     "Super! Wer gewinnt die Probe?":"Die Probe? Das hier ist doch kein Theater! Haha!" },
+        reaktion:"Ein Wettrennen? Na gut – wer zuletzt ankommt, sammelt die Bälle ein!",
+        thema:"Karriere oder Rennen?",
+        tipp:"Im Sport ist „una carrera“ etwas ganz anderes als im Beruf.",
+        erklaerung_de:"„una carrera“ (Sport) = **das Rennen**, **das Wettrennen**. **die Karriere** = der Aufstieg im Beruf.",
+        erklaerung_es:"„carrera“ (en el deporte) = das Rennen / das Wettrennen. „Karriere“ = carrera profesional." },
+      { typ:"schreiben", figur:"lena", sprecher:"sofia", wort:"brav",
+        dialog:[ { wer:"lena", text:"Herr Kaya war vorhin aber laut! Was war denn los?" } ],
+        satz:"Er war total ___, weil Benja ein Eigentor geschossen hat.", hinweis:"er hat sich geärgert",
+        loesung:["sauer","wütend","böse"],
+        reaktion:"Haha, ein Eigentor! Keine Sorge, morgen lacht er wieder darüber.",
+        thema:"brav oder sauer?",
+        tipp:"In Chile würdest du sagen: „estaba bravo“. Aber „brav“ bedeutet auf Deutsch fast das Gegenteil.",
+        erklaerung_de:"„estaba bravo“ (Chile) = **er war sauer / wütend / böse**. **brav** = lieb, obediente.",
+        erklaerung_es:"„bravo“ (enojado) = sauer, wütend. „brav“ = obediente." },
+      { typ:"chat", figur:"kaya", sprecher:"matias", wort:"kollege",
+        dialog:[ { wer:"kaya", text:"Spielt ihr in Chile auch im Verein, Matías?" } ],
+        optionen:["Nein, ich spiele in der Mannschaft von meiner Schule.",
+                  "Nein, ich spiele in der Mannschaft von meinem Kollegen."],
+        loesung:"Nein, ich spiele in der Mannschaft von meiner Schule.",
+        reaktionen:{ "Nein, ich spiele in der Mannschaft von meinem Kollegen.":"Von deinem Kollegen? Arbeitest du etwa schon? Haha – ach, deine Schule!" },
+        reaktion:"Eine Schulmannschaft! Super, dann kennst du ja schon Teamgeist.",
+        thema:"Kollege oder Schule?",
+        tipp:"„El colegio“ ist kein Mensch.",
+        erklaerung_de:"„el colegio“ = **die Schule**. **der Kollege** = el colega (bei der Arbeit).",
+        erklaerung_es:"„colegio“ = die Schule. „Kollege“ = colega." },
+      { typ:"chat", figur:"kaya", sprecher:"benja", wort:"mode",
+        dialog:[ { wer:"kaya", text:"Benja, wie schießt du denn den Ball? Mit der Spitze? So geht das nicht!" } ],
+        optionen:["Können Sie mir zeigen, wie es richtig geht?",
+                  "Können Sie mir die richtige Mode zeigen?"],
+        loesung:"Können Sie mir zeigen, wie es richtig geht?",
+        reaktionen:{ "Können Sie mir die richtige Mode zeigen?":"Die richtige Mode? Deine Fußballschuhe sind doch schick genug! Haha – ach so, die Technik!" },
+        reaktion:"Klar! Schau: mit der Innenseite, so. Siehst du?",
+        thema:"Mode oder Art und Weise?",
+        tipp:"Benja will wissen, WIE man schießt.",
+        erklaerung_de:"„el modo correcto“ = **wie es richtig geht**, **die richtige Art** / **Technik**. **die Mode** = la moda.",
+        erklaerung_es:"„modo“ = Art, Weise. „Mode“ = moda." },
+      { typ:"sortieren", figur:"kaya",
+        dialog:[ { wer:"kaya", text:"Pause! Und weil ihr so gern redet: Sortiert mal diese Wörter, aber schnell!" } ],
+        woerter:["gymnasium","karriere","mode_moda","telefon","brav","schokolade","platz","kollege_colega"],
+        reaktion:"Stark! Ihr seid nicht nur schnell auf dem Platz.",
+        thema:"echt, falsch oder halb?",
+        tipp:"Achtung: Dasselbe deutsche Wort kann mit einem spanischen Wort ein echter und mit einem anderen ein falscher Freund sein.",
+        erklaerung_de:"🟢 Mode–moda, Telefon–teléfono, Schokolade–chocolate, Kollege–colega. 🔴 Gymnasium–gimnasio, brav–bravo. 🟡 Karriere–carrera, Platz–plaza.",
+        erklaerung_es:"Kollege = colega es amigo verdadero, pero Kollege ≠ colegio. Mode = moda, pero Mode ≠ modo." },
+      { typ:"chat", figur:"lena", sprecher:"sofia", wort:"termin",
+        dialog:[ { wer:"lena", text:"Am Samstag haben wir ein Spiel gegen Bergheim. Es fängt um vier an. Kommst du zuschauen?" } ],
+        optionen:["Gern! Wann ist das Spiel ungefähr zu Ende?",
+                  "Gern! Wann ist ungefähr der Termin vom Spiel?"],
+        loesung:"Gern! Wann ist das Spiel ungefähr zu Ende?",
+        reaktionen:{ "Gern! Wann ist ungefähr der Termin vom Spiel?":"Der Termin? Hab ich doch gesagt: Samstag um vier! Ach so – du willst wissen, wann es aufhört?" },
+        reaktion:"So gegen sechs. Danach gehen wir alle Eis essen!",
+        thema:"Termin oder Ende?",
+        tipp:"Sofía möchte wissen, wann das Spiel aufhört.",
+        erklaerung_de:"„el término del partido“ = **das Ende vom Spiel**. **der Termin** = Datum oder Uhrzeit, wann etwas stattfindet.",
+        erklaerung_es:"„término“ = das Ende. „Termin“ = una cita, una fecha." },
+    ],
+  },
+
+  /* ---------- Kapitel 4 ---------- */
+  {
+    name: "Ein Tag in der Stadt",
+    szene: "stadt",
+    hauptfigur: "lena",
+    intro: "Am Samstag zeigen Lena und Jonas den dreien Lindenfeld: den Marktplatz mit dem alten Brunnen, die kleinen Geschäfte, das Café am Fluss.\n\nMatías hat seine Kamera dabei und fotografiert einfach alles.",
+    geheimnisse: [ { seite:"geheim_kuchen", symbol:"🍰", name:"ein Kuchen im Schaufenster", ort:[820, 190, 55, 50] } ],
+    aufgaben: [
+      { typ:"kino", figur:"lena", sprecher:"matias", wort:"platz",
+        satz:"In Lindenfeld habe ich schon in vielen Plätzen fotografiert.",
+        ausloeser:"in vielen Plätzen", bild:"⛲",
+        missverstaendnis:"In vielen Plätzen? Wir haben doch nur einen Marktplatz! Und IN einem Platz kann man gar nicht stehen …",
+        korrektur:{ frage:"In Lindenfeld habe ich schon ___ fotografiert.", loesung:["an vielen Orten"] },
+        reaktion:"An vielen Orten – stimmt! Am Fluss, an der Burg, im Park …",
+        thema:"Platz oder Ort? Und welche Präposition?",
+        tipp:"„En muchos lugares“: lugar = der Ort. Und man ist AN einem Ort – im Dativ Plural.",
+        erklaerung_de:"„en muchos lugares“ = **an vielen Orten** (an + Dativ Plural: den Orten). **der Platz** = la plaza (Marktplatz), el asiento oder el espacio.",
+        erklaerung_es:"„lugar“ = der Ort; „plaza“ = der Platz. „en muchos lugares“ = an vielen Orten (no: „in vielen Plätzen“)." },
+      { typ:"luecke", figur:"jonas", szene:"cafe", wort:"platz",
+        dialog:[ { wer:"jonas", text:"Du liest ja wirklich immer, Sofía. Wo liest du am liebsten?" } ],
+        satz:"Überall! Im Bus, im Bett, im Park – ich lese an vielen ___.", hinweis:"lugares",
+        loesung:["Orten"],
+        reaktion:"Ich auch! Am liebsten im Zug.",
+        thema:"Ort im Dativ Plural",
+        tipp:"Nicht „Plätzen“! Und nach „an vielen“ braucht das Wort im Plural ein -n.",
+        erklaerung_de:"**an vielen Orten** – der Ort, die Orte, Dativ Plural: den Orten.",
+        erklaerung_es:"„en muchos lugares“ = an vielen Orten. En dativo plural se agrega -n: Orten." },
+      { typ:"chat", figur:"lena", szene:"cafe", sprecher:"benja", wort:"kantine",
+        dialog:[ { wer:"lena", text:"Wollt ihr heute Abend noch etwas essen gehen?" } ],
+        optionen:["Ja! Kennst du ein gutes Lokal hier in der Nähe?",
+                  "Ja! Kennst du eine gute Kantine hier in der Nähe?"],
+        loesung:"Ja! Kennst du ein gutes Lokal hier in der Nähe?",
+        reaktionen:{ "Ja! Kennst du eine gute Kantine hier in der Nähe?":"Eine Kantine? Da essen nur die Leute, die in der Firma arbeiten. Meinst du ein Lokal?" },
+        reaktion:"Klar, die Pizzeria am Markt ist super!",
+        thema:"Kantine oder Lokal?",
+        tipp:"Hier passt der „Freund“ aus Kapitel 1 – in seiner richtigen Bedeutung.",
+        erklaerung_de:"**das Lokal** = Restaurant, Kneipe, Café – hier genau richtig! **die Kantine** gehört zu einer Firma. „La cantina“ (Chile) ist eine Kneipe.",
+        erklaerung_es:"„Lokal“ = restaurante o bar. „Kantine“ = el casino de una empresa; „cantina“ = Kneipe." },
+      { typ:"kino", figur:"jonas", szene:"stadt", sprecher:"matias", wort:"rente",
+        satz:"In Chile kostet so eine Jacke fast die halbe Rente von meinem großen Bruder!",
+        ausloeser:"Rente", bild:"👴",
+        missverstaendnis:"Die Rente? Dein Bruder ist doch erst zwanzig! Ist er schon in Rente?",
+        korrektur:{ optionen:["Gehalt","Rente","Termin"], loesung:"Gehalt" },
+        reaktion:"Ach, das Gehalt! Ja, die Jacke ist wirklich teuer.",
+        thema:"Rente oder Gehalt?",
+        tipp:"Der Bruder arbeitet und bekommt jeden Monat Geld dafür.",
+        erklaerung_de:"„su renta / su sueldo“ = **sein Gehalt** (oder: Lohn, Einkommen). **die Rente** bekommt man im Alter.",
+        erklaerung_es:"„renta“ (ingreso) = das Einkommen; „sueldo“ = das Gehalt. „Rente“ = la jubilación." },
+      { typ:"schreiben", figur:"jonas", szene:"cafe", sprecher:"sofia", wort:"notiz",
+        dialog:[ { wer:"jonas", text:"Hast du dir die Adresse vom Café aufgeschrieben? Sonst findest du es nie wieder." } ],
+        satz:"Ja, ich habe mir eine ___ im Handy gemacht.", hinweis:"un apunte",
+        loesung:["Notiz"],
+        reaktion:"Sehr gut. Und mach dir auch eine Notiz für den Apfelkuchen hier – der ist der beste!",
+        thema:"Notiz in der richtigen Bedeutung",
+        tipp:"Hier passt der „falsche Freund“ einmal genau: Was schreibt man sich auf?",
+        erklaerung_de:"**die Notiz** = un apunte – hier genau richtig! (Aber „la noticia“ = die Nachricht.)",
+        erklaerung_es:"„Notiz“ = apunte, nota. Aquí es correcto. „noticia“ = Nachricht." },
+      { typ:"auswahl", figur:"lena", szene:"stadt", wort:"mode",
+        dialog:[ { wer:"lena", text:"Schau mal, im Schaufenster! Diese Jacken trägt hier gerade jeder." } ],
+        satz:"Lena: „Die sind gerade total in ___!“", optionen:["Mode","Weise","Art"], loesung:"Mode",
+        reaktion:"Aber ich kaufe trotzdem lieber eine Fußballjacke, haha.",
+        thema:"Mode in der richtigen Bedeutung",
+        tipp:"Es geht um Kleidung, die gerade beliebt ist.",
+        erklaerung_de:"„estar de moda“ = **in Mode sein**. Hier ist **die Mode** genau richtig.",
+        erklaerung_es:"„estar de moda“ = in Mode sein." },
+      { typ:"chat", figur:"jonas", szene:"stadt", sprecher:"matias", wort:"probe",
+        dialog:[ { wer:"jonas", text:"Ich muss leider früher gehen. Heute Abend haben wir noch Probe." } ],
+        optionen:["Ah, ihr übt noch einmal alle Lieder zusammen?",
+                  "Oh nein, ein Test am Samstag? In welchem Fach?",
+                  "Viel Glück! Hoffentlich bekommst du eine gute Note."],
+        loesung:"Ah, ihr übt noch einmal alle Lieder zusammen?",
+        reaktionen:{ "Oh nein, ein Test am Samstag? In welchem Fach?":"Ein Test? Haha, nein! Eine Probe ist doch kein Test. Wir üben mit der Band.",
+                     "Viel Glück! Hoffentlich bekommst du eine gute Note.":"Eine Note? Für eine Probe gibt es doch keine Noten! Wir üben nur zusammen." },
+        reaktion:"Genau! Nächste Woche spielen wir im Jugendzentrum. Kommt ihr?",
+        thema:"Was bedeutet Probe?",
+        tipp:"Jonas spielt in einer Band.",
+        erklaerung_de:"**die Probe** = el ensayo: Eine Band oder eine Theatergruppe übt zusammen. Einen Test schreibt man in der Schule.",
+        erklaerung_es:"„Probe“ = ensayo. „prueba“ (colegio) = Test, Klassenarbeit." },
+    ],
+  },
+
+  /* ---------- Kapitel 5: Finale ---------- */
+  {
+    name: "Das Abschiedsfest",
+    szene: "fest",
+    hauptfigur: "brandt",
+    finale: true,
+    intro: "Die drei Wochen sind fast vorbei. Frau Brandt organisiert ein Abschiedsfest im Garten. Lichterketten hängen in den Bäumen, auf dem Tisch stehen Kuchen und Salate – und Sofía hat Completos vorbereitet.\n\nWer wird wohl kommen? Nur echte Freunde …",
+    geheimnisse: [ { seite:"geheim_completo", symbol:"🌭", name:"ein Teller Completos", ort:[470, 230, 60, 45] } ],
+    aufgaben: [
+      { typ:"chat", figur:"brandt", sprecher:"sofia", wort:"mantel",
+        dialog:[ { wer:"brandt", text:"Sofía, hilfst du mir mit dem Tisch? Er sieht noch so leer aus." } ],
+        optionen:["Klar! Soll ich die Tischdecke holen?",
+                  "Klar! Soll ich den Mantel für den Tisch holen?"],
+        loesung:"Klar! Soll ich die Tischdecke holen?",
+        reaktionen:{ "Klar! Soll ich den Mantel für den Tisch holen?":"Einen Mantel für den Tisch? Dem Tisch ist doch nicht kalt! Ach – die Tischdecke!" },
+        reaktion:"Ja, bitte! Die weiße aus dem Schrank.",
+        thema:"Mantel oder Tischdecke?",
+        tipp:"Einen Mantel zieht man an, wenn es kalt ist.",
+        erklaerung_de:"„el mantel“ = **die Tischdecke**. **der Mantel** = el abrigo.",
+        erklaerung_es:"„mantel“ = die Tischdecke. „Mantel“ = abrigo." },
+      { typ:"chat", figur:"weber", sprecher:"benja", wort:"brav",
+        dialog:[ { wer:"weber", text:"Benja, du warst im Unterricht ja immer sehr … lebhaft." } ],
+        optionen:["Ich weiß. Ab jetzt bin ich ganz brav, versprochen!",
+                  "Ich weiß. Ab jetzt bin ich ganz bravo, versprochen!",
+                  "Ich weiß. Ab jetzt bin ich ganz sauer, versprochen!"],
+        loesung:"Ich weiß. Ab jetzt bin ich ganz brav, versprochen!",
+        reaktionen:{ "Ich weiß. Ab jetzt bin ich ganz bravo, versprochen!":"Bravo? Wie im Theater? Dann klatsche ich jetzt mal: Bravo, Benja! Haha.",
+                     "Ich weiß. Ab jetzt bin ich ganz sauer, versprochen!":"Sauer? Oh nein, bitte nicht! Ich mag dich lieber fröhlich." },
+        reaktion:"Brav? Du? Na, das glaube ich erst, wenn ich es sehe! Aber ich werde dich vermissen.",
+        thema:"brav in der richtigen Bedeutung",
+        tipp:"Benja verspricht, dass er sich gut benimmt.",
+        erklaerung_de:"**brav** = obediente, que se porta bien – hier genau richtig! „Bravo!“ ist nur ein Ausruf, und **sauer** heißt wütend.",
+        erklaerung_es:"„portarse bien“ = brav sein. „bravo“ (Chile: enojado) = sauer." },
+      { typ:"kino", figur:"jonas", sprecher:"matias", wort:"kollege",
+        satz:"Mein Kollege in Chile hat 1200 Schüler.",
+        ausloeser:"Kollege", bild:"👨‍💼",
+        missverstaendnis:"Dein Kollege hat 1200 Schüler? Ist er Direktor? Und du hast schon einen Kollegen?",
+        korrektur:{ optionen:["Meine Schule in Chile hat 1200 Schüler.","Meine Klasse in Chile hat 1200 Schüler.","Mein Kurs in Chile hat 1200 Schüler."], loesung:"Meine Schule in Chile hat 1200 Schüler." },
+        reaktion:"1200 Schüler! Dann ist unser Gymnasium ja winzig.",
+        thema:"Kollege oder Schule?",
+        tipp:"„Mi colegio“ ist ein Gebäude mit vielen Schülern.",
+        erklaerung_de:"„mi colegio“ = **meine Schule**. **der Kollege** = el colega.",
+        erklaerung_es:"„colegio“ = die Schule. „Kollege“ = colega." },
+      { typ:"chat", figur:"kaya", sprecher:"matias", wort:"gymnasium",
+        dialog:[ { wer:"kaya", text:"Matías! Versprich mir, dass du in Chile weitertrainierst!" } ],
+        optionen:["Versprochen! Ich melde mich in einem Fitnessstudio an.",
+                  "Versprochen! Ich melde mich in einem Gymnasium an."],
+        loesung:"Versprochen! Ich melde mich in einem Fitnessstudio an.",
+        reaktionen:{ "Versprochen! Ich melde mich in einem Gymnasium an.":"In einem Gymnasium? Du gehst doch schon zur Schule! Haha – du meinst ein Fitnessstudio!" },
+        reaktion:"Sehr gut! Und schick mir ein Foto von deinem ersten Tor!",
+        thema:"Gymnasium oder Fitnessstudio?",
+        tipp:"Wo trainiert man mit Gewichten?",
+        erklaerung_de:"„el gimnasio“ = **das Fitnessstudio**. **das Gymnasium** = eine Schule.",
+        erklaerung_es:"„gimnasio“ = Fitnessstudio. „Gymnasium“ = colegio / liceo." },
+      { typ:"schreiben", figur:"lena", sprecher:"sofia", wort:"termin",
+        dialog:[ { wer:"lena", text:"Und wann sehen wir uns wieder? Ich will dich nicht einfach so gehen lassen!" } ],
+        satz:"Lass uns gleich einen ___ für einen Videoanruf ausmachen!", hinweis:"Tag und Uhrzeit",
+        loesung:["Termin"],
+        reaktion:"Abgemacht: jeden ersten Sonntag im Monat!",
+        thema:"Termin in der richtigen Bedeutung",
+        tipp:"Hier passt der „falsche Freund“ genau – mit Datum und Uhrzeit.",
+        erklaerung_de:"**einen Termin ausmachen** = fijar una fecha / una cita. Hier ist **der Termin** genau richtig.",
+        erklaerung_es:"„fijar una fecha“ = einen Termin ausmachen." },
+      { typ:"sortieren", figur:"brandt",
+        dialog:[ { wer:"brandt", text:"Bevor ihr fahrt: Zeigt mir, was ihr gelernt habt. Echter, falscher oder halber Freund?" } ],
+        woerter:["probe","firma","lokal","notiz","rente","brav","familie","theater","schokolade","aktuell","sensibel"],
+        reaktion:"Wunderbar! Ihr habt in drei Wochen mehr gelernt als ich in einem Jahr Spanisch.",
+        thema:"echt, falsch oder halb?",
+        tipp:"aktuell und sensibel sehen „verdächtig“ aus – aber was bedeuten actual und sensible auf Spanisch?",
+        erklaerung_de:"🟢 Familie, Theater, Schokolade, aktuell (actual), sensibel (sensible). 🔴 Notiz, Rente, brav. 🟡 Probe, Firma, Lokal.",
+        erklaerung_es:"„actual“ y „sensible“ significan lo mismo en alemán: aktuell, sensibel. ¡Amigos verdaderos!" },
+    ],
+  },
+  ],
+},
+
+};
+</script>
+
+<style>
+:root{
+  --bg:#13172a; --panel:#1d2340; --panel2:#283058; --line:#4a5694;
+  --text:#f6f4fb; --muted:#cfd3ea; --accent:#ffcf5a; --accent-text:#1a1a1a;
+  --ok:#5ee08f; --ok-bg:#103a26; --bad:#ff8a8a; --bad-bg:#4a1a1f;
+  --focus:#ffe066; --btn:#323b6e; --btnh:#3f4985; --herz:#ff5c8a;
+  --echt:#2ecc71; --falsch:#e74c3c; --halb:#f1c40f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);background-image:radial-gradient(ellipse at 10% 0%,#2b2f5e 0%,transparent 55%),radial-gradient(ellipse at 95% 100%,#3d2045 0%,transparent 50%);background-attachment:fixed;color:var(--text);font-family:Roboto,Arial,"Segoe UI",system-ui,sans-serif;font-size:19px;line-height:1.45;min-height:100vh}
+h1,h2,h3{line-height:1.2;margin:.2em 0 .5em} h1{font-size:1.7em} h2{font-size:1.25em} h3{font-size:1.05em}
+p{margin:.4em 0 .8em} a{color:var(--accent)}
+button{font:inherit;color:var(--text);cursor:pointer;border-radius:12px;border:2px solid #7280c4;background:var(--btn);padding:.35em .9em;min-height:46px;touch-action:manipulation}
+button:hover:not(:disabled){background:var(--btnh)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.primary:hover:not(:disabled){background:#ffdc85}
+input[type=text]{font:inherit;color:#111;background:#fff;border:3px solid #9aa6e0;border-radius:10px;padding:.25em .45em;min-height:46px}
+.muted{color:var(--muted)} .small{font-size:.85em} .center{text-align:center}
+.row{display:flex;gap:.6em;flex-wrap:wrap;align-items:center} .spacer{flex:1}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:1em 1.3em;box-shadow:0 8px 24px rgba(0,0,0,.35);margin-bottom:.9em}
+.narrow{max-width:940px;margin-left:auto;margin-right:auto}
+.chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.05em .7em;font-size:.85em;color:var(--muted)}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.1em .7em;white-space:nowrap;font-size:.9em}
+.warnbox{background:#4a3a00;border:2px solid var(--accent);border-radius:12px;padding:.6em 1em;margin:.6em 0;font-size:.85em}
+.warnbox ul{margin:.3em 0 0;padding-left:1.2em}
+.okline{color:var(--ok)} .badline{color:var(--bad)}
+.tipbox{background:#3a3214;border:2px solid #b89a3a;border-radius:12px;padding:.45em .85em;margin-top:.6em}
+.tipbox.ok{background:var(--ok-bg);border-color:var(--ok)}
+.tipbox.bad{background:var(--bad-bg);border-color:var(--bad)}
+.tipbox.hint{background:#20283e;border-color:#8fa8e0}
+.tipbox p{margin:.25em 0}
+.es{color:#9fd0ff}
+
+#top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.6em;flex-wrap:wrap;padding:.3em .8em;background:rgba(19,23,42,.96);border-bottom:2px solid var(--line)}
+#top .brand{font-weight:800;white-space:nowrap}
+#hud{display:flex;gap:.5em;flex-wrap:wrap;align-items:center;flex:1}
+#top .tools{display:flex;gap:.4em}
+#top .tools button{min-height:40px;padding:.2em .7em;font-size:.88em}
+.homelink{color:var(--muted);text-decoration:none;font-size:.85em;border:1px solid var(--line);border-radius:999px;padding:.15em .7em;white-space:nowrap}
+.homelink:hover{color:var(--text);border-color:var(--accent)}
+main{max-width:1340px;margin:0 auto;padding:.5em 1em 1.5em}
+.eingebettet .homelink{display:none}
+
+/* ---------- Start ---------- */
+.hero .herorow{display:flex;gap:1em;align-items:center;flex-wrap:wrap}
+.hero .herorow > div:first-child{flex:1 1 440px}
+.heroart{flex:0 1 300px;display:flex;justify-content:center;gap:4px}
+.heroart .face{width:70px}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8em;margin:.6em 0 .2em}
+.level{display:flex;flex-direction:column;align-items:flex-start;gap:.15em;text-align:left;padding:.8em 1em;border-radius:16px;min-height:120px}
+.level .lv{font-size:1.6em;font-weight:800;color:var(--accent)} .level .lt{font-weight:700}
+.level .lo{font-size:.8em;color:var(--muted)}
+.extras{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8em}
+.extras button{display:flex;gap:.7em;align-items:center;text-align:left;padding:.7em 1em;border-radius:16px}
+.extras .big{font-size:2em}
+
+/* ---------- Spiel-Layout ---------- */
+.gamegrid{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:.8em;align-items:start}
+@media (max-width:980px){ .gamegrid{grid-template-columns:1fr} }
+.stage{position:relative;container-type:inline-size;width:min(100%, calc(31vh * 1000 / 360));min-width:min(100%,480px);aspect-ratio:1000/360;margin:0 auto;border-radius:16px;overflow:hidden;border:3px solid var(--line);background:#000;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.stage svg.bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.chlabel{position:absolute;left:10px;top:10px;z-index:6;background:rgba(19,23,42,.85);border:2px solid var(--line);border-radius:12px;padding:.05em .7em;font-weight:700;font-size:max(13px,1.6cqw)}
+.person{position:absolute;bottom:0;z-index:3;transform:translateX(-50%);transition:transform .4s}
+.person svg{display:block;width:100%;height:auto}
+.person.kid{width:13cqw}
+.person.main{width:21cqw}
+.person.idle{animation:breathe 3.2s ease-in-out infinite}
+@keyframes breathe{50%{transform:translateX(-50%) translateY(-.4cqw)}}
+.person.jump{animation:jump .5s ease-out}
+@keyframes jump{40%{transform:translateX(-50%) translateY(-2.5cqw)}}
+.person.shake{animation:shakeh .5s}
+@keyframes shakeh{25%,75%{transform:translateX(-52%) rotate(-3deg)}50%{transform:translateX(-48%) rotate(3deg)}}
+.float{position:absolute;z-index:8;pointer-events:none;font-size:5cqw;font-weight:900;animation:floatup 1.6s ease-out forwards}
+@keyframes floatup{from{transform:translate(-50%,0) scale(.5);opacity:0}25%{opacity:1;transform:translate(-50%,-2cqw) scale(1.1)}to{transform:translate(-50%,-10cqw) scale(1);opacity:0}}
+.bubble{position:absolute;z-index:7;pointer-events:none;max-width:46%;background:#fff;color:#222;border:3px solid #333;border-radius:16px;padding:.25em .65em;font-size:max(13px,1.75cqw);font-weight:600;animation:pop .35s ease-out both}
+.bubble.conf{border-color:#c0392b;background:#fff3f0}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+.hot{position:absolute;z-index:5;padding:0;min-height:0;background:transparent;border:3px solid transparent;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:var(--fs,3.5cqw);line-height:1}
+.hot:hover,.hot:focus-visible{border-color:rgba(255,226,120,.9);background:rgba(255,240,180,.15)}
+.hot .tag{position:absolute;left:50%;bottom:100%;transform:translate(-50%,-4px);background:rgba(19,23,42,.92);color:#fff;border-radius:8px;padding:0 .5em;font-size:15px;white-space:nowrap;opacity:0;pointer-events:none}
+.hot:hover .tag,.hot:focus-visible .tag{opacity:1}
+.hot.found{opacity:.55}
+
+/* Barometer */
+.side{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:.5em .7em}
+.side h3{margin:.1em 0 .4em;font-size:.95em;color:var(--muted)}
+.baro{display:flex;align-items:center;gap:.45em;padding:.25em .2em;border-radius:10px;transition:background .4s}
+.baro .ava{width:42px;flex:0 0 auto}
+.baro .ava svg{width:100%;height:auto;display:block}
+.baro .bn{font-size:.82em;font-weight:700;line-height:1.1}
+.baro .bn small{display:block;font-weight:400;color:var(--muted);font-size:.85em}
+.baro .meter{position:relative;height:12px;border-radius:6px;background:#2b3260;border:1px solid #5a66a8;margin-top:3px;overflow:hidden}
+.baro .meter > div{height:100%;background:linear-gradient(90deg,#ff8fb0,var(--herz));transition:width .7s}
+.baro .meter .th{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff8;}
+.baro .fr{font-size:.95em}
+.baro.up{background:rgba(255,92,138,.25)} .baro.down{background:rgba(120,120,160,.35)}
+.baro.cur{outline:2px solid var(--accent)}
+.progress{display:flex;gap:4px;margin:.4em 0}
+.progress span{flex:1;height:8px;border-radius:4px;background:#2b3260}
+.progress span.done{background:var(--accent)} .progress span.cur{background:#fff}
+
+/* Dialog */
+.dialog{background:var(--panel);border:2px solid var(--line);border-radius:16px;margin-top:.6em;padding:.5em .8em .7em;max-height:calc(100vh - 31vh - 105px);min-height:260px;overflow:auto}
+@media (max-width:980px){ .dialog{max-height:none} }
+.log{display:flex;flex-direction:column;gap:.35em;margin-bottom:.4em}
+.line{display:flex;gap:.45em;align-items:flex-end;max-width:88%;animation:linein .3s ease-out both}
+.line .mini{width:34px;flex:0 0 auto}
+.line .mini svg{width:100%;height:auto;display:block}
+.line .say{background:#eef1ff;color:#1b1f3a;border-radius:14px 14px 14px 4px;padding:.25em .7em}
+.line .say b{display:block;font-size:.72em;color:#5a62a0}
+.line.me{align-self:flex-end;flex-direction:row-reverse}
+.line.me .say{background:#ffe9a8;border-radius:14px 14px 4px 14px}
+.line.wrong .say{background:#ffd9d9;text-decoration:line-through;text-decoration-color:#c0392b77}
+.line.conf .say{background:#ffecec;border:2px solid #e74c3c}
+.speak{min-height:0;padding:0 .3em;border:none;background:transparent;font-size:.85em;color:#5a62a0;vertical-align:middle}
+@keyframes linein{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+.auftrag{font-weight:700;margin:.3em 0 .4em}
+.bedienung{font-size:.8em;color:var(--muted);margin:.1em 0 .4em}
+.answers{display:flex;flex-direction:column;gap:.4em}
+.answer{text-align:left;border-radius:14px 14px 4px 14px;background:#2f3a75;border-color:#8a96d8}
+.answer .who{font-size:.75em;color:#ffe9a8;display:block}
+.answer.right,.answer.right:disabled{background:var(--ok-bg);border-color:var(--ok);opacity:1}
+.answer.wrong,.answer.wrong:disabled{background:var(--bad-bg);border-color:var(--bad)}
+.satz{font-size:1.08em;margin:.3em 0 .5em}
+.satz .gap{display:inline-block;min-width:4.5em;border-bottom:3px solid var(--accent);text-align:center;font-weight:800;color:var(--accent);padding:0 .2em}
+.opts{display:flex;flex-direction:column;gap:.4em}
+.opt{text-align:left}
+.opt.right,.opt.right:disabled{background:var(--ok-bg);border-color:var(--ok);opacity:1}
+.opt.wrong,.opt.wrong:disabled{background:var(--bad-bg);border-color:var(--bad)}
+.umlauts{display:flex;gap:.35em;flex-wrap:wrap;align-items:center;margin:.3em 0}
+.umlauts button{min-width:44px;min-height:40px;font-weight:700;padding:.1em .5em}
+
+/* Kino */
+.kino{background:#0b0b12;border:6px dashed #333;border-image:repeating-linear-gradient(90deg,#222 0 14px,#666 14px 22px) 6;border-radius:6px;padding:.6em .9em;margin:.3em 0 .5em}
+.kino .ktitle{font-size:.75em;letter-spacing:.2em;color:#ffcf5a;font-weight:800}
+.kino .ksatz{font-size:1.1em;color:#fff;margin:.3em 0}
+.tok{min-height:0;padding:.05em .25em;margin:0 .05em;border-radius:6px;border:2px solid transparent;background:transparent;color:inherit;font:inherit}
+.tok:hover:not(:disabled){background:#ffffff22;border-color:#ffcf5a88}
+.tok.hit,.tok.hit:disabled{background:#c0392b;border-color:#ff8a8a;color:#fff;opacity:1}
+.tok.miss{animation:shakeh .4s}
+.tok:disabled{cursor:default;opacity:1}
+.thought{display:flex;gap:.6em;align-items:center;background:#fff;color:#222;border-radius:16px;padding:.3em .8em;margin:.3em 0}
+.thought .tb{font-size:2.4em}
+
+/* Sortieren */
+.pool{display:flex;flex-wrap:wrap;gap:.45em;margin:.3em 0 .6em;min-height:52px}
+.wcard{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:.25em .7em;border-radius:12px;background:#f5f2ff;color:#1b1f3a;border:3px solid #9aa6e0;min-height:52px}
+.wcard small{color:#5a62a0;font-size:.75em}
+.wcard:hover:not(:disabled){background:#fff}
+.wcard.sel{outline:4px solid var(--accent);outline-offset:2px}
+.wcard.ok,.wcard.ok:disabled{border-color:var(--ok);opacity:1}
+.wcard.bad,.wcard.bad:disabled{border-color:var(--bad);background:#ffe0e0;opacity:1}
+.bins{display:grid;grid-template-columns:repeat(3,1fr);gap:.5em}
+.bin{display:flex;flex-direction:column;align-items:stretch;gap:.35em;min-height:120px;padding:.4em;border-radius:14px;border:3px dashed;text-align:left;background:rgba(255,255,255,.04);cursor:pointer}
+.binbtn{text-align:left;background:transparent;border:none;padding:.1em .2em;min-height:40px}
+.binbtn:hover:not(:disabled){background:rgba(255,255,255,.08)}
+.bin .bh{font-weight:800;font-size:.9em}
+.bin.echt{border-color:var(--echt)} .bin.falsch{border-color:var(--falsch)} .bin.halb{border-color:var(--halb)}
+.bin:hover:not(:disabled){background:rgba(255,255,255,.1)}
+.bin .wcard{font-size:.85em;min-height:0}
+@media (max-width:700px){ .bins{grid-template-columns:1fr} }
+
+/* Freundebuch */
+.buch{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.9em;align-items:start}
+.seite{position:relative;background:#fffdf4;color:#2b2540;border-radius:6px 16px 16px 6px;padding:.7em .9em .8em 1.4em;box-shadow:0 6px 16px rgba(0,0,0,.35);border-left:10px solid #e86a92;font-size:.92em}
+.seite::before{content:"";position:absolute;left:-2px;top:12px;bottom:12px;width:6px;background:repeating-linear-gradient(180deg,#fff 0 6px,transparent 6px 18px);opacity:.7}
+.seite h3{margin:.1em 0 .3em;font-size:1.2em;color:#a0305a}
+.seite .bild{position:absolute;right:.6em;top:.4em;font-size:2.4em}
+.seite dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:.15em .6em}
+.seite dt{font-weight:700;color:#6a5a9a;font-size:.85em}
+.seite dd{margin:0}
+.seite .kat{display:inline-block;border-radius:999px;padding:0 .5em;font-size:.8em;font-weight:800;color:#fff}
+.kat.echt{background:var(--echt)} .kat.falsch{background:var(--falsch)} .kat.halb{background:#c9a10d}
+.seite.leer{background:repeating-linear-gradient(45deg,#2b3260,#2b3260 10px,#262c56 10px,#262c56 20px);color:#8890c0;border-left-color:#4a5694;min-height:110px;display:flex;align-items:center;justify-content:center;font-size:1.1em}
+.seite.geheim{border-left-color:#8e44ad;background:#f7f0ff}
+.seite.neu{animation:cardin .9s cubic-bezier(.3,1.4,.5,1) both}
+@keyframes cardin{from{transform:translateY(30px) rotate(-8deg) scale(.6);opacity:0}to{transform:none;opacity:1}}
+.facher{display:flex;gap:.6em;flex-wrap:wrap;margin:.4em 0}
+.facher .f{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:.3em .8em;min-width:120px;text-align:center}
+.facher .f b{display:block;font-size:1.5em;color:var(--accent)}
+
+/* Fest */
+.fest{display:flex;flex-wrap:wrap;gap:.8em;justify-content:center;margin:.6em 0}
+.gast{display:flex;flex-direction:column;align-items:center;gap:.2em;width:120px;text-align:center;font-size:.85em}
+.gast .ava{width:90px}
+.gast.da{animation:arrive .7s cubic-bezier(.3,1.4,.5,1) both}
+.gast.weg{opacity:.35;filter:grayscale(1)}
+@keyframes arrive{from{transform:translateY(40px) scale(.6);opacity:0}to{transform:none;opacity:1}}
+.confetti{position:fixed;top:-20px;z-index:1400;width:10px;height:14px;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+
+/* Sonstiges */
+.restable{border-collapse:collapse;margin:.5em 0} .restable th,.restable td{text-align:left;padding:.2em .8em .2em 0;border-bottom:1px solid var(--line)}
+.bigcode{font-family:"Courier New",monospace;font-size:1.6em;font-weight:800;letter-spacing:.06em;background:#fff;color:#111;border-radius:12px;padding:.2em .6em;display:inline-block;margin:.2em 0}
+.wronglist li{margin-bottom:.6em}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#fff;color:#222;border-radius:12px;padding:.5em 1em;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:1500;max-width:90vw}
+code{font-family:"Courier New",monospace;background:#00000055;padding:0 .3em;border-radius:4px}
+.confirmbox{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1em}
+.confirmbox .cb{background:var(--panel);color:var(--text);border:2px solid var(--line);border-radius:16px;padding:1em 1.2em;max-width:520px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.confirmbox .cbrow{display:flex;gap:.6em;justify-content:flex-end;flex-wrap:wrap}
+.modal{position:fixed;inset:0;z-index:1200;background:rgba(5,6,15,.6);display:flex;align-items:center;justify-content:center;padding:1em}
+.modal .card{max-width:520px;width:100%;animation:pop .3s ease-out both}
+
+/* Ruhiger Modus */
+html.ruhig *,html.ruhig *::before,html.ruhig *::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;animation-delay:0s !important;transition-property:opacity,background-color,border-color,color,width !important}
+html.ruhig .line,html.ruhig .bubble,html.ruhig .modal .card{animation:fadein .35s ease-out both !important}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;animation-delay:0s !important;transition-property:opacity,background-color,border-color,color,width !important}
+  .line,.bubble,.modal .card{animation:fadein .35s ease-out both !important}
+}
+@media (max-width:700px){ body{font-size:17px} }
+</style>
+</head>
+<body>
+<header id="top">
+  <a class="homelink" href="index.html" title="Zur Startseite mit allen Spielen">← Alle Spiele</a>
+  <span class="brand">🤝 Falsche Freunde</span>
+  <div id="hud" aria-live="polite"></div>
+  <div class="tools">
+    <button type="button" id="btnMenu" title="Zum Menü">☰ Menü</button>
+    <button type="button" id="btnAnim" aria-pressed="false" title="Animationen an/aus">🎞 Animationen an</button>
+    <button type="button" id="btnSound" aria-pressed="false" title="Ton an/aus">🔇 Ton aus</button>
+  </div>
+</header>
+<main id="app" tabindex="-1"></main>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+/* =====================================================================
+   AB HIER: SPIEL-LOGIK (muss nicht geändert werden)
+   ===================================================================== */
+const E = EINSTELLUNGEN;
+const LEVELS = ['A2','B1','B2','C1'];
+const LS_GAME = 'falschefreunde.spiel.v1', LS_BUCH = 'falschefreunde.buch.v1', LS_SET = 'falschefreunde.einstellungen.v1';
+const TYPEN = ['chat','schreiben','kino','sortieren','auswahl','luecke'];
+const KINDER = ['sofia','matias','benja'];
+const DEUTSCHE = Object.keys(FIGUREN).filter(k=>FIGUREN[k].deutsch);
+const KAT = { echt:{ name:'echter Freund', kurz:'🟢 echt', farbe:'echt', taste:'1' }, falsch:{ name:'falscher Freund', kurz:'🔴 falsch', farbe:'falsch', taste:'2' }, halb:{ name:'halber Freund', kurz:'🟡 halb', farbe:'halb', taste:'3' } };
+const INPUT_ATTR = 'type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"';
+
+const app = document.getElementById('app');
+let state=null, view='start', ui={}, settings={ sound:false, anim:true };
+const optOrder={};
+
+/* ---------- Speicher ---------- */
+function lsGet(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { window.localStorage.setItem(k,v); } catch(e){} }
+function lsDel(k){ try { window.localStorage.removeItem(k); } catch(e){} }
+function save(){ if(state) lsSet(LS_GAME, JSON.stringify(state)); }
+function saveSettings(){ lsSet(LS_SET, JSON.stringify(settings)); }
+
+/* ---------- Hilfen ---------- */
+const $  = (s,r) => (r||document).querySelector(s);
+const $$ = (s,r) => Array.from((r||document).querySelectorAll(s));
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+function plain(s){ return String(s==null?'':s).replace(/\*\*/g,''); }
+function paras(s){ return String(s||'').split(/\n\s*\n/).map(p => '<p>'+fmt(p)+'</p>').join(''); }
+function asList(x){ return x==null ? [] : (Array.isArray(x) ? x : [x]); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function range(n){ return Array.from({length:n},(_,i)=>i); }
+function fmtTime(ms){ const s=Math.max(0,Math.round(ms/1000)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function fmtDate(d){ const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear(); }
+function focusEl(sel){ const el = sel ? (typeof sel==='string'?$(sel):sel) : null; (el||app).focus({preventScroll:true}); }
+let toastT=null;
+function toast(msg, ms){ const t=$('#toast'); t.innerHTML=fmt(msg); t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; }, ms||3000); }
+function spanish(){ return state && E.spanischeHilfe[state.level]; }
+function ruhig(){ return !settings.anim || !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+function fname(id){ return (FIGUREN[id]||{}).name || id; }
+
+/* ---------- Eingebettet (z. B. Google Sites) ---------- */
+const EINGEBETTET = (()=>{ try { return window.self!==window.top; } catch(e){ return true; } })();
+if(EINGEBETTET) document.documentElement.classList.add('eingebettet');
+function bestaetigen(msg, ok){
+  const d=document.createElement('div'); d.className='confirmbox'; d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true');
+  d.innerHTML='<div class="cb"><p></p><div class="cbrow"><button type="button" class="cbno">Abbrechen</button><button type="button" class="primary cbyes">Ja</button></div></div>';
+  d.querySelector('p').textContent=msg; document.body.appendChild(d);
+  const close=()=>d.remove();
+  d.querySelector('.cbno').addEventListener('click',close);
+  d.querySelector('.cbyes').addEventListener('click',()=>{ close(); ok(); });
+  d.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); close(); } });
+  d.querySelector('.cbno').focus();
+}
+
+/* ---------- Antworten vergleichen (ae/oe/ue/ss werden akzeptiert) ---------- */
+function canon(s){
+  return String(s==null?'':s).normalize('NFC').toLowerCase().replace(/[„“”‟"«»‚‘’']/g,' ').replace(/[.,!?;:…–-]/g,' ')
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+    .normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+}
+function matches(val, list){ const c=canon(val); return c!=='' && asList(list).some(l=>canon(l)===c); }
+
+/* ---------- Vorlesen ---------- */
+let stimme=null;
+function ladeStimme(){ try{ const v=speechSynthesis.getVoices(); stimme=v.find(x=>/^de(-|_)DE/i.test(x.lang))||v.find(x=>/^de/i.test(x.lang))||null; }catch(e){} }
+try{ if('speechSynthesis' in window){ ladeStimme(); speechSynthesis.onvoiceschanged=ladeStimme; } }catch(e){}
+function vorlesen(text, wer){
+  try{ if(!('speechSynthesis' in window)) { toast('Vorlesen geht in diesem Browser leider nicht.'); return; }
+    speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(plain(text)); u.lang='de-DE'; if(stimme) u.voice=stimme;
+    u.rate=0.95; u.pitch={ kaya:0.8, brandt:1.0, weber:1.05, jonas:0.95, lena:1.2, sofia:1.25, matias:0.95, benja:1.3 }[wer]||1; speechSynthesis.speak(u); }catch(e){}
+}
+
+/* ---------- Wörter ---------- */
+const WORT={}; WOERTER.forEach(w=>{ if(w && w.id) WORT[w.id]=w; });
+function buchWoerter(){
+  const ids=new Set();
+  LEVELS.forEach(lv=>{ const S=SPIEL[lv]; if(!S) return; asList(S.kapitel).forEach(K=>{ asList(K.aufgaben).forEach(a=>{ if(a.wort) ids.add(a.wort); asList(a.woerter).forEach(x=>ids.add(x)); }); asList(K.geheimnisse).forEach(g=>ids.add(g.seite)); }); });
+  return WOERTER.filter(w=>ids.has(w.id) && (w.geheim || w.kat!=='echt'));
+}
+
+/* ---------- Freundebuch (bleibt über alle Spiele erhalten) ---------- */
+function loadBuch(){ try{ const a=JSON.parse(lsGet(LS_BUCH)||'null'); if(a && a.v===1 && a.seiten && typeof a.seiten==='object') return a; }catch(e){} return { v:1, seiten:{} }; }
+function saveBuch(a){ lsSet(LS_BUCH, JSON.stringify(a)); }
+function buchAdd(id){ const w=WORT[id]; if(!w || (!w.geheim && w.kat==='echt')) return false; const a=loadBuch(); if(a.seiten[id]) return false; a.seiten[id]={ fach:1, seit:new Date().toISOString().slice(0,10) }; saveBuch(a); return true; }
+function buchCount(){ const a=loadBuch(); return Object.keys(a.seiten).filter(k=>WORT[k]).length; }
+
+/* ---------- Daten vorbereiten ---------- */
+const DATA={};
+function D(level){ level=level||state.level; if(!DATA[level]){ DATA[level]=asList(SPIEL[level].kapitel).map((K,k)=>({ K, k, tasks:asList(K.aufgaben).map((a,i)=>Object.assign({},a,{ id:k+'.'+i, k, i })) })); } return DATA[level]; }
+function allTasks(level){ return D(level).reduce((a,x)=>a.concat(x.tasks),[]); }
+function signature(level){ return D(level).map(x=>x.tasks.map(t=>t.typ.slice(0,2)+(t.figur||'')).join(',')).join('|'); }
+function L(){ return SPIEL[state.level]; }
+function maxHerz(f, level){ return allTasks(level).filter(t=>t.figur===f).length*2; }
+function herz(f){ let s=0; allTasks().forEach(t=>{ if(t.figur===f && state.res[t.id]!=null) s+=state.res[t.id]; }); return Math.max(0,s); }
+function istFreund(f){ const m=maxHerz(f); return m>0 && herz(f)>=Math.ceil(m*E.freundSchwelle); }
+function freunde(){ return DEUTSCHE.filter(f=>maxHerz(f)>0 && istFreund(f)); }
+function figurenImSpiel(){ return DEUTSCHE.filter(f=>maxHerz(f)>0); }
+
+/* ---------- Daten prüfen ---------- */
+const SZENEN_LISTE=['flughafen','kueche','klasse','schulhof','sportplatz','cafe','stadt','fest'];
+function checkTask(a, tw, w){
+  if(!a || !TYPEN.includes(a.typ)){ w.push(tw+'unbekannter typ „'+(a&&a.typ)+'“.'); return; }
+  if(!a.figur || !FIGUREN[a.figur] || !FIGUREN[a.figur].deutsch) w.push(tw+'figur fehlt oder ist keine deutsche Figur aus FIGUREN.');
+  if(a.szene && !SZENEN_LISTE.includes(a.szene)) w.push(tw+'unbekannte szene „'+a.szene+'“.');
+  asList(a.dialog).forEach((d,i)=>{ if(!FIGUREN[d.wer]) w.push(tw+'dialog '+(i+1)+': „'+d.wer+'“ steht nicht in FIGUREN.'); });
+  if(a.sprecher && !FIGUREN[a.sprecher]) w.push(tw+'sprecher „'+a.sprecher+'“ steht nicht in FIGUREN.');
+  if(a.wort && !WORT[a.wort]) w.push(tw+'wort „'+a.wort+'“ steht nicht in WOERTER.');
+  if(!a.erklaerung_de) w.push(tw+'erklaerung_de fehlt.');
+  const gap = s => { if(!String(s||'').includes('___')) w.push(tw+'satz braucht ___ als Lücke.'); };
+  if(a.typ==='chat'){
+    if(asList(a.optionen).length<2) w.push(tw+'Es braucht mindestens zwei optionen.');
+    if(!asList(a.optionen).includes(a.loesung)) w.push(tw+'loesung steht nicht genau so in optionen.');
+    Object.keys(a.reaktionen||{}).forEach(k=>{ if(!asList(a.optionen).includes(k)) w.push(tw+'reaktionen: „'+k.slice(0,30)+'…“ steht nicht in optionen.'); });
+    asList(a.optionen).forEach(o=>{ if(o!==a.loesung && !(a.reaktionen||{})[o]) w.push(tw+'Für „'+o.slice(0,30)+'…“ fehlt eine Reaktion in reaktionen.'); });
+  }
+  if(a.typ==='schreiben'){ gap(a.satz); if(!asList(a.loesung).length) w.push(tw+'loesung fehlt.'); }
+  if(a.typ==='kino'){
+    if(!a.satz || !a.ausloeser || !String(a.satz).includes(a.ausloeser)) w.push(tw+'ausloeser muss genau so im satz stehen.');
+    const k=a.korrektur||{};
+    if(asList(k.optionen).length){ if(!asList(k.optionen).includes(k.loesung)) w.push(tw+'korrektur.loesung steht nicht in korrektur.optionen.'); }
+    else if(!k.frage || !String(k.frage).includes('___') || !asList(k.loesung).length) w.push(tw+'korrektur braucht optionen + loesung oder frage (mit ___) + loesung.');
+  }
+  if(a.typ==='sortieren'){
+    const ws=asList(a.woerter); if(ws.length<4) w.push(tw+'Es braucht mindestens 4 woerter.');
+    ws.forEach(x=>{ if(!WORT[x] || WORT[x].geheim) w.push(tw+'„'+x+'“ steht nicht in WOERTER.'); });
+    const echt=ws.filter(x=>WORT[x] && WORT[x].kat==='echt').length;
+    if(ws.length && echt*3<ws.length) w.push(tw+'Zu wenige echte Freunde (mindestens ein Drittel), sonst lernen die Schüler „Alles Ähnliche ist falsch“.');
+  }
+  if(a.typ==='auswahl'){ gap(a.satz); asList(a.loesung).forEach(l=>{ if(!asList(a.optionen).includes(l)) w.push(tw+'loesung steht nicht genau so in optionen.'); }); }
+  if(a.typ==='luecke'){ gap(a.satz); if(!asList(a.loesung).length) w.push(tw+'loesung fehlt.'); }
+}
+function dataWarnings(){
+  const w=[];
+  WOERTER.forEach((x,i)=>{ const ww='WOERTER '+(i+1)+' ('+(x.id||'?')+'): ';
+    if(x.geheim){ if(!x.titel||!x.text) w.push(ww+'titel oder text fehlt.'); return; }
+    ['id','de','falle','es','kat'].forEach(f=>{ if(!x[f]) w.push(ww+f+' fehlt.'); });
+    if(x.kat && !KAT[x.kat]) w.push(ww+'kat muss "echt", "falsch" oder "halb" sein.'); });
+  Object.keys(FIGUREN).forEach(k=>{ if(!FIGUREN[k].name) w.push('FIGUREN '+k+': name fehlt.'); });
+  LEVELS.forEach(lv=>{ const S=SPIEL[lv]; if(S==null) return;
+    if(!Array.isArray(S.kapitel)||!S.kapitel.length){ w.push(lv+': „kapitel“ fehlt.'); return; }
+    S.kapitel.forEach((K,k)=>{ const where=lv+' · Kapitel '+(k+1)+' ('+(K.name||'?')+')';
+      if(!SZENEN_LISTE.includes(K.szene)) w.push(where+': unbekannte szene „'+K.szene+'“.');
+      if(!asList(K.aufgaben).length) w.push(where+': keine Aufgaben.');
+      asList(K.geheimnisse).forEach(g=>{ if(!WORT[g.seite]||!WORT[g.seite].geheim) w.push(where+': geheimnis „'+g.seite+'“ ist keine Extraseite in WOERTER.'); });
+      asList(K.aufgaben).forEach((a,i)=>checkTask(a, where+', Aufgabe '+(i+1)+': ', w)); });
+    const fig=DEUTSCHE.filter(f=>S.kapitel.some(K=>asList(K.aufgaben).some(a=>a.figur===f)));
+    if(fig.length<E.freundeZumSieg) w.push(lv+': Es kommen nur '+fig.length+' Figuren vor, man braucht aber '+E.freundeZumSieg+' Freunde.');
+  });
+  return w;
+}
+
+/* ---------- Prüfcode ---------- */
+function cyrb53(str){ let h1=0xdeadbeef, h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909); return 4294967296*(2097151&h2)+(h1>>>0); }
+const B32='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function normName(n){ return String(n||'').replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]/g,''); }
+function checksum(level,pct,fr,d,name){ let n=cyrb53(['FF',level,pct,fr,d,normName(name),E.geheimwort].join('|')); let s=''; for(let i=0;i<5;i++){ s+=B32[n%32]; n=Math.floor(n/32); } return s; }
+function makeCode(level,pct,fr,date,name){ const p=n=>String(n).padStart(2,'0'); const d=p(date.getDate())+p(date.getMonth()+1)+p(date.getFullYear()%100); return level+'-'+pct+'-'+fr+'-'+d+'-'+checksum(level,pct,fr,d,name); }
+function verifyCode(code,name){
+  const m=String(code||'').toUpperCase().replace(/\s+/g,'').match(/^(A2|B1|B2|C1)-(\d{1,3})-(\d)-(\d{6})-([A-Z0-9]{5})$/);
+  if(!m) return { valid:false, reason:'Das Format stimmt nicht. Beispiel: B1-78-4-141026-K7QFM' };
+  return { valid: checksum(m[1],+m[2],+m[3],m[4],name)===m[5], level:m[1], pct:+m[2], fr:+m[3], date:m[4].slice(0,2)+'.'+m[4].slice(2,4)+'.20'+m[4].slice(4) };
+}
+
+/* ---------- Ton ---------- */
+let actx=null;
+const SND={ ok:[[660,.12],[880,.2]], bad:[[220,.25]], herz:[[784,.08],[1047,.16]], pop:[[523,.06]], tick:[[600,.03]], seite:[[660,.08],[880,.08],[1320,.2]], fanfare:[[523,.15],[659,.15],[784,.15],[1047,.4]], huh:[[330,.1],[260,.18]] };
+function sound(n){ if(!settings.sound) return; try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); let t=actx.currentTime;
+  SND[n].forEach(([f,d])=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type='triangle'; o.frequency.value=f; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.16,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+d); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d+0.03); t+=d*0.9; }); }catch(e){} }
+
+/* =====================================================================
+   ZEICHNUNGEN: Figuren und Szenen
+   ===================================================================== */
+function figurSVG(id, mood, mini){
+  const F=FIGUREN[id]||{}, h=F.haut||'#e8c0a0', hr=F.haar||'#333', kl=F.kleidung||'#557';
+  mood=mood||'neutral';
+  let back='', hair='';
+  switch(F.frisur){
+    case 'lang':   back='<path d="M24 60 Q22 30 60 24 Q98 30 96 60 L100 118 Q86 124 80 108 L40 108 Q34 124 20 118 Z" fill="'+hr+'"/>'; hair='<path d="M27 58 Q28 26 60 25 Q92 26 93 58 Q80 36 60 38 Q40 36 27 58Z" fill="'+hr+'"/>'; break;
+    case 'dutt':   back='<circle cx="60" cy="22" r="13" fill="'+hr+'"/>'; hair='<path d="M27 58 Q28 26 60 26 Q92 26 93 58 Q82 38 60 38 Q38 38 27 58Z" fill="'+hr+'"/>'; break;
+    case 'zopf':   back='<path d="M88 46 Q112 60 104 104 Q98 112 94 100 Q100 70 84 56Z" fill="'+hr+'"/>'; hair='<path d="M27 58 Q28 26 60 25 Q92 26 93 58 Q78 40 60 40 Q42 40 27 58Z" fill="'+hr+'"/>'; break;
+    case 'strubbel': hair='<path d="M27 58 L26 36 L36 42 L38 24 L48 34 L56 18 L62 32 L72 20 L76 34 L88 26 L86 42 L95 40 L93 58 Q80 40 60 40 Q40 40 27 58Z" fill="'+hr+'"/>'; break;
+    case 'locken': hair=[[34,40,10],[46,30,11],[60,26,12],[74,30,11],[86,40,10],[30,52,8],[90,52,8]].map(c=>'<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="'+hr+'"/>').join(''); break;
+    default:       hair='<path d="M28 56 Q30 24 60 24 Q90 24 92 56 Q84 38 60 37 Q36 38 28 56Z" fill="'+hr+'"/>';
+  }
+  const ey={ neutral:'<circle cx="48" cy="62" r="3.6" fill="#222"/><circle cx="72" cy="62" r="3.6" fill="#222"/>',
+             froh:'<path d="M43 64 q5 -6 10 0 M67 64 q5 -6 10 0" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round"/>',
+             lacht:'<path d="M43 61 q5 5 10 0 M67 61 q5 5 10 0" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round"/>',
+             verwirrt:'<circle cx="48" cy="62" r="3.6" fill="#222"/><circle cx="72" cy="61" r="2.6" fill="#222"/>',
+             ueberrascht:'<circle cx="48" cy="62" r="5" fill="#fff" stroke="#222" stroke-width="2"/><circle cx="48" cy="62" r="2.4" fill="#222"/><circle cx="72" cy="62" r="5" fill="#fff" stroke="#222" stroke-width="2"/><circle cx="72" cy="62" r="2.4" fill="#222"/>',
+             traurig:'<circle cx="48" cy="63" r="3.4" fill="#222"/><circle cx="72" cy="63" r="3.4" fill="#222"/>' }[mood]||'';
+  const br={ neutral:'M42 53 h12 M66 53 h12', froh:'M42 52 q6 -3 12 0 M66 52 q6 -3 12 0', lacht:'M42 51 q6 -3 12 0 M66 51 q6 -3 12 0',
+             verwirrt:'M42 52 l12 -4 M66 50 l12 4', ueberrascht:'M42 49 q6 -4 12 0 M66 49 q6 -4 12 0', traurig:'M42 52 l12 3 M66 55 l12 -3' }[mood]||'M42 53 h12 M66 53 h12';
+  const mo={ neutral:'<path d="M52 84 h16" stroke="#7a2a2a" stroke-width="3" stroke-linecap="round"/>',
+             froh:'<path d="M49 81 q11 10 22 0" stroke="#7a2a2a" stroke-width="3" fill="none" stroke-linecap="round"/>',
+             lacht:'<path d="M47 79 q13 18 26 0 z" fill="#7a1f2b"/><path d="M50 80 h20" stroke="#fff" stroke-width="3"/>',
+             verwirrt:'<path d="M50 86 q4 -4 8 0 t8 0 t6 -2" stroke="#7a2a2a" stroke-width="3" fill="none" stroke-linecap="round"/>',
+             ueberrascht:'<ellipse cx="60" cy="85" rx="6" ry="7" fill="#7a1f2b"/>',
+             traurig:'<path d="M50 88 q10 -8 20 0" stroke="#7a2a2a" stroke-width="3" fill="none" stroke-linecap="round"/>' }[mood]||'';
+  const cheeks=(mood==='froh'||mood==='lacht')?'<circle cx="40" cy="74" r="5" fill="#ff8a8a" opacity=".45"/><circle cx="80" cy="74" r="5" fill="#ff8a8a" opacity=".45"/>':'';
+  let extra='';
+  if(F.extra==='brille') extra='<circle cx="48" cy="62" r="9" fill="none" stroke="#333" stroke-width="2.5"/><circle cx="72" cy="62" r="9" fill="none" stroke="#333" stroke-width="2.5"/><path d="M57 62 h6" stroke="#333" stroke-width="2.5"/>';
+  if(F.extra==='sommersprossen') extra='<g fill="#b5653a" opacity=".7"><circle cx="40" cy="70" r="1.3"/><circle cx="44" cy="73" r="1.3"/><circle cx="37" cy="74" r="1.3"/><circle cx="80" cy="70" r="1.3"/><circle cx="76" cy="73" r="1.3"/><circle cx="83" cy="74" r="1.3"/></g>';
+  const kopf=F.extra==='kopfhoerer'?'<path d="M26 62 Q24 18 60 18 Q96 18 94 62" stroke="#222" stroke-width="5" fill="none"/><rect x="20" y="56" width="10" height="18" rx="4" fill="#e74c3c"/><rect x="90" y="56" width="10" height="18" rx="4" fill="#e74c3c"/>':'';
+  const pfeife=F.extra==='pfeife'?'<path d="M48 104 L60 122 L72 104" stroke="#f1c40f" stroke-width="2" fill="none"/><rect x="55" y="120" width="12" height="7" rx="3" fill="#bbb" stroke="#666"/>':'';
+  const body=mini?'':'<path d="M8 150 Q12 106 60 102 Q108 106 112 150 Z" fill="'+kl+'"/><path d="M50 98 h20 v8 q-10 6 -20 0z" fill="'+h+'"/>'+(F.extra==='brille'&&id==='brandt'?'<path d="M40 118 h40 v32 h-40z" fill="#fff" opacity=".85"/>':'')+pfeife;
+  const q=mood==='verwirrt'&&!mini?'<text x="100" y="30" font-size="30" font-weight="900" fill="#ffcf5a" stroke="#333" stroke-width="1.5" font-family="Arial">?</text>':'';
+  return '<svg viewBox="0 0 120 '+(mini?110:150)+'" aria-hidden="true" class="face">'+back+body+'<ellipse cx="60" cy="62" rx="32" ry="36" fill="'+h+'"/>'+hair+kopf+cheeks+ey+'<path d="'+br+'" stroke="'+hr+'" stroke-width="3" fill="none" stroke-linecap="round"/>'+mo+extra+q+'</svg>';
+}
+function grad(id,a,b){ return '<linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+a+'"/><stop offset="1" stop-color="'+b+'"/></linearGradient>'; }
+function fachwerk(x,y,w,h,c){ let s='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+c+'" stroke="#5a3a20" stroke-width="3"/><polygon points="'+(x-8)+','+y+' '+(x+w/2)+','+(y-w*0.6)+' '+(x+w+8)+','+y+'" fill="#9a3b2a" stroke="#5a3a20" stroke-width="3"/>';
+  s+='<path d="M'+x+' '+(y+h/2)+' h'+w+' M'+(x+w/3)+' '+y+' v'+h+' M'+(x+2*w/3)+' '+y+' v'+h+' M'+x+' '+y+' l'+(w/3)+' '+(h/2)+' M'+(x+w)+' '+y+' l'+(-w/3)+' '+(h/2)+'" stroke="#5a3a20" stroke-width="3"/>';
+  s+='<rect x="'+(x+w*0.12)+'" y="'+(y+h*0.58)+'" width="'+(w*0.18)+'" height="'+(h*0.25)+'" fill="#cfe6ff" stroke="#5a3a20" stroke-width="2"/><rect x="'+(x+w*0.7)+'" y="'+(y+h*0.58)+'" width="'+(w*0.18)+'" height="'+(h*0.25)+'" fill="#cfe6ff" stroke="#5a3a20" stroke-width="2"/>'; return s; }
+const SCENES = {
+  flughafen(){ return '<defs>'+grad('fh','#bfe3ff','#e9f5ff')+'</defs><rect width="1000" height="360" fill="#d8dde6"/><rect x="0" y="0" width="1000" height="220" fill="url(#fh)"/>'+
+    [0,1,2,3,4,5,6].map(i=>'<rect x="'+(i*145)+'" y="0" width="12" height="220" fill="#8a96a8"/>').join('')+
+    '<g class="plane"><path d="M620 90 l120 -6 l30 -14 l8 4 l-14 16 l40 2 l10 -6 l6 3 l-8 9 l-170 8 z" fill="#fff" stroke="#8a96a8" stroke-width="2"/></g>'+
+    '<rect x="40" y="30" width="230" height="90" rx="6" fill="#1b2340"/><text x="55" y="58" font-family="Courier New" font-size="18" fill="#ffcf5a">ANKUNFT</text><text x="55" y="84" font-family="Courier New" font-size="16" fill="#fff">SANTIAGO   gelandet</text><text x="55" y="106" font-family="Courier New" font-size="16" fill="#fff">MADRID     14:20</text>'+
+    '<rect y="220" width="1000" height="140" fill="#b8bfca"/><path d="M0 250 H1000 M0 290 H1000" stroke="#a3abb8" stroke-width="2"/>'+
+    '<rect x="330" y="230" width="60" height="70" rx="8" fill="#e74c3c"/><rect x="345" y="214" width="30" height="18" rx="5" fill="none" stroke="#333" stroke-width="4"/><rect x="400" y="250" width="50" height="50" rx="8" fill="#3498db"/>'; },
+  kueche(){ return '<rect width="1000" height="360" fill="#f6e3c4"/><rect y="0" width="1000" height="24" fill="#e8cfa6"/>'+
+    '<rect x="390" y="40" width="220" height="140" fill="#bfe3ff" stroke="#fff" stroke-width="10"/><path d="M500 40 v140 M390 110 h220" stroke="#fff" stroke-width="8"/><circle cx="560" cy="80" r="16" fill="#fff3b0"/>'+
+    '<rect x="700" y="125" width="200" height="10" fill="#8a5a34"/><rect x="700" y="60" width="200" height="8" fill="#8a5a34"/><rect x="715" y="95" width="22" height="30" fill="#e67e22"/><rect x="745" y="100" width="18" height="25" fill="#3498db"/><circle cx="870" cy="112" r="12" fill="#2ecc71"/>'+
+    '<rect y="250" width="1000" height="110" fill="#d9b58a"/><path d="M0 280 H1000 M0 320 H1000" stroke="#c49a6a" stroke-width="2"/>'+
+    '<rect x="380" y="225" width="260" height="14" rx="4" fill="#9a6a3c"/><path d="M395 239 v70 M625 239 v70" stroke="#7a5030" stroke-width="10"/><path d="M380 225 l20 -6 h220 l20 6" fill="#fff" stroke="#e86a92" stroke-width="2"/>'+
+    '<ellipse cx="470" cy="214" rx="26" ry="9" fill="#fff" stroke="#999"/><path d="M540 200 q10 -20 20 0 v14 h-20z" fill="#c0392b"/>'+
+    '<g class="steam"><path d="M550 190 q-6 -10 0 -20 q6 -10 0 -20" stroke="#fff" stroke-width="3" fill="none" opacity=".7"/></g>'; },
+  klasse(){ return '<rect width="1000" height="360" fill="#e9eef3"/><rect x="60" y="40" width="460" height="170" rx="6" fill="#2f5a3a" stroke="#8a5a34" stroke-width="10"/>'+
+    '<text x="90" y="100" font-family="Comic Sans MS, Arial" font-size="26" fill="#f4f4f4">Willkommen, Sofía, Matías und Benja!</text><text x="90" y="140" font-family="Comic Sans MS, Arial" font-size="22" fill="#cfe">Hausaufgabe: S. 42</text>'+
+    '<rect x="620" y="50" width="300" height="150" fill="#bfe3ff" stroke="#fff" stroke-width="8"/><path d="M770 50 v150" stroke="#fff" stroke-width="6"/>'+
+    '<rect y="250" width="1000" height="110" fill="#c9b49a"/>'+[0,1,2].map(i=>'<rect x="'+(120+i*300)+'" y="232" width="200" height="14" rx="3" fill="#b0855a"/><path d="M'+(135+i*300)+' 246 v60 M'+(305+i*300)+' 246 v60" stroke="#7a5a3a" stroke-width="8"/>').join('')+
+    '<g class="clock"><circle cx="560" cy="60" r="22" fill="#fff" stroke="#333" stroke-width="3"/><path d="M560 60 v-14 M560 60 h10" stroke="#333" stroke-width="3"/></g>'; },
+  schulhof(){ return '<defs>'+grad('sh','#9fd3ff','#e6f5ff')+'</defs><rect width="1000" height="360" fill="url(#sh)"/>'+
+    '<rect x="380" y="60" width="560" height="170" fill="#d98e5a" stroke="#8a4a2a" stroke-width="3"/>'+[0,1,2,3,4,5].map(i=>'<rect x="'+(400+i*90)+'" y="85" width="60" height="50" fill="#cfe6ff" stroke="#fff" stroke-width="4"/>').join('')+'<text x="560" y="210" font-family="Arial" font-size="22" font-weight="bold" fill="#fff">GYMNASIUM LINDENFELD</text>'+
+    '<rect y="230" width="1000" height="130" fill="#b9b2a8"/><circle cx="160" cy="130" r="80" fill="#4a9a4a"/><rect x="150" y="190" width="20" height="60" fill="#7a5030"/>'+
+    '<rect x="230" y="250" width="120" height="10" fill="#8a5a34"/><path d="M240 260 v25 M340 260 v25" stroke="#5a3a20" stroke-width="6"/>'; },
+  sportplatz(){ return '<defs>'+grad('sp','#8fd0ff','#e8f6ff')+'</defs><rect width="1000" height="360" fill="url(#sp)"/><g class="cloud"><ellipse cx="200" cy="60" rx="70" ry="18" fill="#fff"/></g>'+
+    '<rect y="170" width="1000" height="190" fill="#4caf50"/><path d="M0 230 H1000 M500 170 V360" stroke="#fff" stroke-width="4" opacity=".7"/><ellipse cx="500" cy="270" rx="90" ry="34" fill="none" stroke="#fff" stroke-width="4" opacity=".7"/>'+
+    '<path d="M830 120 v100 M950 120 v100 M830 120 h120" stroke="#fff" stroke-width="7" fill="none"/><path d="M830 120 l20 20 h100" stroke="#ddd" stroke-width="2" fill="none"/>'+
+    '<rect x="40" y="280" width="140" height="12" fill="#8a5a34"/><path d="M50 292 v30 M170 292 v30" stroke="#5a3a20" stroke-width="6"/>'+
+    '<g class="ball"><circle cx="620" cy="300" r="14" fill="#fff" stroke="#222" stroke-width="2"/><path d="M613 295 l7 -5 l7 5 l-3 8 h-8z" fill="#222"/></g>'; },
+  cafe(){ return '<rect width="1000" height="360" fill="#f3e0c8"/><rect x="0" y="0" width="1000" height="40" fill="#8e5a3c"/>'+
+    '<rect x="60" y="70" width="320" height="160" fill="#a9d8f0" stroke="#fff" stroke-width="10"/><path d="M60 190 q80 -30 160 0 t160 0 v40 h-320z" fill="#4a90c0"/><path d="M220 70 v160" stroke="#fff" stroke-width="8"/>'+
+    '<rect x="620" y="180" width="340" height="90" fill="#8e5a3c"/><rect x="640" y="140" width="300" height="50" fill="#dff3ff" opacity=".8" stroke="#fff" stroke-width="3"/>'+
+    '<path d="M670 175 l20 -25 l20 25z" fill="#f4c27a"/><circle cx="760" cy="165" r="14" fill="#7a3a2a"/>'+
+    '<rect y="270" width="1000" height="90" fill="#c9a27a"/><circle cx="470" cy="250" r="45" fill="#fff" stroke="#8e5a3c" stroke-width="4"/><path d="M470 295 v50" stroke="#5a3a20" stroke-width="8"/>'+
+    '<g class="steam"><path d="M460 230 q-6 -10 0 -20 q6 -10 0 -20" stroke="#bbb" stroke-width="3" fill="none"/></g>'; },
+  stadt(){ return '<defs>'+grad('st','#9fd3ff','#eef8ff')+'</defs><rect width="1000" height="360" fill="url(#st)"/><g class="cloud"><ellipse cx="760" cy="50" rx="70" ry="16" fill="#fff"/></g>'+
+    '<rect x="450" y="40" width="70" height="170" fill="#c9b8a0" stroke="#7a6a50" stroke-width="3"/><polygon points="440,40 485,-10 530,40" fill="#4a6a8a"/><circle cx="485" cy="80" r="16" fill="#fff" stroke="#333" stroke-width="3"/>'+
+    fachwerk(40,110,140,110,'#f6efe0')+fachwerk(200,120,120,100,'#fde9c8')+fachwerk(620,110,140,110,'#f6efe0')+fachwerk(780,125,170,95,'#fbe0d0')+
+    '<rect x="790" y="190" width="70" height="30" fill="#dff3ff" stroke="#5a3a20" stroke-width="2"/>'+
+    '<rect y="220" width="1000" height="140" fill="#cbbfae"/>'+[0,1,2,3,4,5,6,7,8,9].map(i=>'<path d="M'+(i*100)+' 220 l-30 140" stroke="#b8ab98" stroke-width="2"/>').join('')+
+    '<ellipse cx="500" cy="300" rx="80" ry="22" fill="#9ab" stroke="#678" stroke-width="3"/><rect x="490" y="250" width="20" height="45" fill="#789"/><g class="fountain"><path d="M500 250 q-20 -30 -40 0 M500 250 q20 -30 40 0" stroke="#bfe3ff" stroke-width="4" fill="none"/></g>'; },
+  fest(){ let lights=''; for(let i=0;i<22;i++){ const x=20+i*45, y=40+Math.sin(i/2)*14; lights+='<circle class="light" style="animation-delay:'+(i%5)*0.3+'s" cx="'+x+'" cy="'+(y+10)+'" r="7" fill="'+['#ffcf5a','#ff8fb0','#8fd0ff','#a6f28f'][i%4]+'"/>'; }
+    return '<defs>'+grad('fe','#2a2350','#7a4a7a')+'</defs><rect width="1000" height="360" fill="url(#fe)"/><circle cx="880" cy="60" r="26" fill="#fff6c8"/>'+
+    '<path d="M0 48 Q250 80 500 48 T1000 48" stroke="#333" stroke-width="2" fill="none"/>'+lights+
+    '<circle cx="120" cy="170" r="90" fill="#2e5a3a"/><circle cx="900" cy="180" r="80" fill="#2e5a3a"/>'+
+    '<rect y="230" width="1000" height="130" fill="#3e6a3a"/><rect x="300" y="250" width="420" height="16" rx="4" fill="#fff"/><path d="M320 266 v60 M700 266 v60" stroke="#ddd" stroke-width="10"/>'+
+    '<circle cx="380" cy="244" r="12" fill="#e74c3c"/><path d="M600 240 l20 -22 l20 22z" fill="#f4c27a"/>'; },
+};
+function sceneSVG(name){ return '<svg class="bg" viewBox="0 0 1000 360" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+(SCENES[name]||SCENES.kueche)()+'</svg>'; }
+
+/* =====================================================================
+   SPIELABLAUF
+   ===================================================================== */
+function newGame(level){
+  state={ v:1, level, sig:signature(level), room:0, phase:'intro', done:{}, res:{}, tries:{}, tips:{}, tipsUsed:{}, found:{}, wrong:[], seiten:[], replay:null, rtries:{}, elapsed:0, name:'', finished:null };
+  ui={}; save();
+}
+function loadSaved(){
+  let s=null; try{ s=JSON.parse(lsGet(LS_GAME)||'null'); }catch(e){ s=null; }
+  if(!s || s.v!==1 || !SPIEL[s.level]) return null;
+  try { if(s.sig!==signature(s.level)) return null; } catch(e){ return null; }
+  return s;
+}
+function curKap(){ return D()[state.room]; }
+function stats(){
+  const all=allTasks(state.level); let score=0, ok=0;
+  all.forEach(t=>{ const r=state.done[t.id]; if(r){ score+=r.pts; if(r.ok) ok++; } });
+  const max=all.length*E.punkteErsterVersuch;
+  return { score, max, pct: max? Math.min(100,Math.round(score/max*100)) : 0, total:all.length, ok };
+}
+function tipsLeft(){ return E.tippsProKapitel-(state.tipsUsed[state.room]||0); }
+function imReplay(){ return state.phase==='replay'; }
+
+/* Versuch: 'ok' | 'retry' | 'fail' */
+function attempt(t, ok, given){
+  const rep=imReplay(), tr=rep?state.rtries:state.tries, tries=tr[t.id]||0;
+  if(ok){
+    if(!rep){ let pts = tries===0 ? E.punkteErsterVersuch : E.punkteZweiterVersuch; if(state.tips[t.id]) pts=Math.max(0,pts-E.tippKosten); state.done[t.id]={ ok:true, pts }; }
+    state.res[t.id]= tries===0 ? 2 : 1;
+    sound('ok'); setTimeout(()=>sound('herz'),200); save(); return 'ok';
+  }
+  tr[t.id]=tries+1;
+  if(tries+1>=2){
+    if(!rep){ state.done[t.id]={ ok:false, pts:0 }; state.wrong.push({ kapitel:curKap().K.name, aufgabe:taskLabel(t), deine:given, loesung:solutionText(t) }); }
+    state.res[t.id]=-1; sound('bad'); save(); return 'fail';
+  }
+  sound('huh'); save(); return 'retry';
+}
+function taskLabel(t){
+  switch(t.typ){
+    case 'chat': return (asList(t.dialog).slice(-1)[0]||{}).text || 'Gespräch';
+    case 'schreiben': case 'auswahl': case 'luecke': return plain(t.satz);
+    case 'kino': return plain(t.satz);
+    case 'sortieren': return 'Sortieren: '+asList(t.woerter).map(x=>(WORT[x]||{}).de).join(', ');
+  }
+  return '';
+}
+function solutionText(t){
+  switch(t.typ){
+    case 'chat': return t.loesung;
+    case 'schreiben': case 'luecke': return plain(t.satz).replace('___', asList(t.loesung)[0]);
+    case 'auswahl': return plain(t.satz).replace('___', asList(t.loesung)[0]);
+    case 'kino': { const k=t.korrektur||{}; return k.frage ? plain(k.frage).replace('___', asList(k.loesung)[0]) : (k.optionen && String(k.loesung).split(' ').length>3 ? k.loesung : plain(t.satz).replace(t.ausloeser, k.loesung)); }
+    case 'sortieren': return asList(t.woerter).map(x=>WORT[x].de+' ↔ '+WORT[x].falle+': '+KAT[WORT[x].kat].kurz).join(' · ');
+  }
+  return String(asList(t.loesung)[0]);
+}
+
+/* ---------- Kopfzeile ---------- */
+function renderHud(){
+  const hud=$('#hud');
+  if(!state || view!=='game' || location.hash==='#lehrer' || state.phase==='name' || state.phase==='end'){ hud.innerHTML=''; return; }
+  const s=stats(), n=D().length;
+  hud.innerHTML='<span class="pill">'+esc(state.level)+'</span><span class="pill">📖 Kapitel '+Math.min(state.room+1,n)+'/'+n+'</span><span class="pill">⭐ '+s.score+'</span><span class="pill" id="clock">⏱ '+fmtTime(state.elapsed)+'</span><span class="pill" title="echte Freunde">🤝 '+freunde().length+'/'+figurenImSpiel().length+'</span><span class="pill" title="Seiten im Freundebuch">📒 '+buchCount()+'</span>';
+}
+
+/* ---------- Haupt-Render ---------- */
+function render(){
+  try{ speechSynthesis.cancel(); }catch(e){}
+  if(location.hash==='#lehrer'){ renderTeacher(); renderHud(); return; }
+  if(view==='buch') renderBuch();
+  else if(view==='wiederholung') renderWiederholung();
+  else if(view==='start' || !state) renderStart();
+  else if(state.phase==='end') renderResult();
+  else if(state.phase==='name') renderName();
+  else renderGame();
+  renderHud();
+}
+
+/* ---------- Start ---------- */
+function renderStart(){
+  view='start';
+  const saved=loadSaved(), warn=dataWarnings(), n=buchCount(), N=buchWoerter().length;
+  let h='<section class="card narrow hero"><div class="herorow"><div><h1>🤝 Falsche Freunde, echte Freunde</h1>'+
+    '<p>Sofía, Matías und Benja machen einen Schüleraustausch in <strong>Lindenfeld</strong>. Sie wollen echte Freunde finden – aber manche deutschen Wörter sehen aus wie spanische und bedeuten etwas ganz anderes. Hilf ihnen, Missverständnisse zu vermeiden!</p>'+
+    '<p class="small es" lang="es">🇨🇱 Una aventura de diálogos sobre los „falsos amigos“ entre el alemán y el español.</p></div>'+
+    '<div class="heroart">'+['brandt','lena','jonas','kaya','weber'].map(f=>figurSVG(f,'froh')).join('')+'</div></div></section>';
+  if(warn.length) h+='<div class="warnbox narrow"><strong>⚠️ Hinweis für Lehrkräfte – in den Daten stimmt etwas nicht:</strong><ul>'+warn.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+  if(saved){
+    h+='<section class="card narrow"><h2>▶ Weiterspielen</h2><p>Niveau <strong>'+esc(saved.level)+'</strong> · '+(saved.phase==='end'?'fertig':'Kapitel '+(saved.room+1)+': '+esc((SPIEL[saved.level].kapitel[saved.room]||{}).name||''))+'</p>'+
+      '<div class="row"><button type="button" class="primary" id="btnCont">'+(saved.phase==='end'?'🏆 Ergebnis ansehen':'Weiterspielen ➜')+'</button><button type="button" id="btnDiscard">Neu beginnen</button></div></section>';
+  } else {
+    h+='<section class="card narrow"><h2>Wähle dein Niveau</h2><div class="levels">'+LEVELS.map(lv=>{ const S=SPIEL[lv];
+      return S ? '<button type="button" class="level" data-l="'+lv+'"><span class="lv">'+lv+'</span><span class="lt">'+esc(S.titel)+'</span><span class="lo">'+esc(S.schwerpunkt||'')+'</span></button>'
+               : '<button type="button" class="level" disabled><span class="lv">'+lv+'</span><span class="lt">🔒 kommt bald</span></button>'; }).join('')+'</div></section>';
+  }
+  h+='<section class="card narrow"><h2>Freundebuch und Wiederholung</h2><div class="extras">'+
+    '<button type="button" id="btnBuch"><span class="big">📒</span><span><strong>Mein Freundebuch</strong><br><span class="small muted">'+n+' von '+N+' Seiten</span></span></button>'+
+    '<button type="button" id="btnWdh"><span class="big">🔁</span><span><strong>Wiederholung</strong><br><span class="small muted">5 Minuten mit deinen Seiten</span></span></button></div></section>';
+  h+='<p class="small center"><a href="#lehrer">Für Lehrkräfte: Prüfcode kontrollieren</a></p>';
+  app.innerHTML=h;
+  if($('#btnCont')) $('#btnCont').addEventListener('click',()=>{ state=saved; view='game'; ui={}; render(); });
+  if($('#btnDiscard')) $('#btnDiscard').addEventListener('click',()=>bestaetigen('Das gespeicherte Spiel wird gelöscht (dein Freundebuch bleibt). Wirklich neu beginnen?', ()=>{ lsDel(LS_GAME); state=null; render(); }));
+  $$('.level[data-l]').forEach(b=>b.addEventListener('click',()=>{ newGame(b.dataset.l); view='game'; render(); window.scrollTo(0,0); }));
+  $('#btnBuch').addEventListener('click',()=>{ view='buch'; render(); });
+  $('#btnWdh').addEventListener('click',()=>{ view='wiederholung'; wdh=null; render(); });
+}
+
+/* ---------- Spielbildschirm ---------- */
+function renderGame(){
+  view='game';
+  app.innerHTML='<div class="gamegrid"><div><div class="stage" id="stage"></div><section class="dialog" id="dialog" aria-live="polite"></section></div><aside class="side" id="side"></aside></div>';
+  drawSide();
+  if(state.phase==='intro') return renderIntro();
+  if(state.phase==='kapitelende') return renderKapitelEnde();
+  if(state.phase==='fest') return renderFest();
+  renderTask();
+}
+function drawSide(changed){
+  const s=$('#side'); if(!s) return;
+  const figs=figurenImSpiel(), n=D().length, t=curTask();
+  s.innerHTML='<h3>💗 Freundschaftsbarometer</h3>'+figs.map(f=>{ const m=maxHerz(f), hz=herz(f), pct=m?Math.min(100,hz/m*100):0, fr=istFreund(f);
+    return '<div class="baro'+(changed&&changed.f===f?' '+changed.dir:'')+(t&&t.figur===f?' cur':'')+'" data-f="'+f+'" title="'+esc(fname(f)+': '+hz+' von '+m+' Herzen')+'"><div class="ava">'+figurSVG(f, fr?'froh':'neutral', true)+'</div><div style="flex:1"><div class="bn">'+esc(fname(f))+(fr?' <span class="fr">🤝</span>':'')+'<small>'+esc(FIGUREN[f].rolle||'')+'</small></div>'+
+      '<div class="meter" role="meter" aria-valuemin="0" aria-valuemax="'+m+'" aria-valuenow="'+hz+'" aria-label="Freundschaft mit '+esc(fname(f))+'"><div style="width:'+pct+'%"></div><span class="th" style="left:'+(E.freundSchwelle*100)+'%"></span></div></div></div>'; }).join('')+
+    '<p class="small muted" style="margin:.4em 0 0">Ab der weißen Linie seid ihr befreundet. Du brauchst '+E.freundeZumSieg+' Freunde fürs Fest.</p>'+
+    '<h3 style="margin-top:.6em">📖 Kapitel</h3><div class="progress">'+range(n).map(i=>'<span class="'+(i<state.room?'done':i===state.room?'cur':'')+'"></span>').join('')+'</div>'+
+    '<div class="row" style="margin-top:.5em"><button type="button" id="btnBuchG" style="flex:1">📒 Freundebuch</button></div>';
+  $('#btnBuchG').addEventListener('click',openBuchModal);
+  if(changed) setTimeout(()=>{ const b=$('.baro[data-f="'+changed.f+'"]'); if(b) b.classList.remove('up','down'); },1200);
+}
+function curTask(){ if(!state || (state.phase!=='play' && state.phase!=='replay')) return null; if(state.phase==='replay'){ const id=state.replay[state.ri||0]; return allTasks().find(t=>t.id===id)||null; }
+  const K=curKap(); return ui.resolved ? K.tasks.find(x=>x.id===ui.resolved) : K.tasks.find(x=>!state.done[x.id]); }
+
+function drawStage(o){
+  const st=$('#stage'); if(!st) return;
+  o=o||{};
+  const K=curKap()||{K:{}}, szene=o.szene||K.K.szene, main=o.main, mood=o.mood||'neutral';
+  let h=sceneSVG(szene);
+  const kidPos=[12,24,36];
+  KINDER.forEach((k,i)=>{ const sp=o.sprecher===k; h+='<div class="person kid'+(sp?' jump':' idle')+'" style="left:'+kidPos[i]+'%;animation-delay:'+(i*.4)+'s">'+figurSVG(k, sp&&o.kidMood?o.kidMood:'froh')+'</div>'; });
+  if(main) h+='<div class="person main'+(o.anim?' '+o.anim:' idle')+'" id="mainFig" style="left:74%">'+figurSVG(main, mood)+'</div>';
+  if(o.bubble) h+='<div class="bubble'+(o.bubble.conf?' conf':'')+'" style="'+(o.bubble.left?'left:4%;top:6%':'right:3%;top:5%')+'">'+fmt(o.bubble.text)+'</div>';
+  if(!o.ohneGeheim && szene===K.K.szene) asList(K.K.geheimnisse).forEach((g,i)=>{ const f=state.found[g.seite]; const r=g.ort;
+    h+='<button type="button" class="hot'+(f?' found':'')+'" data-g="'+i+'" style="left:'+(r[0]/10)+'%;top:'+(r[1]/3.6)+'%;width:'+(r[2]/10)+'%;height:'+(r[3]/3.6)+'%;--fs:'+(Math.min(r[2],r[3])*0.07).toFixed(2)+'cqw" aria-label="'+esc(g.name||'etwas')+'">'+esc(g.symbol||'✨')+'<span class="tag">'+esc(g.name||'')+'</span></button>'; });
+  h+='<div class="chlabel">'+esc(o.label || ('Kapitel '+(state.room+1)+': '+(K.K.name||'')))+'</div>';
+  st.innerHTML=h;
+  $$('.hot[data-g]',st).forEach(b=>b.addEventListener('click',()=>findeGeheimnis(+b.dataset.g)));
+}
+function floatAt(txt, leftPct, topPct){ const st=$('#stage'); if(!st || ruhig()) return; const d=document.createElement('div'); d.className='float'; d.textContent=txt; d.style.left=leftPct+'%'; d.style.top=topPct+'%'; st.appendChild(d); setTimeout(()=>d.remove(),1700); }
+function findeGeheimnis(i){
+  const g=curKap().K.geheimnisse[i], w=WORT[g.seite]; if(!w) return;
+  const neu=!state.found[g.seite]; state.found[g.seite]=true; const buchNeu=buchAdd(g.seite); save();
+  if(neu||buchNeu) sound('seite');
+  const m=document.createElement('div'); m.className='modal'; m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true');
+  m.innerHTML='<div class="card"><h2>'+esc(w.bild||'✨')+' '+esc(w.titel)+'</h2>'+paras(w.text)+(buchNeu?'<p class="tipbox ok">📒 <strong>Extraseite für dein Freundebuch!</strong></p>':'<p class="small muted">Diese Seite ist schon in deinem Freundebuch.</p>')+'<div class="row"><span class="spacer"></span><button type="button" class="primary" id="mOk">Weiter</button></div></div>';
+  document.body.appendChild(m);
+  const close=()=>{ m.remove(); const b=$('.hot[data-g="'+i+'"]'); if(b){ b.classList.add('found'); b.focus({preventScroll:true}); } renderHud(); };
+  $('#mOk',m).addEventListener('click',close); m.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); }); $('#mOk',m).focus();
+}
+
+/* ---------- Kapitel-Anfang ---------- */
+function renderIntro(){
+  const K=curKap().K;
+  drawStage({ main:K.hauptfigur, mood:'froh', szene:K.szene });
+  const first=state.room===0;
+  $('#dialog').innerHTML='<h2>📖 Kapitel '+(state.room+1)+': '+esc(K.name)+'</h2>'+(first?paras(L().intro):'')+paras(K.intro)+
+    (first?'<div class="tipbox hint"><p><strong>So geht’s:</strong> Wähl die richtige Antwort oder schreib das passende Wort. Jede Aufgabe gehört zu einer deutschen Figur – richtige Wörter lassen ihr 💗 Barometer steigen. Du hast pro Aufgabe zwei Versuche. Mit 🔊 kannst du dir die Sätze vorlesen lassen. Und schau dich in den Bildern um: Manche Dinge kann man anklicken …</p></div>':'')+
+    '<div class="row" style="margin-top:.5em"><span class="spacer"></span><button type="button" class="primary" id="btnGo">Los geht’s ➜</button></div>';
+  $('#btnGo').addEventListener('click',()=>{ state.phase='play'; ui={}; save(); renderGame(); });
+  focusEl('#btnGo');
+}
+
+/* ---------- Aufgabe ---------- */
+function lineHTML(wer, text, cls){
+  const me=KINDER.includes(wer);
+  return '<div class="line'+(me?' me':'')+(cls?' '+cls:'')+'"><div class="mini">'+figurSVG(wer, cls==='conf'?'verwirrt':'froh', true)+'</div><div class="say"><b>'+esc(fname(wer))+'</b>'+fmt(text)+' <button type="button" class="speak" data-say="'+esc(plain(text))+'" data-wer="'+esc(wer)+'" aria-label="Vorlesen" title="Vorlesen">🔊</button></div></div>';
+}
+function bindSpeak(root){ $$('.speak',root).forEach(b=>{ if(b._b) return; b._b=1; b.addEventListener('click',()=>vorlesen(b.dataset.say, b.dataset.wer)); }); }
+function renderTask(){
+  const t=curTask();
+  if(!t){ if(imReplay()) return replayEnde(); return kapitelFertig(); }
+  if(ui.id!==t.id) ui={ id:t.id, resolved:ui.resolved, log:[] };
+  const P=$('#dialog'), rep=imReplay();
+  const dl=asList(t.dialog);
+  const lastFig=dl.slice().reverse().find(d=>!KINDER.includes(d.wer));
+  if(!ui.stage) ui.stage={ main:t.figur, mood:'neutral', szene:t.szene||D()[t.k].K.szene, sprecher:t.sprecher, bubble: lastFig?{ text:lastFig.text }:null, ohneGeheim:rep, label: rep?'🔁 Wiederholung: '+D()[t.k].K.name:undefined };
+  drawStage(ui.stage);
+  const K=curKap(), idx=rep?(state.ri||0):t.i, total=rep?state.replay.length:K.tasks.length;
+  P.innerHTML='<div class="row" style="margin-bottom:.3em"><strong>'+(rep?'🔁 Szene ':'Aufgabe ')+(idx+1)+' von '+total+'</strong><span class="chip">💗 '+esc(fname(t.figur))+'</span><span class="spacer"></span><span class="chip" id="tipChip">💡 Tipps: '+tipsLeft()+'/'+E.tippsProKapitel+'</span></div>'+
+    '<div class="log" id="log">'+dl.map((d,i)=>lineHTML(d.wer,d.text).replace('class="line','style="animation-delay:'+(i*0.35)+'s" class="line')).join('')+(ui.log||[]).join('')+'</div><div id="task"></div>';
+  bindSpeak(P);
+  T[t.typ](t, $('#task'), ()=>{ nextTask(); });
+}
+function nextTask(){
+  if(imReplay()){ state.ri=(state.ri||0)+1; save(); ui={}; renderTask(); return; }
+  ui={}; renderTask(); window.scrollTo({top:0});
+}
+function addLog(html){ ui.log=(ui.log||[]).concat([html]); const l=$('#log'); if(l){ l.insertAdjacentHTML('beforeend',html); bindSpeak(l); } }
+function react(t, out, txt){
+  const pos=74;
+  if(out==='ok'){ ui.stage=Object.assign({},ui.stage,{ mood:'lacht', anim:'jump', bubble: txt?{ text:txt }:null, kidMood:'lacht' }); drawStage(ui.stage); floatAt(state.res[t.id]===2?'💗 +2':'💗 +1', pos, 10); }
+  else { ui.stage=Object.assign({},ui.stage,{ mood:'verwirrt', anim:'shake', bubble: txt?{ text:txt, conf:true }:null, kidMood:'ueberrascht' }); drawStage(ui.stage); floatAt(out==='fail'?'💔 −1':'❓', pos, 10); }
+  drawSide({ f:t.figur, dir: out==='ok'?'up':'down' }); renderHud();
+}
+
+/* ---------- Tipps und Rückmeldung ---------- */
+function tipHTML(t){
+  if(state.tips[t.id] && !resolved(t)) return '<div class="tipbox hint">💡 <strong>Tipp:</strong> '+fmt(t.tipp)+'</div>';
+  if(resolved(t) || !t.tipp || imReplay()) return '';
+  return '<button type="button" id="btnTip"'+(tipsLeft()<=0?' disabled title="Keine Tipps mehr in diesem Kapitel"':'')+'>💡 Tipp (−'+E.tippKosten+')</button>';
+}
+function bindTip(t, rerender){ const b=$('#btnTip'); if(!b) return; b.addEventListener('click',()=>{ if(tipsLeft()<=0) return; state.tips[t.id]=true; state.tipsUsed[state.room]=(state.tipsUsed[state.room]||0)+1; save(); const c=$('#tipChip'); if(c) c.textContent='💡 Tipps: '+tipsLeft()+'/'+E.tippsProKapitel; rerender(); }); }
+function resolved(t){ return ui.resolved===t.id; }
+function feedbackHTML(t){
+  const f=ui.fb; if(!f) return '';
+  const es = spanish() && t.erklaerung_es ? '<p class="small es" lang="es">🇨🇱 <strong>Ayuda:</strong> '+fmt(t.erklaerung_es)+'</p>' : '';
+  const pts = imReplay() ? '' : ' <span class="small">+'+(state.done[t.id]?state.done[t.id].pts:0)+' Punkte</span>';
+  if(f.type==='ok') return '<div class="tipbox ok"><p><strong>✓ Richtig!</strong> 💗 '+esc(fname(t.figur))+' freut sich.'+pts+'</p>'+(f.extra||'')+(t.erklaerung_de?'<p>'+fmt(t.erklaerung_de)+'</p>':'')+es+(f.seite||'')+'</div>';
+  if(f.type==='retry') return '<div class="tipbox bad"><p><strong>❓ Missverständnis!</strong> '+fmt(f.msg||'Das hat '+fname(t.figur)+' anders verstanden.')+'</p>'+(t.thema?'<p>💡 Denkhilfe: <strong>'+esc(t.thema)+'</strong></p>':'')+'<p class="small">Du hast noch einen Versuch.</p></div>';
+  return '<div class="tipbox bad"><p><strong>✗ Leider falsch.</strong> '+fmt(f.msg||'')+'</p><p>Richtig: <strong>'+esc(solutionText(t))+'</strong></p>'+(t.erklaerung_de?'<p>'+fmt(t.erklaerung_de)+'</p>':'')+es+'</div>';
+}
+function seiteHTML(t){
+  const ids = t.typ==='sortieren' ? asList(t.woerter) : asList(t.wort);
+  const neu=ids.filter(id=>buchAdd(id));
+  if(!neu.length) return '';
+  state.seiten=asList(state.seiten).concat(neu); save(); setTimeout(()=>sound('seite'),350);
+  return '<p class="okline" style="margin-top:.4em">📒 <strong>Neue Seite'+(neu.length>1?'n':'')+' im Freundebuch:</strong> '+neu.map(id=>esc(WORT[id].de)).join(', ')+'</p>';
+}
+function nextBtn(){ return '<div class="row" style="margin-top:.6em"><span class="spacer"></span><button type="button" class="primary" id="btnNextTask">Weiter ➜</button></div>'; }
+function bindNext(el, onNext){ const b=$('#btnNextTask',el); if(b) b.addEventListener('click',onNext); }
+function afterAnswer(t, out, el, rerender){
+  if(out==='ok'||out==='fail'){ ui.resolved=t.id; }
+  if(out==='ok'){ ui.fb=Object.assign(ui.fb||{}, { type:'ok', seite: seiteHTML(t) }); }
+  rerender();
+  const fb=$('.tipbox.ok, .tipbox.bad', el); if(fb) setTimeout(()=>fb.scrollIntoView({block:'nearest',behavior:ruhig()?'auto':'smooth'}),30);
+  if(out!=='retry'){ const nb=$('#btnNextTask',el); if(nb) nb.focus({preventScroll:true}); }
+}
+function umlautBar(){ return '<div class="umlauts" aria-label="Sonderzeichen">'+['ä','ö','ü','ß','Ä','Ö','Ü'].map(c=>'<button type="button" class="uml" data-u="'+c+'" tabindex="-1">'+c+'</button>').join('')+'<span class="small muted">oder ae, oe, ue, ss</span></div>'; }
+function bindUmlauts(el, getInput){
+  $$('.uml',el).forEach(b=>{ b.addEventListener('mousedown',e=>e.preventDefault()); b.addEventListener('click',()=>{ const inp=getInput(); if(!inp || inp.readOnly) return; const s=inp.selectionStart??inp.value.length, en=inp.selectionEnd??inp.value.length; inp.value=inp.value.slice(0,s)+b.dataset.u+inp.value.slice(en); inp.dispatchEvent(new Event('input')); inp.focus(); inp.setSelectionRange(s+1,s+1); }); });
+}
+function textInput(id, val, ro, w){ return '<input '+INPUT_ATTR+' id="'+id+'" style="width:'+(w||'10em')+'" value="'+esc(val||'')+'"'+(ro?' readonly':'')+'>'; }
+function bindText(el, check){
+  const inp=$('#ans',el); if(!inp) return;
+  inp.addEventListener('input',()=>{ ui.val=inp.value; });
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); check(); } });
+  bindUmlauts(el, ()=>$('#ans',el));
+  if(!ui.focused){ ui.focused=true; inp.focus({preventScroll:true}); }
+}
+function schreibweise(val, loesung){ const l=asList(loesung).find(x=>canon(x)===canon(val)); return l && l.trim()!==String(val).trim() ? '<p>✍️ Richtig geschrieben: <strong>'+esc(l)+'</strong></p>' : ''; }
+
+/* ---------- Aufgabentypen ---------- */
+const T = {
+  /* Gespräch */
+  chat(t, el, onNext){
+    const res=resolved(t), rerender=()=>T.chat(t,el,onNext);
+    if(!optOrder[t.id]) optOrder[t.id]=shuffle(range(t.optionen.length));
+    ui.wrongs=ui.wrongs||[];
+    let h='<p class="auftrag">Was sagt '+esc(fname(t.sprecher||'sofia'))+'?</p><div class="answers">'+optOrder[t.id].map(i=>{ const o=t.optionen[i], w=ui.wrongs.includes(o), r=res && o===t.loesung;
+      return '<button type="button" class="answer'+(w?' wrong':'')+(r?' right':'')+'" data-i="'+i+'"'+(res||w?' disabled':'')+'><span class="who">'+esc(fname(t.sprecher||'sofia'))+' sagt:</span>'+esc(o)+'</button>'; }).join('')+'</div>';
+    if(!res) h+='<div class="row" style="margin-top:.5em">'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    if(res) return;
+    $$('.answer',el).forEach(b=>b.addEventListener('click',()=>{
+      const o=t.optionen[+b.dataset.i], ok=o===t.loesung;
+      addLog(lineHTML(t.sprecher||'sofia', o, ok?'':'wrong'));
+      const out=attempt(t, ok, o);
+      if(!ok) ui.wrongs.push(o);
+      const reakt = ok ? t.reaktion : (t.reaktionen||{})[o];
+      if(reakt) addLog(lineHTML(t.figur, reakt, ok?'':'conf'));
+      if(out==='fail'){ addLog(lineHTML(t.sprecher||'sofia', t.loesung)); if(t.reaktion) addLog(lineHTML(t.figur, t.reaktion)); }
+      react(t, out, reakt);
+      ui.fb={ type:out, msg: out==='retry' ? fname(t.figur)+' hat etwas ganz anderes verstanden.' : '' };
+      afterAnswer(t,out,el,rerender);
+      if(out==='retry'){ const n=$('.answer:not([disabled])',el); if(n) n.focus({preventScroll:true}); }
+    }));
+    if(!ui.focused){ ui.focused=true; const f=$('.answer',el); if(f) f.focus({preventScroll:true}); }
+  },
+
+  /* Lücke im Gespräch */
+  schreiben(t, el, onNext){
+    const res=resolved(t), rerender=()=>T.schreiben(t,el,onNext);
+    const val = res && state.res[t.id]<0 ? asList(t.loesung)[0] : (ui.val||'');
+    let h='<p class="auftrag">Ergänze, was '+esc(fname(t.sprecher||'sofia'))+' sagt.</p><div class="line me" style="max-width:100%"><div class="mini">'+figurSVG(t.sprecher||'sofia','froh',true)+'</div><div class="say"><b>'+esc(fname(t.sprecher||'sofia'))+'</b>'+
+      fmt(t.satz).replace('___', textInput('ans', val, res, '9em'))+(t.hinweis?' <span class="small" style="color:#5a62a0">('+esc(t.hinweis)+')</span>':'')+'</div></div>';
+    if(!res) h+=umlautBar()+'<div class="row"><button type="button" class="primary" id="btnCheck">💬 Sagen</button>'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    if(res) return;
+    const check=()=>{ const v=$('#ans',el).value.trim(); if(!v){ toast('Schreib zuerst etwas.'); $('#ans',el).focus(); return; }
+      ui.val=v; const ok=matches(v, t.loesung);
+      addLog(lineHTML(t.sprecher||'sofia', plain(t.satz).replace('___', v), ok?'':'wrong'));
+      const out=attempt(t, ok, v);
+      if(ok && t.reaktion) addLog(lineHTML(t.figur, t.reaktion));
+      if(!ok){ addLog(lineHTML(t.figur, 'Hm? „'+v+'“? Das verstehe ich nicht ganz …', 'conf')); }
+      if(out==='fail'){ addLog(lineHTML(t.sprecher||'sofia', plain(t.satz).replace('___', asList(t.loesung)[0]))); if(t.reaktion) addLog(lineHTML(t.figur, t.reaktion)); }
+      react(t, out, ok ? t.reaktion : 'Hm? „'+v+'“?');
+      ui.fb={ type:out, msg: out==='retry'?'„'+v+'“ passt hier nicht.':'', extra: ok?schreibweise(v,t.loesung):'' };
+      afterAnswer(t,out,el,rerender); if(out==='retry'){ const i=$('#ans',el); if(i){ i.focus(); i.select(); } } };
+    bindText(el, check);
+    $('#btnCheck',el).addEventListener('click',check);
+  },
+
+  /* Missverständnis-Kino */
+  kino(t, el, onNext){
+    const res=resolved(t), rerender=()=>T.kino(t,el,onNext), k=t.korrektur||{};
+    const teile=String(t.satz).split(t.ausloeser), vor=teile[0], nach=teile.slice(1).join(t.ausloeser);
+    const toks=[]; vor.split(/\s+/).filter(Boolean).forEach(w=>toks.push({ w, hit:false })); toks.push({ w:t.ausloeser, hit:true }); nach.split(/\s+/).filter(Boolean).forEach(w=>toks.push({ w, hit:false }));
+    // Satzzeichen direkt hinter dem Auslöser an das Wort hängen
+    if(/^[.,!?]/.test(nach)){ const i=toks.findIndex(x=>x.hit); if(toks[i+1] && /^[.,!?]+$/.test(toks[i+1].w)){ toks[i].w+=toks[i+1].w; toks.splice(i+1,1); } }
+    const gefunden = ui.gefunden || res;
+    let h='<div class="kino"><div class="ktitle">🎬 MISSVERSTÄNDNIS-KINO</div>'+
+      '<div class="ksatz">'+esc(fname(t.sprecher||'sofia'))+': „'+toks.map((x,i)=>'<button type="button" class="tok'+(gefunden&&x.hit?' hit':'')+'" data-i="'+i+'"'+(gefunden?' disabled':'')+'>'+esc(x.w)+'</button>').join(' ')+'“</div>'+
+      '<div class="thought"><span class="tb" aria-hidden="true">'+esc(t.bild||'❓')+'</span><span><b>'+esc(fname(t.figur))+' denkt:</b> '+fmt(t.missverstaendnis||'')+'</span></div></div>';
+    if(!gefunden){
+      h+='<p class="auftrag">Welches Wort hat das Missverständnis ausgelöst? Klick es an.</p><p class="bedienung">⌨️ Tab = nächstes Wort, Enter = auswählen</p><div id="kfb" role="status"></div>';
+    } else {
+      h+='<p class="auftrag">'+(k.frage?'Wie hätte '+esc(fname(t.sprecher||'sofia'))+' es sagen sollen? Schreib es richtig.':'Was hätte '+esc(fname(t.sprecher||'sofia'))+' sagen sollen?')+'</p>';
+      if(asList(k.optionen).length){
+        if(!optOrder[t.id]) optOrder[t.id]=shuffle(range(k.optionen.length));
+        ui.wrongs=ui.wrongs||[];
+        h+='<div class="opts">'+optOrder[t.id].map(i=>{ const o=k.optionen[i], w=ui.wrongs.includes(o), r=res && o===k.loesung; return '<button type="button" class="opt'+(w?' wrong':'')+(r?' right':'')+'" data-o="'+esc(o)+'"'+(res||w?' disabled':'')+'>'+esc(o)+'</button>'; }).join('')+'</div>';
+      } else {
+        const val = res && state.res[t.id]<0 ? asList(k.loesung)[0] : (ui.val||'');
+        h+='<p class="satz">'+fmt(k.frage).replace('___', textInput('ans', val, res, '12em'))+'</p>'+(res?'':umlautBar());
+      }
+      if(!res) h+='<div class="row" style="margin-top:.5em">'+(asList(k.optionen).length?'':'<button type="button" class="primary" id="btnCheck">✓ Prüfen</button>')+tipHTML(t)+'</div>';
+    }
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    if(!ui.kinoStart){ ui.kinoStart=true; ui.stage=Object.assign({},ui.stage,{ mood:'verwirrt', bubble:{ text:t.missverstaendnis, conf:true } }); drawStage(ui.stage); }
+    if(res) return;
+    if(!gefunden){
+      $$('.tok',el).forEach(b=>b.addEventListener('click',()=>{ const x=toks[+b.dataset.i];
+        if(x.hit){ ui.gefunden=true; sound('pop'); rerender(); const f=$('.opt',el)||$('#ans',el); if(f) f.focus({preventScroll:true}); }
+        else { b.classList.remove('miss'); void b.offsetWidth; b.classList.add('miss'); sound('tick'); $('#kfb',el).innerHTML='<p class="small badline">Nein – an diesem Wort lag es nicht. Welches Wort klingt spanisch?</p>'; } }));
+      if(!ui.focused){ ui.focused=true; const f=$('.tok',el); if(f) f.focus({preventScroll:true}); }
+      return;
+    }
+    const fertig=(ok, given)=>{
+      const satzNeu = k.frage ? plain(k.frage).replace('___', given) : (String(given).split(' ').length>3 ? given : plain(t.satz).replace(t.ausloeser, given));
+      addLog(lineHTML(t.sprecher||'sofia', satzNeu, ok?'':'wrong'));
+      const out=attempt(t, ok, given);
+      if(ok && t.reaktion) addLog(lineHTML(t.figur, t.reaktion));
+      if(out==='fail'){ addLog(lineHTML(t.sprecher||'sofia', solutionText(t))); if(t.reaktion) addLog(lineHTML(t.figur, t.reaktion)); }
+      react(t, out, ok ? t.reaktion : (out==='fail'?t.reaktion:'Hm, das verstehe ich immer noch nicht …'));
+      ui.fb={ type:out, msg: out==='retry'?'„'+given+'“ passt noch nicht.':'', extra: ok && k.frage ? schreibweise(given,k.loesung):'' };
+      afterAnswer(t,out,el,rerender);
+      if(out==='retry'){ const n=$('.opt:not([disabled])',el)||$('#ans',el); if(n){ n.focus({preventScroll:true}); if(n.select) n.select(); } }
+    };
+    if(asList(k.optionen).length){
+      $$('.opt',el).forEach(b=>b.addEventListener('click',()=>{ const o=b.dataset.o, ok=o===k.loesung; if(!ok) ui.wrongs.push(o); fertig(ok,o); }));
+      if(!ui.focused2){ ui.focused2=true; const f=$('.opt',el); if(f) f.focus({preventScroll:true}); }
+    } else {
+      const check=()=>{ const v=$('#ans',el).value.trim(); if(!v){ toast('Schreib zuerst etwas.'); return; } ui.val=v; fertig(matches(v,k.loesung), v); };
+      ui.focused = ui.focused2; bindText(el, check); ui.focused2=true;
+      $('#btnCheck',el).addEventListener('click',check);
+    }
+  },
+
+  /* Freund, Feind oder halber Freund? */
+  sortieren(t, el, onNext){
+    const res=resolved(t), rerender=()=>T.sortieren(t,el,onNext), ws=asList(t.woerter);
+    if(!optOrder[t.id]) optOrder[t.id]=shuffle(range(ws.length));
+    ui.place=ui.place||{}; ui.lock=ui.lock||{};
+    if(res && state.res[t.id]<0) ws.forEach(id=>{ ui.place[id]=WORT[id].kat; });
+    const card=(id,cls)=>{ const w=WORT[id]; return '<button type="button" class="wcard'+(cls?' '+cls:'')+'" data-w="'+esc(id)+'"'+(res||ui.lock[id]?' disabled':'')+'>'+esc(w.de)+'<small>↔ '+esc(w.falle)+'</small></button>'; };
+    const pool=optOrder[t.id].map(i=>ws[i]).filter(id=>!ui.place[id]);
+    let h='<p class="auftrag">Sortiere: Bedeutet das deutsche Wort dasselbe wie das spanische?</p><p class="bedienung">🖱️ Karte anklicken, dann ein Fach · ⌨️ Karte wählen, dann Taste 1 / 2 / 3 · Karte im Fach anklicken = zurück</p>'+
+      '<div class="pool" id="pool">'+(pool.length?pool.map(id=>card(id, ui.sel===id?'sel':'')).join(''):'<span class="small muted">Alle Karten sind sortiert.</span>')+'</div>'+
+      '<div class="bins">'+['echt','falsch','halb'].map((k,i)=>'<div class="bin '+k+'" data-k="'+k+'"><button type="button" class="binbtn" data-k="'+k+'"'+(res?' disabled':'')+'><span class="bh">'+(i+1)+' · '+KAT[k].kurz+'</span><br><span class="small">'+(k==='echt'?'gleiche Bedeutung':k==='falsch'?'andere Bedeutung':'teils gleich, teils anders')+'</span></button>'+
+        ws.filter(id=>ui.place[id]===k).map(id=>{ const fest=res||ui.lock[id], st = fest ? (WORT[id].kat===k?'ok':'bad') : (ui.bad&&ui.bad[id]?'bad':''); return '<button type="button" class="wcard '+st+'" data-back="'+esc(id)+'"'+(fest?' disabled':'')+' title="zurück">'+esc(WORT[id].de)+'<small>↔ '+esc(WORT[id].falle)+'</small></button>'; }).join('')+'</div>').join('')+'</div>';
+    if(!res) h+='<div class="row" style="margin-top:.5em"><button type="button" class="primary" id="btnCheck"'+(pool.length?' disabled':'')+'>✓ Prüfen</button><button type="button" id="btnReset">↺ Alle zurück</button>'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    if(res) return;
+    const put=(k)=>{ if(!ui.sel) { toast('Wähl zuerst eine Karte.'); return; } ui.place[ui.sel]=k; if(ui.bad) delete ui.bad[ui.sel]; ui.sel=null; sound('pop'); rerender(); const n=$('#pool .wcard',el)||$('#btnCheck',el); if(n) n.focus({preventScroll:true}); };
+    $$('#pool .wcard',el).forEach(b=>{ b.addEventListener('click',()=>{ ui.sel=b.dataset.w; $$('#pool .wcard',el).forEach(x=>x.classList.toggle('sel',x===b)); sound('tick'); });
+      b.addEventListener('keydown',e=>{ if(['1','2','3'].includes(e.key)){ e.preventDefault(); ui.sel=b.dataset.w; put(['echt','falsch','halb'][+e.key-1]); } }); });
+    $$('.bin [data-back]',el).forEach(c=>c.addEventListener('click',e=>{ e.stopPropagation(); if(ui.lock[c.dataset.back]) return; delete ui.place[c.dataset.back]; if(ui.bad) delete ui.bad[c.dataset.back]; ui.sel=c.dataset.back; sound('tick'); rerender(); const n=$('#pool .wcard[data-w="'+ui.sel+'"]',el); if(n) n.focus({preventScroll:true}); }));
+    $$('.bin',el).forEach(b=>b.addEventListener('click',e=>{ if(e.target.closest('[data-back]')) return; put(b.dataset.k); }));
+    el.onkeydown=e=>{ if(['1','2','3'].includes(e.key) && ui.sel && !e.target.closest('#pool')){ e.preventDefault(); put(['echt','falsch','halb'][+e.key-1]); } };
+    $('#btnReset',el).addEventListener('click',()=>{ ws.forEach(id=>{ if(!ui.lock[id]) delete ui.place[id]; }); ui.sel=null; rerender(); });
+    $('#btnCheck',el).addEventListener('click',()=>{
+      const falsch=ws.filter(id=>ui.place[id]!==WORT[id].kat), ok=!falsch.length;
+      const out=attempt(t, ok, falsch.map(id=>WORT[id].de+' → '+KAT[ui.place[id]].kurz).join(', ')||'alles richtig');
+      if(out==='retry'){ ws.forEach(id=>{ if(!falsch.includes(id)) ui.lock[id]=true; }); ui.bad={}; falsch.forEach(id=>{ ui.bad[id]=true; }); }
+      react(t, out, ok ? t.reaktion : (out==='fail'?'Fast! Schau dir die Lösung an.':'Hm, da stimmt noch etwas nicht.'));
+      ui.fb={ type:out, msg: out==='retry' ? falsch.length+' Karte'+(falsch.length>1?'n sind':' ist')+' im falschen Fach (rot). Die grünen bleiben liegen – sortiere die roten neu.' : '' };
+      afterAnswer(t,out,el,rerender);
+    });
+    if(!ui.focused){ ui.focused=true; const f=$('#pool .wcard',el); if(f) f.focus({preventScroll:true}); }
+  },
+
+  /* Multiple Choice */
+  auswahl(t, el, onNext){
+    const res=resolved(t), rerender=()=>T.auswahl(t,el,onNext);
+    if(!optOrder[t.id]) optOrder[t.id]=shuffle(range(t.optionen.length));
+    ui.wrongs=ui.wrongs||[];
+    const L_=asList(t.loesung);
+    let h='<p class="auftrag">Wähl das richtige Wort.</p><p class="satz">'+fmt(t.satz).replace('___','<span class="gap">'+(res?esc(ui.chosen||L_[0]):'&nbsp;')+'</span>')+'</p>'+
+      '<div class="opts">'+optOrder[t.id].map(i=>{ const o=t.optionen[i], w=ui.wrongs.includes(o), r=res && (ui.chosen?o===ui.chosen:L_.includes(o)); return '<button type="button" class="opt'+(w?' wrong':'')+(r?' right':'')+'" data-o="'+esc(o)+'"'+(res||w?' disabled':'')+'>'+esc(o)+'</button>'; }).join('')+'</div>';
+    if(!res) h+='<div class="row" style="margin-top:.5em">'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    if(res) return;
+    $$('.opt',el).forEach(b=>b.addEventListener('click',()=>{ const o=b.dataset.o, ok=L_.includes(o), out=attempt(t,ok,o); if(!ok) ui.wrongs.push(o); else ui.chosen=o;
+      react(t, out, ok?t.reaktion:'Hm?'); if(ok && t.reaktion) addLog(lineHTML(t.figur,t.reaktion)); ui.fb={ type:out, msg:'' }; afterAnswer(t,out,el,rerender);
+      if(out==='retry'){ const n=$('.opt:not([disabled])',el); if(n) n.focus({preventScroll:true}); } }));
+    if(!ui.focused){ ui.focused=true; const f=$('.opt',el); if(f) f.focus({preventScroll:true}); }
+  },
+
+  /* Lücke */
+  luecke(t, el, onNext){
+    const res=resolved(t), rerender=()=>T.luecke(t,el,onNext);
+    const val = res && state.res[t.id]<0 ? asList(t.loesung)[0] : (ui.val||'');
+    let h='<p class="auftrag">Schreib das richtige Wort in die Lücke.</p><p class="satz">'+fmt(t.satz).replace('___', textInput('ans', val, res, '9em'))+(t.hinweis?' <span class="muted">('+esc(t.hinweis)+')</span>':'')+'</p>';
+    if(!res) h+=umlautBar()+'<div class="row"><button type="button" class="primary" id="btnCheck">✓ Prüfen</button>'+tipHTML(t)+'</div>';
+    h+=feedbackHTML(t)+(res?nextBtn():'');
+    el.innerHTML=h; bindTip(t,rerender); bindNext(el,onNext);
+    if(res) return;
+    const check=()=>{ const v=$('#ans',el).value.trim(); if(!v){ toast('Schreib zuerst etwas.'); return; } ui.val=v; const ok=matches(v,t.loesung), out=attempt(t,ok,v);
+      react(t, out, ok?t.reaktion:'Hm?'); if(ok && t.reaktion) addLog(lineHTML(t.figur,t.reaktion));
+      ui.fb={ type:out, msg: out==='retry'?'„'+v+'“ stimmt noch nicht.':'', extra: ok?schreibweise(v,t.loesung):'' }; afterAnswer(t,out,el,rerender);
+      if(out==='retry'){ const i=$('#ans',el); if(i){ i.focus(); i.select(); } } };
+    bindText(el, check);
+    $('#btnCheck',el).addEventListener('click',check);
+  },
+};
+
+/* ---------- Kapitelende, Fest und Wiederholung ---------- */
+function kapitelFertig(){
+  const last = state.room===D().length-1;
+  state.phase = last ? 'fest' : 'kapitelende'; ui={}; save();
+  sound(last?'fanfare':'seite'); renderGame();
+}
+function renderKapitelEnde(){
+  const K=curKap();
+  const figs=Array.from(new Set(K.tasks.map(t=>t.figur)));
+  drawStage({ main:K.K.hauptfigur, mood:istFreund(K.K.hauptfigur)?'lacht':'froh', ohneGeheim:false });
+  $('#dialog').innerHTML='<h2>✨ Kapitel '+(state.room+1)+' geschafft!</h2><p>So stehen die Freundschaften:</p><div class="fest">'+figs.map(f=>{ const fr=istFreund(f); return '<div class="gast"><div class="ava">'+figurSVG(f, fr?'lacht':'neutral', true)+'</div><strong>'+esc(fname(f))+'</strong><span>'+(fr?'🤝 Freund!':'💗 '+herz(f)+' / '+maxHerz(f))+'</span></div>'; }).join('')+'</div>'+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnNextKap">Weiter zu Kapitel '+(state.room+2)+' ➜</button></div>';
+  $('#btnNextKap').addEventListener('click',()=>{ state.room++; state.phase='intro'; ui={}; save(); renderGame(); window.scrollTo(0,0); });
+  focusEl('#btnNextKap');
+}
+function konfetti(){ if(ruhig()) return; for(let i=0;i<60;i++){ const c=document.createElement('div'); c.className='confetti'; c.style.left=Math.random()*100+'vw'; c.style.background=['#ffcf5a','#ff5c8a','#5ff0d8','#8fa8e0','#a6f28f'][i%5]; c.style.animationDuration=(2+Math.random()*2)+'s'; c.style.animationDelay=(Math.random()*.8)+'s'; document.body.appendChild(c); setTimeout(()=>c.remove(),5000); } }
+function festListe(){ // Aufgaben, die man wiederholen kann: von Figuren, die (noch) keine Freunde sind
+  return allTasks().filter(t=>!istFreund(t.figur) && (state.res[t.id]||0)<2);
+}
+function renderFest(){
+  const figs=figurenImSpiel(), fr=freunde(), sieg=fr.length>=E.freundeZumSieg;
+  drawStage({ main:fr[0]||'brandt', mood:sieg?'lacht':'traurig', szene:'fest', label:'🎉 Das Abschiedsfest', ohneGeheim:true });
+  const P=$('#dialog'), liste=festListe();
+  let h='<h2>🎉 Das Abschiedsfest</h2><p>'+(sieg?'Der Garten ist voll! Diese Freunde sind gekommen:':'Leider sind nicht genug Freunde gekommen …')+'</p>'+
+    '<div class="fest">'+figs.map((f,i)=>{ const da=fr.includes(f); return '<div class="gast '+(da?'da':'weg')+'" style="animation-delay:'+(i*0.35)+'s"><div class="ava">'+figurSVG(f, da?'lacht':'traurig', true)+'</div><strong>'+esc(fname(f))+'</strong><span>'+(da?'🤝 ist da!':'kommt nicht')+'</span></div>'; }).join('')+'</div>'+
+    '<p><strong>'+fr.length+' von '+figs.length+' echten Freunden.</strong> '+(sieg?'Geschafft – ihr habt in Lindenfeld echte Freunde gefunden! 🎊':'Du brauchst '+E.freundeZumSieg+'. Aber keine Sorge: Du kannst die Szenen wiederholen, die schiefgelaufen sind.')+'</p>';
+  if(!sieg && liste.length){
+    h+='<h3>Diese Szenen sind schiefgelaufen:</h3><ul>'+liste.map(t=>'<li><span class="chip">'+esc(fname(t.figur))+'</span> '+esc(D()[t.k].K.name)+': '+esc(taskLabel(t).slice(0,70))+'</li>').join('')+'</ul>';
+  }
+  h+='<div class="row" style="margin-top:.5em"><span class="spacer"></span>'+(!sieg&&liste.length?'<button type="button" class="primary" id="btnReplay">🔁 Szenen wiederholen</button><button type="button" id="btnRes">Trotzdem zum Ergebnis</button>':'<button type="button" class="primary" id="btnRes">🏆 Zum Ergebnis</button>')+'</div>';
+  P.innerHTML=h;
+  if(sieg){ konfetti(); }
+  if($('#btnReplay')) $('#btnReplay').addEventListener('click',()=>{ state.replay=liste.map(t=>t.id); state.ri=0; state.rtries={}; state.phase='replay'; ui={}; save(); renderGame(); window.scrollTo(0,0); });
+  $('#btnRes').addEventListener('click',()=>{ state.freundeEnde=freunde().length; state.phase='name'; save(); render(); window.scrollTo(0,0); });
+  focusEl($('#btnReplay')||$('#btnRes'));
+}
+function replayEnde(){ state.phase='fest'; state.replay=null; ui={}; save(); renderGame(); }
+
+/* ---------- Freundebuch ---------- */
+function seiteBlatt(w, cls){
+  if(w.geheim) return '<div class="seite geheim'+(cls?' '+cls:'')+'"><span class="bild">'+esc(w.bild||'✨')+'</span><h3>'+esc(w.titel)+'</h3>'+paras(w.text)+'<p class="small" style="color:#8e44ad">✨ Extraseite</p></div>';
+  return '<div class="seite'+(cls?' '+cls:'')+'"><span class="bild">'+esc(w.bild||'')+'</span><h3>'+esc(w.de)+'</h3><dl>'+
+    '<dt>Sieht aus wie:</dt><dd>'+esc(w.falle)+(w.falle_de?' <span class="small">(= '+esc(w.falle_de)+')</span>':'')+'</dd>'+
+    '<dt>Heißt wirklich:</dt><dd><strong>'+esc(w.es)+'</strong></dd>'+
+    '<dt>Freund?</dt><dd><span class="kat '+w.kat+'">'+KAT[w.kat].kurz+'</span></dd>'+
+    '<dt>Lieblingssatz:</dt><dd><i>'+esc(w.beispiel||'')+'</i></dd></dl>'+(w.erklaerung?'<p class="small" style="margin:.4em 0 0">'+fmt(w.erklaerung)+'</p>':'')+'</div>';
+}
+function buchBody(){
+  const a=loadBuch(), list=buchWoerter(), n=list.filter(w=>a.seiten[w.id]).length;
+  return '<p>Du hast <strong>'+n+' von '+list.length+'</strong> Seiten. Jeder falsche Freund, den du durchschaust, bekommt eine Seite. Und manche Seiten sind versteckt …</p>'+
+    '<div class="buch">'+list.map(w=>a.seiten[w.id] ? seiteBlatt(w) : '<div class="seite leer">'+(w.geheim?'✨ ???':'❓ ??? <span class="small" style="margin-left:.4em">('+esc(w.niveau||'')+')</span>')+'</div>').join('')+'</div>';
+}
+function renderBuch(){
+  view='buch';
+  app.innerHTML='<section class="card narrow" style="max-width:1100px"><div class="row"><h1 style="margin:0">📒 Mein Freundebuch</h1><span class="spacer"></span><button type="button" class="primary" id="btnW">🔁 Wiederholung</button><button type="button" id="btnBack">← Zurück</button></div>'+buchBody()+'</section>';
+  $('#btnBack').addEventListener('click',()=>{ view=state?'game':'start'; render(); });
+  $('#btnW').addEventListener('click',()=>{ view='wiederholung'; wdh=null; render(); });
+  focusEl('#btnBack');
+}
+function openBuchModal(){
+  const m=document.createElement('div'); m.className='modal'; m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true');
+  m.innerHTML='<div class="card" style="max-width:1000px;max-height:90vh;overflow:auto"><div class="row"><h2 style="margin:0">📒 Mein Freundebuch</h2><span class="spacer"></span><button type="button" class="primary" id="mOk">Zurück ins Spiel</button></div>'+buchBody()+'</div>';
+  document.body.appendChild(m); const close=()=>{ m.remove(); const b=$('#btnBuchG'); if(b) b.focus(); };
+  $('#mOk',m).addEventListener('click',close); m.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); }); $('#mOk',m).focus();
+}
+
+/* Wiederholung: Leitner-System mit 3 Fächern, ohne Prüfcode */
+let wdh=null;
+function renderWiederholung(){
+  view='wiederholung';
+  const a=loadBuch(), mine=Object.keys(a.seiten).filter(k=>WORT[k] && !WORT[k].geheim);
+  const back='<button type="button" id="btnBack">← Zurück</button>';
+  const goBack=()=>{ wdh=null; view=state?'game':'start'; render(); };
+  if(!mine.length){
+    app.innerHTML='<section class="card narrow"><div class="row"><h1 style="margin:0">🔁 Wiederholung</h1><span class="spacer"></span>'+back+'</div><p>Dein Freundebuch ist noch leer. Spiel ein Niveau – jeder falsche Freund, den du durchschaust, bekommt eine Seite. Dann kannst du hier üben.</p></section>';
+    $('#btnBack').addEventListener('click',goBack); return;
+  }
+  if(!wdh){ const order=shuffle(mine).sort((x,y)=>(a.seiten[x].fach||1)-(a.seiten[y].fach||1)); wdh={ queue:order.slice(0,E.wiederholungKarten), i:0, ok:0, cur:null }; }
+  if(wdh.i>=wdh.queue.length){
+    const f=[1,2,3].map(k=>mine.filter(x=>(a.seiten[x].fach||1)===k).length);
+    app.innerHTML='<section class="card narrow"><div class="row"><h1 style="margin:0">🔁 Runde geschafft!</h1><span class="spacer"></span>'+back+'</div><p>Du hattest <strong>'+wdh.ok+' von '+wdh.queue.length+'</strong> richtig.</p>'+
+      '<div class="facher">'+['🟥 Fach 1: neu','🟨 Fach 2: geübt','🟩 Fach 3: sicher'].map((x,i)=>'<div class="f"><b>'+f[i]+'</b>'+x+'</div>').join('')+'</div>'+
+      '<p class="small muted">Richtig = die Seite wandert ein Fach weiter. Falsch = sie kommt zurück in Fach 1 und kommt in der nächsten Runde zuerst.</p>'+
+      '<div class="row"><button type="button" class="primary" id="btnAgain">🔁 Noch eine Runde</button><button type="button" id="btnB">📒 Zum Freundebuch</button></div></section>';
+    $('#btnBack').addEventListener('click',goBack); $('#btnAgain').addEventListener('click',()=>{ wdh=null; render(); }); $('#btnB').addEventListener('click',()=>{ view='buch'; render(); }); focusEl('#btnAgain'); return;
+  }
+  const id=wdh.queue[wdh.i], w=WORT[id], card=a.seiten[id];
+  if(!wdh.opts){ const andere=shuffle(WOERTER.filter(x=>!x.geheim && x.id!==id && x.es && x.es!==w.es && x.kat!=='echt').map(x=>x.es));
+    const opts=[w.es]; if(w.kat==='falsch' && w.falle && !opts.includes(w.falle)) opts.push(w.falle); andere.forEach(x=>{ if(opts.length<3 && !opts.includes(x)) opts.push(x); }); wdh.opts=shuffle(opts); }
+  const r=wdh.cur;
+  app.innerHTML='<section class="card narrow"><div class="row"><h1 style="margin:0">🔁 Wiederholung</h1><span class="spacer"></span><span class="chip">Karte '+(wdh.i+1)+' von '+wdh.queue.length+'</span>'+back+'</div>'+
+    '<p class="small muted">Fach '+(card.fach||1)+' '+'⭐'.repeat(card.fach||1)+'</p><h2 style="font-size:1.8em">'+esc(w.bild||'')+' '+esc(w.de)+'</h2><p class="satz"><i>'+esc(w.beispiel||'')+'</i></p>'+
+    '<p class="auftrag">Was bedeutet „'+esc(w.de)+'“ auf Spanisch?</p><div class="opts">'+wdh.opts.map(o=>'<button type="button" class="opt'+(r&&o===w.es?' right':'')+(r&&r.wahl===o&&o!==w.es?' wrong':'')+'" data-o="'+esc(o)+'"'+(r?' disabled':'')+' lang="es">'+esc(o)+'</button>').join('')+'</div>'+
+    (r?'<div class="tipbox '+(r.ok?'ok':'bad')+'"><p><strong>'+(r.ok?'✓ Richtig! Die Seite wandert in Fach '+r.fach+'.':'✗ Nicht ganz. Die Seite kommt zurück in Fach 1.')+'</strong></p><p>'+fmt(w.erklaerung||'')+'</p></div><div class="row" style="margin-top:.5em"><span class="spacer"></span><button type="button" class="primary" id="wNext">Weiter ➜</button></div>':'')+'</section>';
+  $('#btnBack').addEventListener('click',goBack);
+  if(r){ $('#wNext').addEventListener('click',()=>{ wdh.i++; wdh.cur=null; wdh.opts=null; render(); }); focusEl('#wNext'); return; }
+  $$('.opt').forEach(b=>b.addEventListener('click',()=>{ const ok=b.dataset.o===w.es; const A=loadBuch(), c=A.seiten[id]; c.fach= ok ? Math.min(3,(c.fach||1)+1) : 1; saveBuch(A); if(ok) wdh.ok++; wdh.cur={ ok, fach:c.fach, wahl:b.dataset.o }; sound(ok?'ok':'bad'); render(); }));
+  focusEl('.opt');
+}
+
+/* ---------- Name und Ergebnis ---------- */
+function renderName(){
+  app.innerHTML='<section class="card narrow"><h1>🏆 Geschafft!</h1><p>Schreib deinen Namen für das Ergebnis und den Prüfcode.</p>'+
+    '<p class="row"><label for="nameIn">Dein Name:</label> <input '+INPUT_ATTR+' id="nameIn" maxlength="60" style="flex:1;min-width:220px" placeholder="Vorname Nachname"></p><div id="nameFb" role="status"></div>'+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnName">Ergebnis anzeigen ➜</button></div></section>';
+  const go=()=>{ const n=$('#nameIn').value.trim().replace(/\s+/g,' '); if(normName(n).length<2){ $('#nameFb').innerHTML='<p class="badline">Bitte schreib deinen Namen.</p>'; return; } state.name=n; state.finished=new Date().toISOString(); if(state.freundeEnde==null) state.freundeEnde=freunde().length; state.phase='end'; save(); render(); };
+  $('#btnName').addEventListener('click',go); $('#nameIn').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }); focusEl('#nameIn');
+}
+function renderResult(){
+  const s=stats(), d=new Date(state.finished), fr=state.freundeEnde!=null?state.freundeEnde:freunde().length, code=makeCode(state.level,s.pct,fr,d,state.name);
+  const rows=[['Name',state.name],['Niveau',state.level+' – '+L().titel],['Punkte',s.score+' von '+s.max],['Prozent',s.pct+' %'],['Echte Freunde',fr+' von '+figurenImSpiel().length+(fr>=E.freundeZumSieg?' 🎉':'')],['Zeit',fmtTime(state.elapsed)+' min'],['Datum',fmtDate(d)],['Richtig',s.ok+' von '+s.total+' Aufgaben'],['Neue Seiten im Freundebuch',asList(state.seiten).length]];
+  let h='<section class="card narrow"><div class="row"><h1 style="margin:0">🏆 Dein Ergebnis</h1><span class="spacer"></span><div style="display:flex;gap:4px">'+freunde().slice(0,5).map(f=>'<div style="width:56px">'+figurSVG(f,'lacht',true)+'</div>').join('')+'</div></div>'+
+    '<table class="restable">'+rows.map(r=>'<tr><th scope="row">'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table>'+
+    '<p style="margin-bottom:0">Prüfcode:</p><div class="bigcode">'+esc(code)+'</div><p class="small muted">Mach einen Screenshot oder kopiere das Ergebnis und gib es in Google Classroom ab.</p>'+
+    '<div class="row"><button type="button" class="primary" id="btnCopy">📋 Ergebnis kopieren</button><button type="button" id="btnBuchR">📒 Mein Freundebuch</button><button type="button" id="btnNew">↺ Neues Spiel</button><span id="copyFb" role="status" class="okline"></span></div>'+
+    '<h2 style="margin-top:1em">Falsch beantwortete Aufgaben ('+state.wrong.length+')</h2>';
+  h += state.wrong.length ? '<ol class="wronglist">'+state.wrong.map(w=>'<li><span class="muted small">'+esc(w.kapitel)+'</span><br>'+esc(w.aufgabe)+'<br><span class="badline">✗ Deine Antwort: '+esc(w.deine)+'</span><br><span class="okline">✓ Richtig: '+esc(w.loesung)+'</span></li>').join('')+'</ol>' : '<p class="okline">✓ Keine Fehler – super!</p>';
+  app.innerHTML=h+'</section>';
+  $('#btnCopy').addEventListener('click',()=>copyText(resultText(code,s,d,fr)));
+  $('#btnBuchR').addEventListener('click',()=>{ view='buch'; render(); });
+  $('#btnNew').addEventListener('click',()=>bestaetigen('Neues Spiel starten? Dieses Ergebnis wird gelöscht (dein Freundebuch bleibt). Hast du schon einen Screenshot gemacht?', ()=>{ lsDel(LS_GAME); state=null; view='start'; render(); }));
+  focusEl('#btnCopy');
+}
+function resultText(code,s,d,fr){
+  let t='Falsche Freunde, echte Freunde – Dialog-Abenteuer\nName: '+state.name+'\nNiveau: '+state.level+' – '+L().titel+
+    '\nPunkte: '+s.score+' / '+s.max+' ('+s.pct+' %)\nEchte Freunde: '+fr+' von '+figurenImSpiel().length+'\nZeit: '+fmtTime(state.elapsed)+' min\nDatum: '+fmtDate(d)+'\nPrüfcode: '+code+'\n';
+  t+='\nFalsch beantwortet ('+state.wrong.length+'):\n'+(state.wrong.length?state.wrong.map((w,i)=>(i+1)+'. '+w.aufgabe+'\n   Meine Antwort: '+w.deine+'\n   Richtig: '+w.loesung).join('\n'):'–');
+  return t;
+}
+function copyText(t){
+  const done=()=>{ $('#copyFb').textContent='✓ Kopiert! Jetzt in Google Classroom einfügen (Strg + V).'; };
+  const fallback=()=>{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){ $('#copyFb').textContent='Kopieren hat nicht geklappt – bitte Screenshot machen.'; } ta.remove(); };
+  let settled=false; const once=f=>()=>{ if(!settled){ settled=true; f(); } };
+  try{ if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(t).then(once(done),once(fallback)); setTimeout(once(fallback),800); } else once(fallback)(); }catch(e){ once(fallback)(); }
+}
+
+/* ---------- Lehrkraft ---------- */
+function renderTeacher(){
+  app.innerHTML='<section class="card narrow"><h1>🔎 Prüfcode kontrollieren</h1><p class="muted">Für Lehrkräfte. Name so eingeben, wie er im Ergebnis steht (Groß-/Kleinschreibung, Akzente und Leerzeichen sind egal).</p>'+
+    '<p><label for="tName">Name</label><br><input '+INPUT_ATTR+' id="tName" style="width:100%"></p><p><label for="tCode">Prüfcode</label><br><input '+INPUT_ATTR+' id="tCode" style="width:100%" placeholder="z. B. B1-78-4-141026-K7QFM"></p>'+
+    '<div class="row"><button type="button" class="primary" id="tCheck">Prüfen</button><span class="spacer"></span><button type="button" id="tBack">← Zurück zum Spiel</button></div><div id="tRes" role="status" aria-live="polite" style="margin-top:.8em"></div></section>'+
+    '<section class="card narrow"><h2>ℹ️ Gut zu wissen</h2><ul>'+
+    '<li><strong>Prüfcode:</strong> Niveau – Prozent – Zahl der echten Freunde – Datum – Kontrollzeichen.</li>'+
+    '<li><strong>Punkte:</strong> 10 beim 1. Versuch, 5 beim 2.; ein Tipp kostet 3 Punkte. Die Punkte zählen nur beim ersten Durchgang.</li>'+
+    '<li><strong>Freundschaft:</strong> ab '+Math.round(E.freundSchwelle*100)+' % der möglichen Herzen. Fürs Fest braucht man '+E.freundeZumSieg+' Freunde. Wer zu wenige hat, kann die schiefgelaufenen Szenen wiederholen – das verbessert die Freundschaften, aber nicht die Punkte.</li>'+
+    '<li><strong>Freundebuch und Wiederholung</strong> werden im Browser des Geräts gespeichert, nicht im Prüfcode.</li></ul></section>';
+  const go=()=>{ const r=verifyCode($('#tCode').value,$('#tName').value);
+    $('#tRes').innerHTML = r.valid ? '<p class="tipbox ok"><strong>✓ Der Code ist gültig.</strong><br>Niveau <strong>'+r.level+'</strong> · <strong>'+r.pct+' %</strong> · <strong>'+r.fr+' echte Freunde</strong> · '+r.date+'</p>'
+      : '<p class="tipbox bad"><strong>✗ Der Code ist nicht gültig.</strong><br>'+esc(r.reason||'Name oder Code passen nicht zusammen.')+'</p>'; };
+  $('#tCheck').addEventListener('click',go); ['#tName','#tCode'].forEach(s=>$(s).addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }));
+  $('#tBack').addEventListener('click',()=>{ history.replaceState(null,'',location.pathname+location.search); render(); });
+  focusEl('#tName');
+}
+
+/* ---------- Uhr ---------- */
+setInterval(()=>{
+  if(!state || view!=='game' || !['play','replay'].includes(state.phase) || document.hidden || location.hash) return;
+  state.elapsed+=1000;
+  const c=$('#clock'); if(c) c.textContent='⏱ '+fmtTime(state.elapsed);
+  if(state.elapsed%5000===0) save();
+},1000);
+
+/* ---------- Start ---------- */
+(function init(){
+  try{ const s=JSON.parse(lsGet(LS_SET)||'{}'); if(s.sound) settings.sound=true; if(s.anim===false) settings.anim=false; }catch(e){}
+  const sb=$('#btnSound'), ab=$('#btnAnim');
+  const upd=()=>{ sb.textContent=settings.sound?'🔊 Ton an':'🔇 Ton aus'; sb.setAttribute('aria-pressed',String(settings.sound));
+    ab.textContent=settings.anim?'🎞 Animationen an':'🎞 Animationen aus'; ab.setAttribute('aria-pressed',String(!settings.anim)); document.documentElement.classList.toggle('ruhig',!settings.anim); };
+  upd();
+  sb.addEventListener('click',()=>{ settings.sound=!settings.sound; saveSettings(); upd(); sound('ok'); });
+  ab.addEventListener('click',()=>{ settings.anim=!settings.anim; saveSettings(); upd(); toast(settings.anim?'🎞 Animationen sind wieder an.':'🎞 Animationen sind aus – nur noch sanfte Überblendungen.'); });
+  $('#btnMenu').addEventListener('click',()=>{ if(location.hash) history.replaceState(null,'',location.pathname+location.search); view='start'; state=null; ui={}; render(); });
+  window.addEventListener('hashchange',render);
+  render();
+})();
+</script>
+</body>
+</html>
