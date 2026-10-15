@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pudú-Sprung – haben oder sein?</title>
+<script>
+/* =====================================================================
+   PUDÚ-SPRUNG · haben oder sein? · Jump & Run
+   =====================================================================
+
+   ANLEITUNG FÜR LEHRKRÄFTE
+   ---------------------------------------------------------------------
+   Alles, was Sie ändern können, steht in diesem ersten Abschnitt
+   (EINSTELLUNGEN, REGELN, SPIEL). Die Spiel-Logik weiter unten müssen
+   Sie nicht anfassen.
+
+   IDEE
+   Ein Pudú läuft durch Chile. Oben steht ein Satz mit Lücke. Der Weg
+   teilt sich: oben eine Plattform, unten der Boden – jeweils mit einem
+   Hilfsverb beschriftet. Springen = obere Antwort, weiterlaufen =
+   untere Antwort. Richtig gesprungen: ein Completo. Falsch: ein Herz
+   weniger und die Regel wird erklärt.
+
+   AUFBAU
+   SPIEL → Niveau (A2, B1, B2, C1) → etappen (3 × 8 Sätze) + boss (5 Sätze)
+
+   FELDER EINES SATZES
+     satz    : Satz mit ___ (genau eine Lücke)
+     richtig : das richtige Wort, z. B. "ist"
+     falsch  : das falsche Wort, z. B. "hat"
+     regel   : Name einer Regel aus REGELN, z. B. "bewegung"
+               (oder mehrere als Liste: ["plusquam", "haben"])
+     Beispiel:
+     { satz:"Sofía ___ nach Pucón gefahren.", richtig:"ist", falsch:"hat", regel:"bewegung" },
+
+   REGELN
+     text     : Erklärung auf Deutsch (**Wort** = fett)
+     es       : Hilfe auf Spanisch (wird nur bei A2 und B1 gezeigt)
+     ausnahme : true = wird mit ⭐ als Ausnahme markiert („einfach lernen“)
+
+   REGELN FÜR DIE DATEN
+     · Texte immer in "Anführungszeichen"; im Text selbst „…“ verwenden.
+     · Nach jedem Feld und jeder } ein Komma.
+     · Fehler in den Daten zeigt die Startseite als gelben Hinweis an.
+   ===================================================================== */
+
+const EINSTELLUNGEN = {
+  geheimwort: "Pudu-Completo-Kondor-4",   // für den Prüfcode – bitte geheim halten
+  herzen: 3,              // Herzen zu Beginn jeder Etappe
+  maxHerzen: 5,           // mit Kondoren kann man bis zu so vielen Herzen sammeln
+  tempo: { langsam: 165, normal: 225, schnell: 290 },   // Laufgeschwindigkeit
+  abstand: 1350,          // Weg zwischen zwei Sätzen (mehr = mehr Lesezeit)
+  abstandBoss: 1050,      // Weg zwischen zwei Sätzen in der Bossrunde
+  spanischeHilfe: { A2:true, B1:true, B2:false, C1:false },
+};
+
+/* ---------------------------------------------------------------------
+   REGELN
+   --------------------------------------------------------------------- */
+const REGELN = {
+  /* ---- Grundregeln (ab A2) ---- */
+  bewegung:   { text:"Bewegung von A nach B (gehen, fahren, fliegen, kommen, fallen …) → **sein**",
+                es:"Cambio de lugar (ir, viajar, volar, venir, caer…) → «sein». ¡En español siempre usamos «haber», en alemán no!" },
+  zustand:    { text:"Veränderung des Zustands (aufstehen, einschlafen, aufwachen, verschwinden …) → **sein**",
+                es:"Cambio de estado (levantarse, dormirse, despertarse, desaparecer…) → «sein»." },
+  seinbleiben:{ text:"**sein** und **bleiben** → **sein**: ich bin gewesen, ich bin geblieben",
+                es:"«sein» (ser/estar) y «bleiben» (quedarse) → «sein»: ich bin gewesen, ich bin geblieben." },
+  haben:      { text:"Die meisten Verben → **haben** (essen, sehen, machen, spielen, kaufen …)",
+                es:"La mayoría de los verbos → «haben»." },
+  ausnahme_sein:  { ausnahme:true, text:"Ausnahme – einfach lernen: **schwimmen** und **reiten** → **sein**, auch ohne Ziel",
+                es:"Excepción: «schwimmen» (nadar) y «reiten» (andar a caballo) → «sein», aunque no haya destino." },
+  ausnahme_haben: { ausnahme:true, text:"Ausnahme – einfach lernen: **tanzen** → **haben**, obwohl man sich bewegt",
+                es:"Excepción: «tanzen» (bailar) → «haben», aunque uno se mueva." },
+
+  /* ---- B1 ---- */
+  reflexiv:   { text:"Reflexive Verben (sich freuen, sich verlaufen, sich umziehen …) → immer **haben**",
+                es:"Verbos reflexivos (con «sich») → siempre «haben»." },
+  geschehen:  { text:"**passieren**, **geschehen** und **gelingen** → **sein**",
+                es:"«passieren» / «geschehen» (pasar, ocurrir) y «gelingen» (resultar bien) → «sein»." },
+  werden:     { text:"**werden** → **sein**: ich bin … geworden",
+                es:"«werden» (llegar a ser, ponerse) → «sein»: ich bin … geworden." },
+  begegnen:   { text:"**begegnen** → **sein** (auch wenn ein Dativ folgt)",
+                es:"«begegnen» (encontrarse con alguien) → «sein»." },
+  keinebewegung: { text:"Kein Ortswechsel, kein neuer Zustand (anfangen, beginnen, aufhören, gefallen, regnen …) → **haben**",
+                es:"Sin cambio de lugar ni de estado (empezar, terminar, gustar, llover…) → «haben». Ojo: «gefallen» (gustar) no es «fallen» (caer)." },
+
+  /* ---- B2 ---- */
+  objekt:     { text:"Mit Akkusativobjekt (jemanden fahren, das Flugzeug landen, die Tasse zerbrechen …) → **haben**" },
+  ohneobjekt: { text:"Dasselbe Verb ohne Akkusativobjekt – also Bewegung oder Veränderung → **sein**" },
+  folgen:     { text:"**folgen** → **sein**, aber **befolgen** (eine Regel, einen Rat) → **haben**" },
+  plusquam:   { text:"Plusquamperfekt: gleiche Regel wie im Perfekt – das Hilfsverb steht im Präteritum: **war** oder **hatte**" },
+
+  /* ---- C1 ---- */
+  konjunktiv: { text:"Konjunktiv II der Vergangenheit: **wäre** oder **hätte** + Partizip II – gleiche Regel wie im Perfekt" },
+  konjunktiv1:{ text:"Indirekte Rede (Konjunktiv I der Vergangenheit): **sei** oder **habe** + Partizip II – gleiche Regel wie im Perfekt" },
+  passiv:     { text:"Passiv im Perfekt: Partizip II + **worden** → immer **sein** (ist gebaut worden)" },
+  ersatz:     { text:"Modalverb im Perfekt (Ersatzinfinitiv: hat … fahren müssen) → immer **haben**" },
+  infperfekt: { text:"Infinitiv Perfekt (nach Modalverb oder im Futur II: muss … verpasst haben, wird … angekommen sein) – gleiche Regel wie im Perfekt" },
+  erschrecken:{ text:"**erschrecken** ohne Objekt (= Angst bekommen) → **sein**: ist erschrocken. **Jemanden erschrecken** → **haben**: hat … erschreckt" },
+  verderben:  { text:"**verderben** ohne Objekt (= schlecht werden) → **sein**. **Jemandem etwas verderben** → **haben**" },
+};
+
+/* ---------------------------------------------------------------------
+   SPIEL
+   welt: "atacama" | "valparaiso" | "pucon" | "patagonien" (Hintergrund)
+   boss.gegner: "sandsturm" | "moewe" | "lava" | "schneesturm"
+   --------------------------------------------------------------------- */
+const SPIEL = {
+
+/* =========================== NIVEAU A2 =========================== */
+A2: {
+  titel: "Atacama – die Grundregel",
+  welt: "atacama",
+  schwerpunkt: "Bewegung und Veränderung → sein · fast alles andere → haben",
+  intro: "Der Pudú besucht die trockenste Wüste der Welt! Er läuft durch San Pedro de Atacama, zu den Geysiren von El Tatio und zu einem Fest in der Oase.\n\nAm Ende wartet ein Sandsturm …",
+  regeln: ["bewegung","zustand","seinbleiben","haben","ausnahme_sein","ausnahme_haben"],
+  etappen: [
+    { name:"San Pedro de Atacama", saetze:[
+      { satz:"Sofía ___ mit dem Bus nach San Pedro de Atacama gefahren.", richtig:"ist", falsch:"hat", regel:"bewegung" },
+      { satz:"Wir ___ in der Wüste viele Sterne gesehen.", richtig:"haben", falsch:"sind", regel:"haben" },
+      { satz:"Benja ___ um fünf Uhr aufgestanden.", richtig:"ist", falsch:"hat", regel:"zustand" },
+      { satz:"Ich ___ eine Empanada gegessen.", richtig:"habe", falsch:"bin", regel:"haben" },
+      { satz:"Matías ___ den ganzen Tag im Hostal geblieben.", richtig:"ist", falsch:"hat", regel:"seinbleiben" },
+      { satz:"Wir ___ zum Valle de la Luna gelaufen.", richtig:"sind", falsch:"haben", regel:"bewegung" },
+      { satz:"Sofía ___ viele Fotos gemacht.", richtig:"hat", falsch:"ist", regel:"haben" },
+      { satz:"Am Abend ___ ich sofort eingeschlafen.", richtig:"bin", falsch:"habe", regel:"zustand" },
+    ]},
+    { name:"Die Geysire von El Tatio", saetze:[
+      { satz:"Wir ___ ganz früh zu den Geysiren gefahren.", richtig:"sind", falsch:"haben", regel:"bewegung" },
+      { satz:"Benja ___ im warmen Wasser geschwommen.", richtig:"ist", falsch:"hat", regel:"ausnahme_sein" },
+      { satz:"Ich ___ einen heißen Tee getrunken.", richtig:"habe", falsch:"bin", regel:"haben" },
+      { satz:"Matías ___ erst im Auto aufgewacht.", richtig:"ist", falsch:"hat", regel:"zustand" },
+      { satz:"Der Guide ___ uns viel erklärt.", richtig:"hat", falsch:"ist", regel:"haben" },
+      { satz:"___ du schon einmal in der Wüste gewesen?", richtig:"Bist", falsch:"Hast", regel:"seinbleiben" },
+      { satz:"Wir ___ Lamas und Flamingos gesehen.", richtig:"haben", falsch:"sind", regel:"haben" },
+      { satz:"Sofía ___ am Nachmittag nach Calama zurückgekommen.", richtig:"ist", falsch:"hat", regel:"bewegung" },
+    ]},
+    { name:"Fiesta in der Oase", saetze:[
+      { satz:"Auf dem Dorffest ___ wir Cueca getanzt.", richtig:"haben", falsch:"sind", regel:"ausnahme_haben" },
+      { satz:"Benja ___ zu spät zum Fest gekommen.", richtig:"ist", falsch:"hat", regel:"bewegung" },
+      { satz:"Ich ___ laute Musik gehört.", richtig:"habe", falsch:"bin", regel:"haben" },
+      { satz:"Sofía ___ heute zum ersten Mal geritten.", richtig:"ist", falsch:"hat", regel:"ausnahme_sein" },
+      { satz:"Wir ___ bis Mitternacht geblieben.", richtig:"sind", falsch:"haben", regel:"seinbleiben" },
+      { satz:"Matías ___ mit seiner Oma telefoniert.", richtig:"hat", falsch:"ist", regel:"haben" },
+      { satz:"Die Kinder ___ zu Fuß nach Hause gegangen.", richtig:"sind", falsch:"haben", regel:"bewegung" },
+      { satz:"Ihr ___ sehr schön gesungen!", richtig:"habt", falsch:"seid", regel:"haben" },
+    ]},
+  ],
+  boss: { name:"Der Sandsturm", gegner:"sandsturm", saetze:[
+      { satz:"Der Sandsturm ___ ganz plötzlich gekommen.", richtig:"ist", falsch:"hat", regel:"bewegung" },
+      { satz:"Wir ___ schnell ins Haus gerannt.", richtig:"sind", falsch:"haben", regel:"bewegung" },
+      { satz:"Benja ___ seine Mütze verloren.", richtig:"hat", falsch:"ist", regel:"haben" },
+      { satz:"Ich ___ ganz ruhig geblieben.", richtig:"bin", falsch:"habe", regel:"seinbleiben" },
+      { satz:"Der Sturm ___ nach einer Stunde weitergezogen.", richtig:"ist", falsch:"hat", regel:"bewegung" },
+  ]},
+},
+
+/* =========================== NIVEAU B1 =========================== */
+B1: {
+  titel: "Valparaíso – die Stolperfallen",
+  welt: "valparaiso",
+  schwerpunkt: "reflexive Verben, passieren, werden, begegnen, gefallen ≠ fallen",
+  intro: "Der Pudú ist in Valparaíso! Er fährt mit dem Ascensor, läuft durch die bunten Gassen, hilft bei einem Umzug nach Viña del Mar und geht an den Strand von Reñaca.\n\nAber Vorsicht: Am Ende wartet eine riesige Möwe, die Completos liebt …",
+  regeln: ["bewegung","zustand","seinbleiben","haben","reflexiv","geschehen","werden","begegnen","keinebewegung","ausnahme_sein","ausnahme_haben"],
+  etappen: [
+    { name:"Am Hafen", saetze:[
+      { satz:"Wir ___ mit dem Ascensor zum Cerro Alegre hinaufgefahren.", richtig:"sind", falsch:"haben", regel:"bewegung" },
+      { satz:"Matías ___ sich in den bunten Gassen verlaufen.", richtig:"hat", falsch:"ist", regel:"reflexiv" },
+      { satz:"Ich ___ am Hafen einem Seelöwen begegnet.", richtig:"bin", falsch:"habe", regel:"begegnen" },
+      { satz:"Was ___ gestern am Ascensor passiert?", richtig:"ist", falsch:"hat", regel:"geschehen" },
+      { satz:"Das Konzert am Hafen ___ uns sehr gut gefallen.", richtig:"hat", falsch:"ist", regel:"keinebewegung" },
+      { satz:"Benja ___ vom Fahrrad gefallen.", richtig:"ist", falsch:"hat", regel:"bewegung" },
+      { satz:"Sofía ___ sich über das Geschenk gefreut.", richtig:"hat", falsch:"ist", regel:"reflexiv" },
+      { satz:"Der Regen ___ um drei Uhr angefangen.", richtig:"hat", falsch:"ist", regel:"keinebewegung" },
+    ]},
+    { name:"Umzug nach Viña del Mar", saetze:[
+      { satz:"Familie Soto ___ nach Viña del Mar umgezogen.", richtig:"ist", falsch:"hat", regel:"bewegung" },
+      { satz:"Benja ___ sich nach dem Sport umgezogen.", richtig:"hat", falsch:"ist", regel:"reflexiv" },
+      { satz:"Sofías Bruder ___ Koch geworden.", richtig:"ist", falsch:"hat", regel:"werden" },
+      { satz:"Der Umzug ___ gut gelungen.", richtig:"ist", falsch:"hat", regel:"geschehen" },
+      { satz:"Es ___ den ganzen Tag geregnet.", richtig:"hat", falsch:"ist", regel:"keinebewegung" },
+      { satz:"Wir ___ mit der Metro nach Viña gefahren.", richtig:"sind", falsch:"haben", regel:"bewegung" },
+      { satz:"Ich ___ mich sehr auf die neue Wohnung gefreut.", richtig:"habe", falsch:"bin", regel:"reflexiv" },
+      { satz:"Wann ___ die Party gestern aufgehört?", richtig:"hat", falsch:"ist", regel:"keinebewegung" },
+    ]},
+    { name:"Am Strand von Reñaca", saetze:[
+      { satz:"Wir ___ im kalten Pazifik geschwommen.", richtig:"sind", falsch:"haben", regel:"ausnahme_sein" },
+      { satz:"Matías ___ sich einen Sonnenbrand geholt.", richtig:"hat", falsch:"ist", regel:"reflexiv" },
+      { satz:"Die Sonne ___ um acht Uhr untergegangen.", richtig:"ist", falsch:"hat", regel:"bewegung" },
+      { satz:"Auf der Strandparty ___ alle bis Mitternacht getanzt.", richtig:"haben", falsch:"sind", regel:"ausnahme_haben" },
+      { satz:"Sofía ___ beim Volleyball einer alten Freundin begegnet.", richtig:"ist", falsch:"hat", regel:"begegnen" },
+      { satz:"Das Spiel ___ um vier Uhr begonnen.", richtig:"hat", falsch:"ist", regel:"keinebewegung" },
+      { satz:"Benja ___ am Strand eingeschlafen.", richtig:"ist", falsch:"hat", regel:"zustand" },
+      { satz:"Was ___ mit deinem Handy geschehen?", richtig:"ist", falsch:"hat", regel:"geschehen" },
+    ]},
+  ],
+  boss: { name:"Die Riesenmöwe", gegner:"moewe", saetze:[
+      { satz:"Eine riesige Möwe ___ auf unseren Tisch geflogen.", richtig:"ist", falsch:"hat", regel:"bewegung" },
+      { satz:"Sie ___ Benjas Completo gestohlen.", richtig:"hat", falsch:"ist", regel:"haben" },
+      { satz:"Wir ___ uns furchtbar erschrocken.", richtig:"haben", falsch:"sind", regel:"reflexiv" },
+      { satz:"Die Möwe ___ schnell verschwunden.", richtig:"ist", falsch:"hat", regel:"zustand" },
+      { satz:"Zum Glück ___ noch ein Completo übrig geblieben.", richtig:"ist", falsch:"hat", regel:"seinbleiben" },
+  ]},
+},
+
+/* =========================== NIVEAU B2 =========================== */
+B2: {
+  titel: "Pucón – ein Verb, zwei Hilfsverben",
+  welt: "pucon",
+  schwerpunkt: "mit Akkusativobjekt → haben, ohne → sein · folgen/befolgen · Plusquamperfekt",
+  intro: "Der Pudú ist im Süden: am Vulkan Villarrica, am See und in den heißen Quellen von Pucón.\n\nHier haben viele Verben zwei Hilfsverben – es kommt darauf an, ob ein Akkusativobjekt dabei ist. Und am Ende wird der Vulkan wieder aktiv …",
+  regeln: ["objekt","ohneobjekt","folgen","plusquam","reflexiv","werden","begegnen","geschehen","keinebewegung","ausnahme_sein","ausnahme_haben"],
+  etappen: [
+    { name:"Auf den Vulkan", saetze:[
+      { satz:"Der Guide ___ uns mit dem Jeep zum Vulkan gefahren.", richtig:"hat", falsch:"ist", regel:"objekt" },
+      { satz:"Am nächsten Tag ___ wir allein mit dem Jeep zum Vulkan gefahren.", richtig:"sind", falsch:"haben", regel:"ohneobjekt" },
+      { satz:"Wir ___ dem Guide bis zum Krater gefolgt.", richtig:"sind", falsch:"haben", regel:"folgen" },
+      { satz:"Wir ___ alle seine Anweisungen befolgt.", richtig:"haben", falsch:"sind", regel:"folgen" },
+      { satz:"Nachdem wir den Krater erreicht ___, machten wir eine Pause.", richtig:"hatten", falsch:"waren", regel:["plusquam","haben"] },
+      { satz:"Nachdem die Wolken verschwunden ___, sahen wir den ganzen See.", richtig:"waren", falsch:"hatten", regel:["plusquam","zustand"] },
+      { satz:"Benja ___ sich beim Abstieg den Fuß verstaucht.", richtig:"hat", falsch:"ist", regel:"reflexiv" },
+      { satz:"Der Rauch über dem Krater ___ plötzlich dichter geworden.", richtig:"ist", falsch:"hat", regel:"werden" },
+    ]},
+    { name:"Am Lago Villarrica", saetze:[
+      { satz:"Das Flugzeug ___ pünktlich in Temuco gelandet.", richtig:"ist", falsch:"hat", regel:"ohneobjekt" },
+      { satz:"Die Pilotin ___ das Flugzeug trotz Wind sicher gelandet.", richtig:"hat", falsch:"ist", regel:"objekt" },
+      { satz:"Die Tasse ___ beim Frühstück einfach zerbrochen.", richtig:"ist", falsch:"hat", regel:"ohneobjekt" },
+      { satz:"Matías ___ die Tasse aus Versehen zerbrochen.", richtig:"hat", falsch:"ist", regel:"objekt" },
+      { satz:"Nachdem wir im See geschwommen ___, wärmten wir uns am Feuer.", richtig:"waren", falsch:"hatten", regel:["plusquam","ausnahme_sein"] },
+      { satz:"Das Eis am Ufer ___ in der Sonne geschmolzen.", richtig:"ist", falsch:"hat", regel:"ohneobjekt" },
+      { satz:"Benja ___ seinen schweren Koffer bis zum Hotel gezogen.", richtig:"hat", falsch:"ist", regel:"objekt" },
+      { satz:"Sofía ___ mit dem Kajak über den See gefahren.", richtig:"ist", falsch:"hat", regel:"ohneobjekt" },
+    ]},
+    { name:"In den heißen Quellen", saetze:[
+      { satz:"Das Motorboot ___ um zehn Uhr gestartet.", richtig:"ist", falsch:"hat", regel:"ohneobjekt" },
+      { satz:"Der Kapitän ___ den Motor gestartet.", richtig:"hat", falsch:"ist", regel:"objekt" },
+      { satz:"Wir ___ stundenlang in den heißen Quellen gebadet.", richtig:"haben", falsch:"sind", regel:"haben" },
+      { satz:"Abends ___ wir in der Hütte Cueca getanzt.", richtig:"haben", falsch:"sind", regel:"ausnahme_haben" },
+      { satz:"Sofía ___ sich beim Wandern das Bein gebrochen.", richtig:"hat", falsch:"ist", regel:"objekt" },
+      { satz:"Der Ast ___ unter dem schweren Schnee gebrochen.", richtig:"ist", falsch:"hat", regel:"ohneobjekt" },
+      { satz:"Nachdem es aufgehört ___ zu regnen, gingen wir wandern.", richtig:"hatte", falsch:"war", regel:["plusquam","keinebewegung"] },
+      { satz:"Wir ___ im Wald einer Familie aus Deutschland begegnet.", richtig:"sind", falsch:"haben", regel:"begegnen" },
+    ]},
+  ],
+  boss: { name:"Der Lavastrom", gegner:"lava", saetze:[
+      { satz:"Der Vulkan ___ plötzlich wieder aktiv geworden.", richtig:"ist", falsch:"hat", regel:"werden" },
+      { satz:"Die Guides ___ alle Touristen ins Tal geführt.", richtig:"haben", falsch:"sind", regel:"objekt" },
+      { satz:"Wir ___ so schnell wie möglich ins Tal gelaufen.", richtig:"sind", falsch:"haben", regel:"ohneobjekt" },
+      { satz:"Nachdem alle unten angekommen ___, zählte der Guide die Gruppe.", richtig:"waren", falsch:"hatten", regel:["plusquam","ohneobjekt"] },
+      { satz:"Zum Glück ___ niemandem etwas passiert.", richtig:"ist", falsch:"hat", regel:"geschehen" },
+  ]},
+},
+
+/* =========================== NIVEAU C1 =========================== */
+C1: {
+  titel: "Patagonien – haben und sein in allen Formen",
+  welt: "patagonien",
+  schwerpunkt: "Konjunktiv I und II · Passiv · Ersatzinfinitiv · Infinitiv Perfekt · erschrecken, verderben",
+  intro: "Der Pudú wandert durch Patagonien: Torres del Paine, Punta Arenas und die Carretera Austral.\n\nDas Perfekt versteckt sich hier in Konjunktiv, Passiv und Futur II. Und der Patagonien-Wind ist berüchtigt …",
+  regeln: ["konjunktiv","konjunktiv1","passiv","ersatz","infperfekt","erschrecken","verderben","bewegung","zustand","reflexiv","ausnahme_sein","ausnahme_haben"],
+  etappen: [
+    { name:"Torres del Paine", saetze:[
+      { satz:"Wenn wir früher losgefahren ___, hätten wir die Torres bei Sonne gesehen.", richtig:"wären", falsch:"hätten", regel:["konjunktiv","bewegung"] },
+      { satz:"Ohne Karte ___ wir uns bestimmt verirrt.", richtig:"hätten", falsch:"wären", regel:["konjunktiv","reflexiv"] },
+      { satz:"Unser Zelt ___ in der Nacht vom Wind weggeweht worden.", richtig:"ist", falsch:"hat", regel:"passiv" },
+      { satz:"Wir ___ wegen des Sturms umkehren müssen.", richtig:"haben", falsch:"sind", regel:"ersatz" },
+      { satz:"Der Grey-Gletscher ___ in den letzten Jahren stark geschrumpft.", richtig:"ist", falsch:"hat", regel:"zustand" },
+      { satz:"Bis heute Abend werden wir das Refugio erreicht ___.", richtig:"haben", falsch:"sein", regel:["infperfekt","haben"] },
+      { satz:"Matías muss schon losgegangen ___ – sein Rucksack ist weg.", richtig:"sein", falsch:"haben", regel:["infperfekt","bewegung"] },
+      { satz:"Wäre der Wind nicht so stark gewesen, ___ wir die Wanderung beendet.", richtig:"hätten", falsch:"wären", regel:["konjunktiv","haben"] },
+    ]},
+    { name:"Punta Arenas", saetze:[
+      { satz:"Die Fähre ___ wegen des Sturms nicht abgefahren.", richtig:"ist", falsch:"hat", regel:"bewegung" },
+      { satz:"Benja ___ beim Warten am Hafen fast erfroren.", richtig:"ist", falsch:"hat", regel:"zustand" },
+      { satz:"Die Fenster des Hostals ___ über Nacht zugefroren.", richtig:"sind", falsch:"haben", regel:"zustand" },
+      { satz:"Früher ___ hier viele Schiffe aus Europa angekommen.", richtig:"sind", falsch:"haben", regel:"bewegung" },
+      { satz:"Das Museum ___ erst letztes Jahr renoviert worden.", richtig:"ist", falsch:"hat", regel:"passiv" },
+      { satz:"Wenn wir länger getanzt ___, hätten wir das letzte Taxi verpasst.", richtig:"hätten", falsch:"wären", regel:["konjunktiv","ausnahme_haben"] },
+      { satz:"Wir ___ wegen der Wellen nicht zur Pinguinkolonie fahren dürfen.", richtig:"haben", falsch:"sind", regel:"ersatz" },
+      { satz:"Die Pinguine müssen stundenlang geschwommen ___.", richtig:"sein", falsch:"haben", regel:["infperfekt","ausnahme_sein"] },
+    ]},
+    { name:"Carretera Austral", saetze:[
+      { satz:"Die Straße ___ nach dem Regen überflutet worden.", richtig:"ist", falsch:"hat", regel:"passiv" },
+      { satz:"Wir ___ an einem kleinen Fluss übernachten müssen.", richtig:"haben", falsch:"sind", regel:"ersatz" },
+      { satz:"Sofía ___ beim Anblick des Pumas fürchterlich erschrocken.", richtig:"ist", falsch:"hat", regel:"erschrecken" },
+      { satz:"Ein lautes Hupen ___ den Puma erschreckt.", richtig:"hat", falsch:"ist", regel:"erschrecken" },
+      { satz:"Die Milch im Rucksack ___ in der Sonne verdorben.", richtig:"ist", falsch:"hat", regel:"verderben" },
+      { satz:"Der Dauerregen ___ uns den ganzen Ausflug verdorben.", richtig:"hat", falsch:"ist", regel:"verderben" },
+      { satz:"Hättest du früher Bescheid gesagt, ___ ich mitgekommen.", richtig:"wäre", falsch:"hätte", regel:["konjunktiv","bewegung"] },
+      { satz:"Der alte Gaucho erzählte, er ___ schon als Kind jeden Tag geritten.", richtig:"sei", falsch:"habe", regel:["konjunktiv1","ausnahme_sein"] },
+    ]},
+  ],
+  boss: { name:"Der Patagonien-Sturm", gegner:"schneesturm", saetze:[
+      { satz:"Der Sturm ___ ohne Vorwarnung über die Pampa gezogen.", richtig:"ist", falsch:"hat", regel:"bewegung" },
+      { satz:"Wäre das Zelt nicht gut befestigt gewesen, ___ es davongeflogen.", richtig:"wäre", falsch:"hätte", regel:["konjunktiv","bewegung"] },
+      { satz:"Zwei Zeltstangen ___ vom Wind zerbrochen worden.", richtig:"sind", falsch:"haben", regel:"passiv" },
+      { satz:"Wir ___ die ganze Nacht im Auto ausharren müssen.", richtig:"haben", falsch:"sind", regel:"ersatz" },
+      { satz:"Bis morgen früh wird sich der Sturm gelegt ___.", richtig:"haben", falsch:"sein", regel:["infperfekt","reflexiv"] },
+  ]},
+},
+
+};
+</script>
+<style>
+:root{
+  --bg:#13172a; --panel:#1d2340; --panel2:#283058; --line:#4a5694;
+  --text:#f6f4fb; --muted:#cfd3ea; --accent:#ffcf5a; --accent-text:#1a1a1a;
+  --ok:#5ee08f; --ok-bg:#103a26; --bad:#ff8a8a; --bad-bg:#4a1a1f;
+  --focus:#ffe066; --btn:#323b6e; --btnh:#3f4985; --herz:#ff5c8a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);background-image:radial-gradient(ellipse at 10% 0%,#2b2f5e 0%,transparent 55%),radial-gradient(ellipse at 95% 100%,#45301f 0%,transparent 50%);background-attachment:fixed;color:var(--text);font-family:Roboto,Arial,"Segoe UI",system-ui,sans-serif;font-size:19px;line-height:1.45;min-height:100vh}
+h1,h2,h3{line-height:1.2;margin:.2em 0 .5em} h1{font-size:1.7em} h2{font-size:1.25em} h3{font-size:1.05em}
+p{margin:.4em 0 .8em} a{color:var(--accent)}
+button{font:inherit;color:var(--text);cursor:pointer;border-radius:12px;border:2px solid #7280c4;background:var(--btn);padding:.35em .9em;min-height:46px;touch-action:manipulation}
+button:hover:not(:disabled){background:var(--btnh)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visible,summary:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.primary:hover:not(:disabled){background:#ffdc85}
+input[type=text]{font:inherit;color:#111;background:#fff;border:3px solid #9aa6e0;border-radius:10px;padding:.25em .45em;min-height:46px}
+.muted{color:var(--muted)} .small{font-size:.85em} .center{text-align:center}
+.row{display:flex;gap:.6em;flex-wrap:wrap;align-items:center} .spacer{flex:1}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:1em 1.3em;box-shadow:0 8px 24px rgba(0,0,0,.35);margin-bottom:.9em}
+.narrow{max-width:940px;margin-left:auto;margin-right:auto}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.1em .7em;white-space:nowrap;font-size:.9em}
+.warnbox{background:#4a3a00;border:2px solid var(--accent);border-radius:12px;padding:.6em 1em;margin:.6em auto;font-size:.85em}
+.warnbox ul{margin:.3em 0 0;padding-left:1.2em}
+.okline{color:var(--ok)} .badline{color:var(--bad)}
+.tipbox{background:#3a3214;border:2px solid #b89a3a;border-radius:12px;padding:.45em .85em;margin-top:.6em}
+.tipbox.ok{background:var(--ok-bg);border-color:var(--ok)}
+.tipbox.bad{background:var(--bad-bg);border-color:var(--bad)}
+.tipbox p{margin:.25em 0}
+.es{color:#9fd0ff}
+.star{color:#ffd23f}
+
+#top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.6em;flex-wrap:wrap;padding:.3em .8em;background:rgba(19,23,42,.96);border-bottom:2px solid var(--line)}
+#top .brand{font-weight:800;white-space:nowrap}
+#hud{display:flex;gap:.5em;flex-wrap:wrap;align-items:center;flex:1}
+#top .tools{display:flex;gap:.4em}
+#top .tools button{min-height:40px;padding:.2em .7em;font-size:.88em}
+.homelink{color:var(--muted);text-decoration:none;font-size:.85em;border:1px solid var(--line);border-radius:999px;padding:.15em .7em;white-space:nowrap}
+.homelink:hover{color:var(--text);border-color:var(--accent)}
+main{max-width:1340px;margin:0 auto;padding:.5em 1em 1.5em}
+.eingebettet .homelink{display:none}
+
+/* ---------- Start ---------- */
+.hero .herorow{display:flex;gap:1em;align-items:center;flex-wrap:wrap}
+.hero .herorow > div:first-child{flex:1 1 440px}
+.heroart{flex:0 1 260px;display:flex;justify-content:center}
+.heroart canvas{width:240px;height:135px;border-radius:12px}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8em;margin:.6em 0 .2em}
+.level{display:flex;flex-direction:column;align-items:flex-start;gap:.15em;text-align:left;padding:.8em 1em;border-radius:16px;min-height:130px}
+.level .lv{font-size:1.6em;font-weight:800;color:var(--accent)} .level .lt{font-weight:700}
+.level .lo{font-size:.8em;color:var(--muted)}
+.tempo{display:flex;gap:.5em;flex-wrap:wrap}
+.tempo button[aria-pressed="true"]{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:.3em .9em;align-items:center;margin:.4em 0}
+kbd{display:inline-block;background:#eef0fa;color:#1a1a1a;border-radius:6px;padding:0 .45em;font-family:inherit;font-weight:700;border-bottom:3px solid #9aa6e0;min-width:1.6em;text-align:center}
+.regelliste{list-style:none;padding:0;margin:.3em 0}
+.regelliste li{background:var(--panel2);border-radius:10px;padding:.35em .7em;margin:.35em 0}
+.regelliste li.ausn{border:2px solid #ffd23f}
+
+/* ---------- Spiel ---------- */
+.game{display:flex;flex-direction:column;align-items:center;gap:.45em}
+.banner{width:100%;max-width:1060px;background:#fffdf5;color:#1d1d1d;border-radius:14px;border:3px solid #e7c76a;padding:.3em .9em .35em;box-shadow:0 4px 14px rgba(0,0,0,.35);min-height:100px;display:flex;flex-direction:column;justify-content:center}
+.banner .bmeta{font-size:.72em;color:#6a5a2a;font-weight:700;letter-spacing:.02em}
+.banner .bsatz{font-size:1.32em;font-weight:600;line-height:1.3}
+.banner .gap{display:inline-block;min-width:3.2em;border-bottom:3px solid #c0392b;color:#c0392b;text-align:center}
+.banner .bopts{font-size:.8em;color:#4a4a4a}
+.banner .bopts b{font-size:1.15em;color:#1d1d1d;background:#ffe9a6;border-radius:6px;padding:0 .35em}
+.banner.ok{background:#e7fbef;border-color:#2ecc71}
+.banner.ok .fill{color:#13863f;font-weight:800}
+.banner.bad{background:#fde9ea;border-color:#e74c3c}
+.stagewrap{position:relative;border-radius:14px;overflow:hidden;border:3px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.4);background:#000;line-height:0}
+#cv{display:block;touch-action:manipulation;cursor:pointer}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,12,28,.55);line-height:1.45;padding:1em}
+.overlay[hidden]{display:none}
+.overlay .box{background:var(--panel);border:3px solid var(--line);border-radius:16px;padding:.8em 1.2em;max-width:640px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.5);max-height:100%;overflow:auto}
+.overlay .box.bad{border-color:var(--bad)}
+.overlay.klein{font-size:.74em;padding:.4em}
+.overlay.klein .box{padding:.45em .8em}
+.overlay.klein button{min-height:38px}
+.overlay.klein .big{font-size:1.15em}
+.overlay .box.ok{border-color:var(--ok)}
+.overlay .big{font-size:1.25em;font-weight:700}
+.overlay .satzfull{background:#fffdf5;color:#1d1d1d;border-radius:10px;padding:.3em .6em;font-size:1.1em;margin:.4em 0}
+.overlay .satzfull strong{color:#13863f}
+.ctrl{display:flex;gap:.6em;width:100%;max-width:1060px;justify-content:space-between}
+.ctrl button{flex:1;min-height:56px;font-size:1.05em}
+.ctrl button b{background:#ffe9a6;color:#1d1d1d;border-radius:6px;padding:0 .4em;margin-left:.2em}
+.ctrl #bPause{flex:0 0 auto}
+
+/* Ergebnis */
+.restable{border-collapse:collapse;margin:.5em 0;width:100%}
+.restable th,.restable td{text-align:left;padding:.3em .6em;border-bottom:1px solid var(--line)}
+.restable th{color:var(--muted);font-weight:600;width:45%}
+.bigcode{font-family:Consolas,"Courier New",monospace;font-size:1.6em;font-weight:800;letter-spacing:.06em;background:#fff;color:#111;border-radius:12px;padding:.2em .6em;display:inline-block;margin:.2em 0 .5em;user-select:all}
+.wronglist li{margin:.5em 0}
+.lsatz li{margin:.2em 0}
+details{margin:.4em 0} summary{cursor:pointer;font-weight:700}
+
+.confirmbox{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center;padding:1em}
+.confirmbox .cb{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:1em 1.3em;max-width:520px}
+.confirmbox .cbrow{display:flex;gap:.6em;justify-content:flex-end}
+#toast{position:fixed;left:50%;bottom:1.2em;transform:translateX(-50%);background:#0c0f20;border:2px solid var(--accent);border-radius:12px;padding:.5em 1em;z-index:90;max-width:90vw}
+#toast[hidden]{display:none}
+
+@media (max-width:700px){ body{font-size:17px} .banner .bsatz{font-size:1.1em} }
+</style>
+</head>
+<body>
+<header id="top">
+  <a class="homelink" href="index.html" title="Zur Startseite mit allen Spielen">← Alle Spiele</a>
+  <span class="brand">🦌 Pudú-Sprung</span>
+  <div id="hud" aria-live="off"></div>
+  <div class="tools">
+    <button type="button" id="btnMenu" title="Zum Menü">☰ Menü</button>
+    <button type="button" id="btnAnim" aria-pressed="false" title="Animationen an/aus">🎞 Animationen an</button>
+    <button type="button" id="btnSound" aria-pressed="false" title="Ton an/aus">🔇 Ton aus</button>
+  </div>
+</header>
+<main id="app" tabindex="-1"></main>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<script>
+/* =====================================================================
+   AB HIER: SPIEL-LOGIK (muss nicht geändert werden)
+   ===================================================================== */
+const E = EINSTELLUNGEN;
+const LEVELS = ['A2','B1','B2','C1'];
+const WELTEN = ['atacama','valparaiso','pucon','patagonien'];
+const GEGNER = ['sandsturm','moewe','lava','schneesturm'];
+const LS_GAME = 'pudusprung.spiel.v1', LS_SET = 'pudusprung.einstellungen.v1';
+const TEMPI = [['langsam','🐢 langsam'],['normal','🦌 normal'],['schnell','⚡ schnell']];
+
+const app = document.getElementById('app');
+let state=null, view='start', settings={ sound:false, anim:true, tempo:'normal' };
+let G=null, raf=0, lastTs=0, ZEITRAFFER=1;
+
+/* ---------- Speicher ---------- */
+function lsGet(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { window.localStorage.setItem(k,v); } catch(e){} }
+function lsDel(k){ try { window.localStorage.removeItem(k); } catch(e){} }
+function save(){ if(state) lsSet(LS_GAME, JSON.stringify(state)); }
+function saveSettings(){ lsSet(LS_SET, JSON.stringify(settings)); }
+
+/* ---------- Helfer ---------- */
+const $  = (s,r) => (r||document).querySelector(s);
+const $$ = (s,r) => Array.from((r||document).querySelectorAll(s));
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+function plain(s){ return String(s==null?'':s).replace(/\*\*/g,''); }
+function paras(s){ return String(s||'').split(/\n\s*\n/).map(p => '<p>'+fmt(p)+'</p>').join(''); }
+function asList(x){ return x==null ? [] : (Array.isArray(x) ? x : [x]); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function range(n){ return Array.from({length:n},(_,i)=>i); }
+function fmtTime(ms){ const s=Math.max(0,Math.round(ms/1000)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function fmtDate(d){ const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear(); }
+function focusEl(sel){ const el = sel ? (typeof sel==='string'?$(sel):sel) : null; (el||app).focus({preventScroll:true}); }
+let toastT=null;
+function toast(msg, ms){ const t=$('#toast'); t.innerHTML=fmt(msg); t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; }, ms||3000); }
+function ruhig(){ return !settings.anim || !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+function spanish(level){ return !!E.spanischeHilfe[level||(state&&state.level)]; }
+function mod(a,n){ return ((a%n)+n)%n; }
+function rnd(i){ const x=Math.sin(i*127.1+311.7)*43758.5453; return x-Math.floor(x); }
+
+/* ---------- Eingebettet (z. B. Google Sites) ---------- */
+const EINGEBETTET = (()=>{ try { return window.self!==window.top; } catch(e){ return true; } })();
+if(EINGEBETTET) document.documentElement.classList.add('eingebettet');
+function bestaetigen(msg, ok){
+  const d=document.createElement('div'); d.className='confirmbox'; d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true');
+  d.innerHTML='<div class="cb"><p></p><div class="cbrow"><button type="button" class="cbno">Abbrechen</button><button type="button" class="primary cbyes">Ja</button></div></div>';
+  d.querySelector('p').textContent=msg; document.body.appendChild(d);
+  const close=()=>d.remove();
+  d.querySelector('.cbno').addEventListener('click',close);
+  d.querySelector('.cbyes').addEventListener('click',()=>{ close(); ok(); });
+  d.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Escape') close(); });
+  d.querySelector('.cbno').focus();
+}
+
+/* ---------- Daten ---------- */
+function etappen(level){
+  const S=SPIEL[level||state.level];
+  return asList(S.etappen).map((e,i)=>({ name:e.name, saetze:asList(e.saetze), boss:false, idx:i }))
+    .concat(S.boss ? [{ name:S.boss.name, saetze:asList(S.boss.saetze), boss:true, gegner:S.boss.gegner, idx:asList(S.etappen).length }] : []);
+}
+function alleSaetze(level){ return etappen(level).reduce((a,e)=>a.concat(e.saetze.map((s,i)=>Object.assign({ id:e.idx+'.'+i },s))),[]); }
+function signature(level){ return etappen(level).map(e=>e.saetze.length).join('-'); }
+function L(){ return SPIEL[state.level]; }
+function fill(s, wort, cls){ return fmt(s.satz).replace('___', '<strong'+(cls?' class="'+cls+'"':'')+'>'+esc(wort)+'</strong>'); }
+function satzGap(s){ return esc(s.satz).replace('___','<span class="gap">___</span>'); }
+function satzPlain(s, wort){ return plain(s.satz).replace('___', wort); }
+function regelHTML(regel, level){
+  return asList(regel).map(k=>REGELN[k]).filter(Boolean).map(r=>'<p>'+(r.ausnahme?'<span class="star">⭐</span> ':'📌 ')+fmt(r.text)+'</p>'+(spanish(level)&&r.es?'<p class="es small" lang="es">🇨🇱 '+fmt(r.es)+'</p>':'')).join('');
+}
+function regelPlain(regel){ return asList(regel).map(k=>REGELN[k]).filter(Boolean).map(r=>(r.ausnahme?'⭐ ':'')+plain(r.text)).join(' / '); }
+function regelListe(level){
+  return '<ul class="regelliste">'+asList(SPIEL[level].regeln).map(k=>REGELN[k]).filter(Boolean).map(r=>'<li class="'+(r.ausnahme?'ausn':'')+'">'+(r.ausnahme?'<span class="star">⭐</span> ':'📌 ')+fmt(r.text)+(spanish(level)&&r.es?'<br><span class="es small" lang="es">🇨🇱 '+fmt(r.es)+'</span>':'')+'</li>').join('')+'</ul>';
+}
+
+function dataWarnings(){
+  const w=[];
+  Object.keys(REGELN).forEach(k=>{ if(!REGELN[k] || !REGELN[k].text) w.push('REGELN '+k+': text fehlt.'); });
+  LEVELS.forEach(lv=>{ const S=SPIEL[lv]; if(S==null) return;
+    if(!WELTEN.includes(S.welt)) w.push(lv+': welt muss '+WELTEN.join(', ')+' sein.');
+    if(!asList(S.etappen).length) w.push(lv+': „etappen“ fehlt.');
+    if(!S.boss || !asList(S.boss.saetze).length) w.push(lv+': „boss“ mit Sätzen fehlt.');
+    else if(!GEGNER.includes(S.boss.gegner)) w.push(lv+': boss.gegner muss '+GEGNER.join(', ')+' sein.');
+    asList(S.regeln).forEach(k=>{ if(!REGELN[k]) w.push(lv+': Regel „'+k+'“ steht nicht in REGELN.'); });
+    etappen(lv).forEach(e=>{
+      if(!e.saetze.length) w.push(lv+' · '+e.name+': keine Sätze.');
+      e.saetze.forEach((s,i)=>{ const where=lv+' · '+e.name+' · Satz '+(i+1)+': ';
+        if(!s || typeof s.satz!=='string' || s.satz.split('___').length!==2) w.push(where+'satz braucht genau eine Lücke ___.');
+        if(!s || !s.richtig || !s.falsch) w.push(where+'richtig oder falsch fehlt.');
+        else if(String(s.richtig).trim()===String(s.falsch).trim()) w.push(where+'richtig und falsch sind gleich.');
+        if(!s || !asList(s.regel).length) w.push(where+'regel fehlt.');
+        else asList(s.regel).forEach(k=>{ if(!REGELN[k]) w.push(where+'Regel „'+k+'“ steht nicht in REGELN.'); });
+      }); });
+  });
+  return w;
+}
+
+/* ---------- Prüfcode ---------- */
+function cyrb53(str){ let h1=0xdeadbeef, h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909); return 4294967296*(2097151&h2)+(h1>>>0); }
+const B32='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function normName(n){ return String(n||'').replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]/g,''); }
+function checksum(level,pct,k,d,name){ let n=cyrb53(['PS',level,pct,k,d,normName(name),E.geheimwort].join('|')); let s=''; for(let i=0;i<5;i++){ s+=B32[n%32]; n=Math.floor(n/32); } return s; }
+function makeCode(level,pct,k,date,name){ const p=n=>String(n).padStart(2,'0'); const d=p(date.getDate())+p(date.getMonth()+1)+p(date.getFullYear()%100); return level+'-'+pct+'-'+k+'-'+d+'-'+checksum(level,pct,k,d,name); }
+function verifyCode(code,name){
+  const m=String(code||'').toUpperCase().replace(/\s+/g,'').match(/^(A2|B1|B2|C1)-(\d{1,3})-(\d)-(\d{6})-([A-Z0-9]{5})$/);
+  if(!m) return { valid:false, reason:'Das Format stimmt nicht. Beispiel: A2-86-2-151026-K7QFM' };
+  return { valid: checksum(m[1],+m[2],+m[3],m[4],name)===m[5], level:m[1], pct:+m[2], k:+m[3], date:m[4].slice(0,2)+'.'+m[4].slice(2,4)+'.20'+m[4].slice(4) };
+}
+
+/* ---------- Ton ---------- */
+let actx=null;
+const SND={ hop:[[520,.05],[700,.06]], ok:[[660,.1],[880,.18]], bad:[[220,.25]], huh:[[330,.1],[260,.16]], boing:[[300,.06],[600,.08],[1000,.12]], kondor:[[784,.1],[988,.1],[1175,.1],[1568,.3]], fanfare:[[523,.15],[659,.15],[784,.15],[1047,.4]], tick:[[600,.03]] };
+function sound(n){ if(!settings.sound) return; try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); let t=actx.currentTime;
+  (SND[n]||[]).forEach(([f,d])=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type='triangle'; o.frequency.value=f; g.gain.setValueAtTime(.15,t); g.gain.exponentialRampToValueAtTime(.001,t+d); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d+.02); t+=d*.8; }); }catch(e){} }
+
+/* ---------- Spielstand ---------- */
+function newGame(level){ state={ v:1, level, sig:signature(level), etappe:0, phase:'intro', res:{}, wrong:[], completos:0, kondore:{}, elapsed:0, name:'', finished:null, letzte:null }; save(); }
+function loadSaved(){ try{ const s=JSON.parse(lsGet(LS_GAME)||'null'); if(s && s.v===1 && SPIEL[s.level] && s.sig===signature(s.level)) return s; }catch(e){} return null; }
+function stats(){ const all=alleSaetze(), ok=all.filter(s=>state.res[s.id]===1).length; return { ok, total:all.length, pct: all.length?Math.round(ok*100/all.length):0, k:Object.keys(state.kondore).length }; }
+
+/* =====================================================================
+   SPIELWELT (Canvas 960 × 540)
+   ===================================================================== */
+const W=960, H=540, GROUND=455, PX=230, PLAT_Y=GROUND-125, PLAT_H=20, PLAT_L=440, GRAV=2400, JUMP=880, BOUNCE=1320, COP_TOP=GROUND-40;
+
+function speed(){ return (E.tempo && E.tempo[settings.tempo]) || 225; }
+
+function startEtappe(){
+  const et=etappen()[state.etappe], n=et.saetze.length, S=et.boss?E.abstandBoss:E.abstand;
+  G={ et, n, forks:[], obst:[], cop:null, kondor:null, i:0, cam:0, t:0, started:false, paused:false, modal:null, done:false, ending:0,
+      p:{ y:GROUND, vy:0, air:false, onPlat:null, drop:0, stumble:0, coyote:0, buffer:0 },
+      hearts:E.herzen, bossDist:0, parts:[], okRun:0, bannerT:0, lockUntil:0, kondorJetzt:false };
+  const order=shuffle(range(n));
+  let x=950;
+  order.forEach((si,k)=>{
+    const s=et.saetze[si], up=Math.random()<.5;
+    G.forks.push({ x, L:PLAT_L, si, s, up, top: up?s.richtig:s.falsch, bot: up?s.falsch:s.richtig, decided:false, choice:null, ok:null });
+    if(k<n-1){
+      const gs=x+PLAT_L, free0=gs+260, free1=gs+S-360;
+      const len=free1-free0;
+      if(len>80){ const a=free0+rnd(state.etappe*31+k*7)*Math.min(len,300); G.obst.push(mkObst(a, k)); if(len>650){ const b=a+380+rnd(k*13+5)*(free1-a-380); if(b<free1) G.obst.push(mkObst(b,k+50)); } }
+    }
+    x+=PLAT_L+S;
+  });
+  // Kondor (nicht in der Bossrunde)
+  if(!et.boss && n>=5){
+    const k=1+Math.floor(Math.random()*(n-3)), gs=G.forks[k].x+PLAT_L;
+    G.obst=G.obst.filter(o=>o.x<gs || o.x>gs+S);
+    G.cop={ x:gs+330, boing:0 }; G.kondor={ x:gs+330+115, y:95, got:false };
+  }
+  G.ziel=G.forks[n-1].x+PLAT_L+520;
+}
+function mkObst(x, seed){ const r=rnd(seed+state.etappe*3); return { x, w:26+Math.round(r*10), h:30+Math.round(rnd(seed+9)*12), hit:false }; }
+
+/* ---------- Steuerung ---------- */
+function grounded(){ return !G.p.air; }
+function jump(){
+  if(!G) return;
+  if(G.modal){ continueOverlay(); return; }
+  if(!G.started){ return; }
+  if(G.paused || G.done) return;
+  const p=G.p;
+  if(grounded() || p.coyote>0) doJump(); else p.buffer=0.14;
+}
+function doJump(){ const p=G.p; p.vy=-JUMP; p.air=true; p.onPlat=null; p.buffer=0; p.coyote=0; sound('hop'); }
+function dropDown(){
+  if(!G || G.modal || !G.started || G.paused) return;
+  const p=G.p; if(p.onPlat){ p.onPlat=null; p.air=true; p.vy=80; p.drop=0.3; }
+}
+
+/* ---------- Physik ---------- */
+function step(dt){
+  const p=G.p; G.t+=dt;
+  if(G.bannerT>0){ G.bannerT-=dt; if(G.bannerT<=0) setBanner(); }
+  G.parts.forEach(q=>{ q.x+=q.vx*dt; q.y+=q.vy*dt; q.vy+=q.g*dt; q.life-=dt; }); G.parts=G.parts.filter(q=>q.life>0);
+  if(G.cop && G.cop.boing>0) G.cop.boing-=dt;
+  if(G.done){ G.ending+=dt; return; }
+  const sp=speed()*(p.stumble>0?.45:1);
+  G.cam+=sp*dt;
+  const px=G.cam+PX, prevY=p.y;
+  p.stumble=Math.max(0,p.stumble-dt); p.drop=Math.max(0,p.drop-dt); p.coyote=Math.max(0,p.coyote-dt); p.buffer=Math.max(0,p.buffer-dt);
+  if(p.onPlat && (px>p.onPlat.x+p.onPlat.L || px<p.onPlat.x-12)){ p.onPlat=null; p.air=true; p.vy=0; p.coyote=0.1; }
+  if(p.buffer>0 && (grounded()||p.coyote>0)) doJump();
+  if(p.air){
+    p.vy+=GRAV*dt; p.y+=p.vy*dt;
+    if(p.vy>0){
+      let landed=false;
+      if(p.drop<=0) for(const f of G.forks){ if(px>=f.x-12 && px<=f.x+f.L && prevY<=PLAT_Y && p.y>=PLAT_Y){ p.y=PLAT_Y; p.vy=0; p.air=false; p.onPlat=f; landed=true; break; } }
+      if(!landed && G.cop && Math.abs(px-G.cop.x)<26 && prevY<=COP_TOP && p.y>=COP_TOP){ p.y=COP_TOP; p.vy=-BOUNCE; G.cop.boing=.3; sound('boing'); landed=true; }
+      if(!landed && p.y>=GROUND){ p.y=GROUND; p.vy=0; p.air=false; }
+    }
+  }
+  // Hindernisse
+  for(const o of G.obst){
+    if(o.hit || p.stumble>0) continue;
+    if(px+16>o.x+6 && px-12<o.x+o.w-6 && p.y>GROUND-o.h+6){
+      o.hit=true; p.stumble=.7; sound('huh');
+      if(state.completos>0){ state.completos--; puff(PX+10, p.y-60, '−1 🌭'); updateHud(); }
+    }
+  }
+  // Kondor
+  const k=G.kondor;
+  if(k && !k.got){ const dx=(px+4)-k.x, dy=(p.y-30)-k.y; if(dx*dx+dy*dy<65*65){ k.got=true; state.kondore[G.et.idx]=true; G.hearts=Math.min(E.maxHerzen,G.hearts+1); sound('kondor'); toast('🦅 Du hast den Kondor gefunden! +1 ❤️',3500); feathers(k.x-G.cam,k.y); updateHud(); save(); } }
+  // Entscheidung
+  const f=G.forks[G.i];
+  if(f && !f.decided && px>=f.x+f.L-50){ const oben = p.onPlat===f || (p.air && p.y<PLAT_Y+4 && px>=f.x); decide(f, oben); }
+  // Ziel
+  if(G.i>=G.n && !G.modal && px>=G.ziel){ G.done=true; sound('fanfare'); setTimeout(etappeFertig, ruhig()?300:1200); }
+}
+
+function puff(x,y,txt){ G.parts.push({ x, y, vx:0, vy:-40, g:0, life:1.1, txt }); }
+function sparkle(x,y){ if(ruhig()) return; for(let i=0;i<10;i++){ const a=Math.random()*Math.PI*2; G.parts.push({ x, y, vx:Math.cos(a)*120, vy:Math.sin(a)*120-80, g:300, life:.7, c:['#ffd23f','#ff7f50','#7bed9f'][i%3] }); } }
+function feathers(x,y){ if(ruhig()) return; for(let i=0;i<12;i++){ const a=Math.random()*Math.PI*2; G.parts.push({ x, y, vx:Math.cos(a)*90, vy:Math.sin(a)*60, g:60, life:1.4, c:i%2?'#222':'#fff' }); } }
+
+function decide(f, oben){
+  f.decided=true; f.choice=oben?'oben':'unten'; f.ok=(oben===f.up); G.i++;
+  const s=f.s, id=G.et.idx+'.'+f.si, gewaehlt=oben?f.top:f.bot;
+  if(state.res[id]===undefined) state.res[id]=f.ok?1:0;
+  if(f.ok){
+    state.completos++; G.okRun++; sound('ok'); sparkle(f.x+f.L-60-G.cam, (oben?PLAT_Y:GROUND)-30);
+    showBannerOk(f); save(); updateHud();
+  } else {
+    if(!state.wrong.some(w=>w.id===id)) state.wrong.push({ id, etappe:G.et.name, satz:s.satz, deine:gewaehlt, richtig:s.richtig, regel:s.regel });
+    G.hearts--; G.p.stumble=.5; if(G.et.boss) G.bossDist++; sound('bad'); save(); updateHud();
+    const bn=$('#banner'); if(bn){ bn.className='banner bad'; }
+    openOverlay('<div class="box bad" role="alertdialog" aria-labelledby="ovT"><p class="big badline" id="ovT">✗ Leider falsch – du hast „'+esc(gewaehlt)+'“ gewählt.</p>'+
+      '<div class="satzfull">'+fill(s, s.richtig)+'</div>'+regelHTML(s.regel)+
+      (G.hearts<=0?'<p class="badline"><strong>💔 Keine Herzen mehr!</strong> Die Etappe beginnt noch einmal.</p>':'<p class="small muted">❤️ noch '+G.hearts+(G.et.boss?' · Der Gegner kommt näher!':'')+'</p>')+
+      '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="ovGo">Weiter ➜ <span class="small">(Leertaste)</span></button></div></div>',
+      ()=>{ if(G.hearts<=0){ startEtappe(); renderGameDOM(); } else setBanner(); }, 800);
+  }
+}
+
+/* ---------- Overlays ---------- */
+function openOverlay(html, onGo, lock, menu){
+  const ov=$('#overlay'); if(!ov) return;
+  G.modal={ onGo, menu:!!menu }; G.lockUntil=performance.now()+(lock||0);
+  ov.innerHTML=html; ov.hidden=false;
+  const b=$('#ovGo',ov); if(b){ b.addEventListener('click',()=>continueOverlay(true)); setTimeout(()=>{ if(G && G.modal && b.isConnected) b.focus({preventScroll:true}); }, Math.min(lock||0,400)); }
+}
+function closeOverlay(){ const ov=$('#overlay'); if(ov){ ov.hidden=true; ov.innerHTML=''; } if(G) G.modal=null; const cv=$('#cv'); if(cv) cv.focus({preventScroll:true}); }
+function continueOverlay(force){
+  if(!G || !G.modal) return;
+  if(!force && performance.now()<G.lockUntil) return;
+  const fn=G.modal.onGo; closeOverlay(); if(fn) fn();
+}
+function startOverlay(){
+  const et=G.et, nE=etappen().length;
+  const head = et.boss ? '⚠️ Bossrunde: '+esc(et.name) : 'Etappe '+(et.idx+1)+' von '+(nE-1)+': '+esc(et.name);
+  const txt = et.boss ? '<p>'+bossText(et.gegner)+' Jeder Fehler bringt ihn näher – aber du hast '+G.hearts+' Herzen.</p>'
+    : '<p>Lies den Satz oben. <strong>Springen</strong> = das obere Wort, <strong>weiterlaufen</strong> = das untere Wort.</p>'+(state.etappe===0?'<p class="small muted">Spring auch über Hindernisse – sonst verlierst du einen Completo. 🦅 Und irgendwo versteckt sich ein Kondor … Vielleicht hilft dir eine rote Blume?</p>':'');
+  openOverlay('<div class="box" role="dialog" aria-labelledby="ovT"><p class="big" id="ovT">'+head+'</p>'+txt+
+    '<div class="row"><span class="small muted">❤️ '+G.hearts+' Herzen · '+G.n+' Sätze</span><span class="spacer"></span><button type="button" class="primary" id="ovGo">Los! <span class="small">(Leertaste)</span></button></div></div>',
+    ()=>{ G.started=true; lastTs=0; }, 250);
+}
+function bossText(g){ return { sandsturm:'Ein Sandsturm jagt den Pudú durch die Wüste!', moewe:'Eine riesige Möwe will die Completos klauen!', lava:'Der Vulkan bricht aus – ein Lavastrom fließt ins Tal!', schneesturm:'Der Patagonien-Sturm bläst mit voller Kraft!' }[g]||'Der Boss ist da!'; }
+function openPause(){
+  if(!G || G.modal || G.done) return;
+  G.paused=true;
+  openOverlay('<div class="box" role="dialog" aria-labelledby="ovT"><p class="big" id="ovT">⏸ Pause</p>'+
+    '<p class="small muted">Tempo:</p><div class="tempo">'+TEMPI.map(t=>'<button type="button" data-t="'+t[0]+'" aria-pressed="'+(settings.tempo===t[0])+'">'+t[1]+'</button>').join('')+'</div>'+
+    '<details><summary>📌 Regeln ansehen</summary>'+regelListe(state.level)+'</details>'+
+    '<div class="row" style="margin-top:.6em"><button type="button" class="primary" id="ovGo">▶ Weiter <span class="small">(P)</span></button><button type="button" id="ovRestart">↺ Etappe neu</button><span class="spacer"></span><button type="button" id="ovMenu">☰ Menü</button></div></div>',
+    ()=>{ G.paused=false; lastTs=0; }, 0, true);
+  $$('#overlay .tempo button').forEach(b=>b.addEventListener('click',()=>{ settings.tempo=b.dataset.t; saveSettings(); $$('#overlay .tempo button').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); }));
+  $('#ovRestart').addEventListener('click',()=>{ closeOverlay(); startEtappe(); renderGameDOM(); });
+  $('#ovMenu').addEventListener('click',()=>{ closeOverlay(); stopLoop(); view='start'; state=null; render(); });
+}
+
+/* ---------- Banner und Knöpfe ---------- */
+function currentFork(){ return G && G.forks[G.i]; }
+function setBanner(){
+  const bn=$('#banner'); if(!bn || !G) return;
+  const f=currentFork(); bn.className='banner';
+  const meta=(G.et.boss?'⚠️ Bossrunde · ':'Etappe '+(G.et.idx+1)+' · ')+esc(G.et.name)+(f?' · Satz '+(G.i+1)+' von '+G.n:'');
+  if(!f){ bn.innerHTML='<div class="bmeta">'+meta+'</div><div class="bsatz">🏁 Geschafft! Lauf ins Ziel!</div>'; setCtrl(null); return; }
+  bn.innerHTML='<div class="bmeta">'+meta+'</div><div class="bsatz">'+satzGap(f.s)+'</div><div class="bopts">⬆ springen = <b>'+esc(f.top)+'</b> &nbsp;·&nbsp; ➡ weiterlaufen = <b>'+esc(f.bot)+'</b></div>';
+  setCtrl(f);
+}
+function showBannerOk(f){
+  const bn=$('#banner'); if(!bn) return;
+  bn.className='banner ok';
+  bn.innerHTML='<div class="bmeta">✓ Richtig! 🌭 +1</div><div class="bsatz">'+fill(f.s, f.s.richtig, 'fill')+'</div>';
+  setCtrl(currentFork()); G.bannerT=1.2;
+}
+function setCtrl(f){
+  const u=$('#bUp'), d=$('#bDown'); if(!u) return;
+  u.innerHTML='⬆ Springen'+(f?' <b>'+esc(f.top)+'</b>':'');
+  d.innerHTML='➡ Unten bleiben'+(f?' <b>'+esc(f.bot)+'</b>':'');
+}
+
+/* ---------- Zeichnen ---------- */
+let cv=null, ctx=null, scaleK=1;
+function resize(){
+  cv=$('#cv'); if(!cv) return;
+  const wrap=cv.parentElement, top=$('#top').offsetHeight, bn=$('#banner').offsetHeight, ct=$('.ctrl').offsetHeight;
+  const availH=Math.max(200, window.innerHeight-top-bn-ct-34), availW=Math.min(app.clientWidth-8, 1060);
+  let w=Math.min(availW, availH*16/9); w=Math.max(280,Math.floor(w)); const h=Math.round(w*9/16);
+  cv.style.width=w+'px'; cv.style.height=h+'px'; const ov=$('#overlay'); if(ov) ov.classList.toggle('klein', h<400);
+  const dpr=Math.min(2, window.devicePixelRatio||1);
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); scaleK=cv.width/W;
+  ctx=cv.getContext('2d'); draw();
+}
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function ell(x,y,rx,ry,c){ ctx.fillStyle=c; ctx.beginPath(); ctx.ellipse(x,y,Math.max(.1,rx),Math.max(.1,ry),0,0,Math.PI*2); ctx.fill(); }
+function circ(x,y,r,c){ ell(x,y,r,r,c); }
+function poly(pts,c){ ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(pts[0],pts[1]); for(let i=2;i<pts.length;i+=2) ctx.lineTo(pts[i],pts[i+1]); ctx.closePath(); ctx.fill(); }
+
+const THEME={
+  atacama:{ sky:['#5aa0d8','#f7d9a0'], ground:'#d39a5c', ground2:'#b97c43', plat:'#c88a52', platEdge:'#8a5a2b' },
+  valparaiso:{ sky:['#6fbbe9','#d9f1ff'], ground:'#8e8b99', ground2:'#6d6a78', plat:'#c0623a', platEdge:'#7a3a20' },
+  pucon:{ sky:['#7fc2ee','#e6f6ff'], ground:'#4f9a3c', ground2:'#6b4a2a', plat:'#9a6a3a', platEdge:'#5a3a1a' },
+  patagonien:{ sky:['#a9cde8','#eef6fb'], ground:'#eef4f8', ground2:'#b9cad6', plat:'#bfe3f2', platEdge:'#6aa3c0' },
+};
+function layer(f){ return ruhig()?0:G.cam*f; }
+function each(off, period, fn){ const start=Math.floor(off/period)-1; for(let i=start;i<=start+Math.ceil(W/period)+2;i++) fn(i*period-off, i); }
+
+function drawBg(welt){
+  const T=THEME[welt]; const g=ctx.createLinearGradient(0,0,0,GROUND); g.addColorStop(0,T.sky[0]); g.addColorStop(1,T.sky[1]); ctx.fillStyle=g; ctx.fillRect(0,0,W,GROUND);
+  if(welt==='atacama'){
+    circ(820,90,42,'#fff3b0');
+    each(layer(.12),900,(x,i)=>{ poly([x,GROUND-40, x+250,GROUND-290, x+500,GROUND-40],'#8a6a7a'); poly([x+215,GROUND-255, x+250,GROUND-290, x+285,GROUND-255],'#f4eef2'); poly([x+430,GROUND-40, x+600,GROUND-200, x+770,GROUND-40],'#9c7b88'); });
+    each(layer(.4),600,(x,i)=>{ ell(x+150,GROUND,260,70+rnd(i)*40,'#e2b07a'); ell(x+470,GROUND+10,220,60,'#dba26a'); });
+  } else if(welt==='valparaiso'){
+    ctx.fillStyle='#2f7fb8'; ctx.fillRect(0,GROUND-120,W,40);
+    each(layer(.12),700,(x,i)=>{ ell(x+350,GROUND-40,420,150,'#6e8f6a'); for(let j=0;j<9;j++){ ctx.fillStyle=['#e74c3c','#f1c40f','#3498db','#9b59b6','#1abc9c','#e67e22','#ff7eb6'][mod(i*3+j,7)]; ctx.fillRect(x+90+j*58,GROUND-150+Math.abs(j-4)*16,30,22); } });
+    const C=['#e74c3c','#f1c40f','#3498db','#9b59b6','#1abc9c','#e67e22','#ff7eb6','#2ecc71'];
+    each(layer(.4),420,(x,i)=>{ for(let j=0;j<3;j++){ const hh=110+rnd(i*3+j)*90, hx=x+j*140; ctx.fillStyle=C[mod(i*3+j,8)]; ctx.fillRect(hx,GROUND-hh,110,hh); poly([hx-8,GROUND-hh, hx+55,GROUND-hh-34, hx+118,GROUND-hh],'#8a3324');
+      ctx.fillStyle='rgba(255,255,255,.75)'; for(let r=0;r<Math.floor(hh/45);r++){ ctx.fillRect(hx+18,GROUND-hh+16+r*40,20,22); ctx.fillRect(hx+70,GROUND-hh+16+r*40,20,22); } } });
+  } else if(welt==='pucon'){
+    each(layer(.1),1100,(x,i)=>{ poly([x+100,GROUND-40, x+420,GROUND-320, x+740,GROUND-40],'#6b7d8f'); poly([x+340,GROUND-250, x+420,GROUND-320, x+500,GROUND-250, x+460,GROUND-240, x+420,GROUND-255, x+380,GROUND-238],'#ffffff');
+      for(let s=0;s<4;s++){ const tt=ruhig()?s*.25:((G?G.t:0)*.15+s*.25)%1; circ(x+420+tt*60, GROUND-330-tt*140, 18+tt*30, 'rgba(200,200,205,'+(0.7-tt*.6)+')'); } });
+    ctx.fillStyle='#4fa3c7'; ctx.fillRect(0,GROUND-70,W,70);
+    each(layer(.35),380,(x,i)=>{ const tx=x+80+rnd(i)*120, th=150+rnd(i+3)*70; ctx.fillStyle='#4a3420'; ctx.fillRect(tx-5,GROUND-th,10,th);
+      for(let l=0;l<4;l++){ ell(tx,GROUND-th+l*20,62-l*10,10,'#22502c'); } });
+  } else {
+    each(layer(.1),1000,(x,i)=>{ poly([x,GROUND-60, x+300,GROUND-220, x+620,GROUND-60],'#8d9fb0');
+      [[x+230,90,40],[x+300,70,34],[x+360,100,38]].forEach(([tx,top,w])=>{ poly([tx-w/2,GROUND-150, tx-w/3,top, tx+w/3,top-6, tx+w/2,GROUND-150],'#6d6f7a'); poly([tx-w/3,top, tx+w/3,top-6, tx+w/4,top+14, tx-w/4,top+16],'#ffffff'); }); });
+    ctx.fillStyle='#58b8c9'; ctx.fillRect(0,GROUND-60,W,60);
+    each(layer(.35),520,(x,i)=>{ poly([x,GROUND-60, x+120,GROUND-110-rnd(i)*30, x+260,GROUND-60],'#e8f6fb'); poly([x+120,GROUND-110-rnd(i)*30, x+150,GROUND-80, x+260,GROUND-60],'#bfe0ee'); });
+  }
+  // Boden
+  ctx.fillStyle=T.ground; ctx.fillRect(0,GROUND,W,H-GROUND);
+  ctx.fillStyle=T.ground2; ctx.fillRect(0,GROUND+22,W,H-GROUND-22);
+  const off=G?G.cam:0;
+  each(off,80,(x,i)=>{ ctx.fillStyle='rgba(0,0,0,.12)'; ctx.fillRect(x+rnd(i)*40,GROUND+34+rnd(i+1)*30,14,6); if(welt==='valparaiso'){ ctx.strokeStyle='rgba(0,0,0,.18)'; ctx.strokeRect(x,GROUND,40,22); ctx.strokeRect(x+40,GROUND,40,22); } });
+}
+
+function drawObst(o, welt){
+  const x=o.x-G.cam, b=GROUND; if(x<-80||x>W+80) return;
+  if(welt==='atacama'){ ctx.fillStyle='#3f8f4f'; rr(x+o.w/2-8,b-o.h,16,o.h,7); ctx.fill(); rr(x,b-o.h*.75,8,o.h*.4,4); ctx.fill(); rr(x+o.w-8,b-o.h*.85,8,o.h*.45,4); ctx.fill(); ctx.fillRect(x+4,b-o.h*.45,o.w-8,6); }
+  else if(welt==='valparaiso'){ ctx.fillStyle='#b07a3a'; ctx.fillRect(x,b-o.h,o.w,o.h); ctx.strokeStyle='#6a4520'; ctx.lineWidth=3; ctx.strokeRect(x+1.5,b-o.h+1.5,o.w-3,o.h-3); ctx.beginPath(); ctx.moveTo(x,b-o.h); ctx.lineTo(x+o.w,b); ctx.stroke(); }
+  else if(welt==='pucon'){ ell(x+o.w/2,b-o.h/2+6,o.w/2+8,o.h/2-4,'#7a5230'); ell(x+o.w+6,b-o.h/2+6,7,o.h/2-6,'#c8a272'); }
+  else { ctx.fillStyle='#bfe8f7'; rr(x,b-o.h,o.w,o.h,5); ctx.fill(); ctx.fillStyle='rgba(255,255,255,.8)'; ctx.fillRect(x+5,b-o.h+5,6,o.h-14); }
+  if(o.hit){ ctx.globalAlpha=.5; ctx.fillStyle='#fff'; ctx.font='bold 22px Arial'; ctx.fillText('💥',x,b-o.h-6); ctx.globalAlpha=1; }
+}
+
+function sign(x,y,txt,state){
+  ctx.font='bold 30px Arial'; const w=Math.max(84, ctx.measureText(txt).width+28);
+  ctx.fillStyle= state==='ok'?'#c9f7d9':state==='bad'?'#ffd0d0':'#fff7d6'; rr(x,y,w,44,10); ctx.fill();
+  ctx.lineWidth=3; ctx.strokeStyle= state==='ok'?'#1e9e50':state==='bad'?'#c0392b':'#7a5a2a'; ctx.stroke();
+  ctx.fillStyle='#1d1d1d'; ctx.textBaseline='middle'; ctx.fillText(txt,x+14,y+23); ctx.textBaseline='alphabetic';
+}
+function drawFork(f, welt){
+  const x=f.x-G.cam; if(x>W+60 || x+f.L<-200) return;
+  const T=THEME[welt];
+  // Pfeiler
+  ctx.fillStyle=T.platEdge; ctx.fillRect(x+30,PLAT_Y+PLAT_H,10,GROUND-PLAT_Y-PLAT_H); ctx.fillRect(x+f.L-40,PLAT_Y+PLAT_H,10,GROUND-PLAT_Y-PLAT_H);
+  ctx.fillStyle=T.plat; rr(x,PLAT_Y,f.L,PLAT_H,6); ctx.fill(); ctx.fillStyle=T.platEdge; ctx.fillRect(x+4,PLAT_Y+PLAT_H-5,f.L-8,5);
+  const st=w=>!f.decided?'':((f.choice===w)?(f.ok?'ok':'bad'):'');
+  sign(x+52,PLAT_Y-56,f.top,st('oben'));
+  ctx.strokeStyle='#5a4a2a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x+70,PLAT_Y+PLAT_H); ctx.lineTo(x+70,PLAT_Y+PLAT_H+16); ctx.moveTo(x+120,PLAT_Y+PLAT_H); ctx.lineTo(x+120,PLAT_Y+PLAT_H+16); ctx.stroke();
+  sign(x+52,PLAT_Y+PLAT_H+14,f.bot,st('unten'));
+  // Completos am Ende beider Wege
+  const cx=x+f.L-60;
+  [['oben',PLAT_Y-24],['unten',GROUND-24]].forEach(([w,y])=>{
+    if(f.decided && f.choice===w){ if(!f.ok){ ctx.globalAlpha=.35; completo(cx,y); ctx.globalAlpha=1; ctx.font='bold 26px Arial'; ctx.fillStyle='#c0392b'; ctx.fillText('✗',cx-8,y-18); } }
+    else completo(cx,y);
+  });
+}
+function completo(x,y){
+  ell(x,y+4,26,10,'#e8b56a'); ell(x,y-2,28,6,'#9c4a2e'); ell(x,y-6,22,5,'#8ccf5a');
+  for(let i=-2;i<=2;i++) circ(x+i*9,y-9,3.6,'#e23b2e');
+  ctx.strokeStyle='#fff'; ctx.lineWidth=2.4; ctx.beginPath(); for(let i=0;i<=8;i++){ ctx.lineTo(x-20+i*5,y-12+(i%2?4:0)); } ctx.stroke();
+}
+function pudu(x,y,t,run,air,stumble){
+  ctx.save();
+  if(stumble>0 && !ruhig()){ ctx.translate(x,y); ctx.rotate(Math.sin(t*30)*.12); ctx.translate(-x,-y); }
+  if(stumble>0 && Math.floor(t*12)%2===0) ctx.globalAlpha=.55;
+  const ph=run&&!air ? Math.sin(t*16) : 0;
+  ctx.strokeStyle='#5a3a20'; ctx.lineWidth=5; ctx.lineCap='round';
+  const legs=[[-14,ph],[-8,-ph],[10,-ph],[16,ph]];
+  legs.forEach(([lx,s])=>{ ctx.beginPath(); ctx.moveTo(x+lx,y-16); ctx.lineTo(x+lx+(air?(lx<0?-6:6):s*7),y-(air?6:0)); ctx.stroke(); });
+  ell(x,y-27,25,15,'#8a5a32'); ell(x+2,y-21,17,7,'#a87a4c');
+  circ(x-24,y-32,4,'#6e4424');
+  ell(x+20,y-42,9,8,'#8a5a32');
+  circ(x+25,y-45,12,'#94633a'); ell(x+35,y-40,8,6,'#7a4e2a'); circ(x+41,y-42,3,'#1a1a1a');
+  ell(x+14,y-55,4,8,'#7a4e2a');
+  circ(x+27,y-48,3.2,'#111'); circ(x+28,y-49,1,'#fff');
+  ctx.strokeStyle='#e0cfa6'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(x+21,y-55); ctx.lineTo(x+19,y-64); ctx.moveTo(x+27,y-56); ctx.lineTo(x+28,y-65); ctx.stroke();
+  ctx.restore();
+}
+function kondorDraw(x,y,t){
+  const fl=ruhig()?0:Math.sin(t*4)*14;
+  poly([x-6,y-2, x-60,y-10-fl, x-30,y+6],'#1b1b1b'); poly([x+6,y-2, x+58,y-12-fl, x+30,y+6],'#1b1b1b');
+  poly([x-40,y-4-fl*.6, x-58,y-9-fl, x-30,y+2],'#f2f2f2'); poly([x+40,y-6-fl*.6, x+56,y-11-fl, x+30,y+2],'#f2f2f2');
+  ell(x,y,24,10,'#222'); circ(x+18,y-4,7,'#fafafa'); circ(x+26,y-7,5,'#c9867a'); poly([x+30,y-8, x+37,y-5, x+30,y-4],'#e8d6a0');
+}
+function cloud(x,y){ circ(x,y,26,'rgba(255,255,255,.92)'); circ(x+28,y-10,30,'rgba(255,255,255,.92)'); circ(x+60,y,24,'rgba(255,255,255,.92)'); ell(x+30,y+10,50,16,'rgba(255,255,255,.92)'); }
+function copihue(x,b){
+  const sq=b>0?.75:1;
+  ctx.strokeStyle='#2f7a35'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(x,GROUND); ctx.quadraticCurveTo(x-10,GROUND-20,x,COP_TOP+6); ctx.stroke();
+  ell(x-12,GROUND-14,9,4,'#3f9a46'); ell(x+12,GROUND-22,9,4,'#3f9a46');
+  ctx.save(); ctx.translate(x,COP_TOP+8); ctx.scale(1,sq);
+  poly([-20,-14, 20,-14, 14,10, 0,14, -14,10],'#d62a3d'); poly([-20,-14, 20,-14, 12,-20, -12,-20],'#a51d2d');
+  ctx.restore();
+}
+function flagge(x){
+  ctx.fillStyle='#555'; ctx.fillRect(x,GROUND-170,6,170);
+  ctx.fillStyle='#fff'; ctx.fillRect(x+6,GROUND-170,90,30); ctx.fillStyle='#d52b1e'; ctx.fillRect(x+6,GROUND-140,90,30);
+  ctx.fillStyle='#0039a6'; ctx.fillRect(x+6,GROUND-170,30,30); ctx.fillStyle='#fff'; ctx.font='20px Arial'; ctx.fillText('★',x+12,GROUND-148);
+}
+function bossDraw(g,x,t){
+  const w=ruhig()?0:t;
+  if(g==='sandsturm'){ for(let i=0;i<9;i++){ const a=w*2+i*.7; circ(x+40+Math.cos(a)*40, GROUND-170+i*19+Math.sin(a)*12, 40-i, 'rgba(165,110,55,'+(.4+i*.05)+')'); } }
+  else if(g==='moewe'){ const y=GROUND-200+Math.sin(w*3)*12, fl=Math.sin(w*8)*20;
+    poly([x+10,y, x-50,y-40-fl, x+30,y-10],'#cfd6dc'); ell(x+30,y+10,48,24,'#fafafa'); circ(x+78,y-10,22,'#fafafa'); poly([x+96,y-12, x+130,y-4, x+96,y-2],'#f3b51b');
+    circ(x+86,y-16,4.5,'#111'); ctx.strokeStyle='#111'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(x+78,y-26); ctx.lineTo(x+94,y-21); ctx.stroke(); poly([x+10,y+6, x-60,y-20+fl, x+20,y+20],'#b9c3cb'); }
+  else if(g==='lava'){ ctx.fillStyle='#e8461e'; ctx.beginPath(); ctx.moveTo(-10,H); ctx.lineTo(-10,GROUND-90); for(let i=0;i<=8;i++){ ctx.lineTo(x-60+i*16, GROUND-90+Math.sin(w*4+i)*12+(i===8?60:0)); } ctx.lineTo(x+80,H); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(255,210,60,.7)'; for(let i=0;i<5;i++) circ(x-40+i*22, GROUND-60+Math.sin(w*3+i)*8, 6, 'rgba(255,220,80,.8)'); }
+  else { for(let i=0;i<10;i++){ const a=w*2.5+i*.6; circ(x+40+Math.cos(a)*44, GROUND-170+i*17+Math.sin(a)*10, 30-i, 'rgba(255,255,255,'+(.35+i*.04)+')'); }
+    ctx.fillStyle='#fff'; for(let i=0;i<14;i++) circ(x-20+mod(i*53+w*90,300), 60+mod(i*71+w*60,320), 2.5, '#fff'); }
+}
+
+function draw(){
+  if(!ctx || !G) return;
+  const welt=L().welt;
+  ctx.setTransform(scaleK,0,0,scaleK,0,0);
+  drawBg(welt);
+  if(G.ziel-G.cam<W+120) flagge(G.ziel-G.cam);
+  G.forks.forEach(f=>drawFork(f,welt));
+  if(G.cop){ const x=G.cop.x-G.cam; if(x>-60&&x<W+60) copihue(x,G.cop.boing); }
+  G.obst.forEach(o=>drawObst(o,welt));
+  const k=G.kondor; if(k && !k.got){ const x=k.x-G.cam; if(x>-90&&x<W+90){ kondorDraw(x,k.y,G.t); cloud(x-50,k.y+18); } }
+  const p=G.p; pudu(PX,p.y,G.t,G.started&&!G.paused&&!G.modal,p.air,p.stumble);
+  if(G.et.boss){ const bx=G.done?-30-G.ending*300:-30+Math.min(G.bossDist,4)*36+(ruhig()?0:Math.sin(G.t*2)*8); bossDraw(G.et.gegner,bx,G.t); }
+  G.parts.forEach(q=>{ ctx.globalAlpha=Math.max(0,Math.min(1,q.life*1.5)); if(q.txt){ ctx.font='bold 24px Arial'; ctx.fillStyle='#c0392b'; ctx.fillText(q.txt,q.x,q.y); } else circ(q.x,q.y,4,q.c); ctx.globalAlpha=1; });
+  // Herzen im Bild
+  ctx.font='26px Arial'; for(let i=0;i<Math.max(E.herzen,G.hearts);i++){ ctx.globalAlpha=i<G.hearts?1:.25; ctx.fillText('❤️',W-44-i*34,40); } ctx.globalAlpha=1;
+}
+
+/* ---------- Schleife ---------- */
+function frame(ts){
+  raf=requestAnimationFrame(frame);
+  if(!G) return;
+  if(!lastTs) lastTs=ts;
+  let dt=Math.min(.05,(ts-lastTs)/1000); lastTs=ts;
+  const running=G.started && !G.paused && !G.modal;
+  if(running && !document.hidden){ state.elapsed+=dt*1000; let rem=dt*ZEITRAFFER; while(rem>1e-6 && G && !G.modal && !G.paused){ const d=Math.min(rem,1/120); step(d); rem-=d; } }
+  else if(G.parts.length){ G.parts.forEach(q=>{ q.life-=dt; }); G.parts=G.parts.filter(q=>q.life>0); }
+  draw();
+  if(Math.floor(state.elapsed/1000)!==G._sec){ G._sec=Math.floor(state.elapsed/1000); const c=$('#clock'); if(c) c.textContent='⏱ '+fmtTime(state.elapsed); }
+}
+function startLoop(){ cancelAnimationFrame(raf); lastTs=0; raf=requestAnimationFrame(frame); }
+function stopLoop(){ cancelAnimationFrame(raf); raf=0; G=null; }
+
+function etappeFertig(){
+  if(!G || !state) return;
+  const et=G.et, ids=range(G.n).map(i=>et.idx+'.'+i);
+  state.letzte={ name:et.name, boss:et.boss, ok:G.okRun, n:G.n, kondor:!!(G.kondor&&G.kondor.got), mitKondor:!!G.kondor };
+  stopLoop();
+  state.etappe++;
+  state.phase = state.etappe>=etappen().length ? 'name' : 'zwischen';
+  save(); render();
+}
+
+/* =====================================================================
+   BILDSCHIRME
+   ===================================================================== */
+function updateHud(){
+  const hud=$('#hud');
+  if(!state || view!=='game' || location.hash==='#lehrer' || ['name','end'].includes(state.phase)){ hud.innerHTML=''; return; }
+  const nE=etappen().length, et=Math.min(state.etappe,nE-1), boss=etappen()[et].boss;
+  hud.innerHTML='<span class="pill">'+esc(state.level)+'</span><span class="pill">'+(boss?'⚠️ Boss':'🗺 Etappe '+(et+1)+'/'+(nE-1))+'</span>'+
+    (G&&state.phase==='etappe'?'<span class="pill" title="Herzen">❤️ '+G.hearts+'</span>':'')+
+    '<span class="pill" title="Completos">🌭 '+state.completos+'</span><span class="pill" title="Kondore">🦅 '+Object.keys(state.kondore).length+'/'+(nE-1)+'</span><span class="pill" id="clock">⏱ '+fmtTime(state.elapsed)+'</span>';
+}
+
+function render(){
+  if(location.hash==='#lehrer'){ stopLoop(); renderTeacher(); updateHud(); return; }
+  if(view==='start' || !state){ stopLoop(); renderStart(); }
+  else if(state.phase==='intro') renderIntro();
+  else if(state.phase==='etappe') renderGame();
+  else if(state.phase==='zwischen') renderZwischen();
+  else if(state.phase==='name') renderName();
+  else renderResult();
+  updateHud();
+}
+
+function heroArt(){
+  const c=document.createElement('canvas'); c.width=480; c.height=270; const old=ctx; ctx=c.getContext('2d'); ctx.setTransform(.5,0,0,.5,0,0);
+  const g=ctx.createLinearGradient(0,0,0,GROUND); g.addColorStop(0,'#5aa0d8'); g.addColorStop(1,'#f7d9a0'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  poly([200,GROUND-20, 520,GROUND-330, 840,GROUND-20],'#8a6a7a'); poly([480,GROUND-290, 520,GROUND-330, 560,GROUND-290],'#f4eef2');
+  ctx.fillStyle='#d39a5c'; ctx.fillRect(0,GROUND,W,H);
+  ctx.setTransform(1.25,0,0,1.25,0,0); pudu(110,182,0,false,false,0); completo(200,170); kondorDraw(300,50,0);
+  ctx=old; return c;
+}
+
+function renderStart(){
+  view='start';
+  const saved=loadSaved(), warn=dataWarnings();
+  let h='<section class="card narrow hero"><div class="herorow"><div><h1>🦌 Pudú-Sprung: haben oder sein?</h1>'+
+    '<p>Der Pudú läuft durch Chile – von der Atacama-Wüste bis nach Patagonien. Der Weg teilt sich: <strong>Spring</strong> für das obere Hilfsverb oder <strong>lauf weiter</strong> für das untere. Richtig gesprungen? Dann gibt es einen <strong>Completo</strong>! 🌭</p>'+
+    '<p class="small es" lang="es">🇨🇱 Un juego de saltos para practicar el Perfekt: ¿«haben» o «sein»?</p></div><div class="heroart" id="heroArt"></div></div></section>';
+  if(warn.length) h+='<div class="warnbox narrow"><strong>⚠️ Hinweis für Lehrkräfte – in den Daten stimmt etwas nicht:</strong><ul>'+warn.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+  if(saved){
+    const et=etappen(saved.level)[Math.min(saved.etappe,etappen(saved.level).length-1)];
+    h+='<section class="card narrow"><h2>▶ Weiterspielen</h2><p>Niveau <strong>'+esc(saved.level)+'</strong> · '+(saved.phase==='end'?'fertig':(saved.phase==='name'?'alle Etappen geschafft':esc(et.boss?'Bossrunde: '+et.name:'Etappe '+(et.idx+1)+': '+et.name)+(saved.phase==='etappe'?' <span class="small muted">(beginnt von vorn)</span>':'')))+'</p>'+
+      '<div class="row"><button type="button" class="primary" id="btnCont">'+(saved.phase==='end'?'🏆 Ergebnis ansehen':'Weiterspielen ➜')+'</button><button type="button" id="btnDiscard">Neu beginnen</button></div></section>';
+  } else {
+    h+='<section class="card narrow"><h2>Wähle dein Niveau</h2><div class="levels">'+LEVELS.map(lv=>{ const S=SPIEL[lv];
+      return S ? '<button type="button" class="level" data-l="'+lv+'"><span class="lv">'+lv+'</span><span class="lt">'+esc(S.titel)+'</span><span class="lo">'+esc(S.schwerpunkt||'')+'</span></button>'
+               : '<button type="button" class="level" disabled><span class="lv">'+lv+'</span><span class="lt">🔒 kommt bald</span></button>'; }).join('')+'</div></section>';
+  }
+  h+=tempoCard();
+  h+='<p class="small center"><a href="#lehrer">Für Lehrkräfte: Prüfcode kontrollieren und alle Sätze ansehen</a></p>';
+  app.innerHTML=h;
+  try{ $('#heroArt').appendChild(heroArt()); }catch(e){}
+  bindTempo();
+  if($('#btnCont')) $('#btnCont').addEventListener('click',()=>{ state=saved; view='game'; render(); });
+  if($('#btnDiscard')) $('#btnDiscard').addEventListener('click',()=>bestaetigen('Das gespeicherte Spiel wird gelöscht. Wirklich neu beginnen?', ()=>{ lsDel(LS_GAME); state=null; render(); }));
+  $$('.level[data-l]').forEach(b=>b.addEventListener('click',()=>{ newGame(b.dataset.l); view='game'; render(); window.scrollTo(0,0); }));
+}
+function tempoCard(){
+  return '<section class="card narrow"><h2>So spielst du</h2><div class="keys">'+
+    '<span><kbd>Leertaste</kbd> <kbd>↑</kbd></span><span>springen = das <strong>obere</strong> Wort (auch über Hindernisse)</span>'+
+    '<span>nichts drücken</span><span>weiterlaufen = das <strong>untere</strong> Wort · <kbd>↓</kbd> springt von der Plattform herunter</span>'+
+    '<span><kbd>P</kbd> <kbd>Esc</kbd></span><span>Pause (dort kannst du auch das Tempo ändern)</span>'+
+    '<span>📱 Tablet</span><span>auf das Bild tippen oder die großen Knöpfe benutzen</span></div>'+
+    '<p class="small muted" style="margin-bottom:.3em">Tempo:</p><div class="tempo" id="tempoSel">'+TEMPI.map(t=>'<button type="button" data-t="'+t[0]+'" aria-pressed="'+(settings.tempo===t[0])+'">'+t[1]+'</button>').join('')+'</div></section>';
+}
+function bindTempo(){ $$('#tempoSel button').forEach(b=>b.addEventListener('click',()=>{ settings.tempo=b.dataset.t; saveSettings(); $$('#tempoSel button').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); })); }
+
+function renderIntro(){
+  const S=L(), nE=etappen().length;
+  app.innerHTML='<section class="card narrow"><h1>'+esc(state.level)+' · '+esc(S.titel)+'</h1>'+paras(S.intro)+
+    '<p class="small muted">'+(nE-1)+' Etappen mit je '+etappen()[0].saetze.length+' Sätzen und eine Bossrunde · '+E.herzen+' Herzen pro Etappe · in jeder Etappe ein versteckter Kondor 🦅</p>'+
+    '<h2>📌 Die Regeln in dieser Welt</h2>'+regelListe(state.level)+'</section>'+tempoCard()+
+    '<div class="narrow row"><span class="spacer"></span><button type="button" class="primary" id="btnGo">Los geht’s ➜</button></div>';
+  bindTempo();
+  $('#btnGo').addEventListener('click',()=>{ state.phase='etappe'; save(); render(); window.scrollTo(0,0); });
+  focusEl('#btnGo');
+}
+
+function renderGame(){
+  view='game';
+  startEtappe();
+  renderGameDOM();
+}
+function renderGameDOM(){
+  app.innerHTML='<section class="game"><div id="banner" class="banner" aria-live="polite"></div>'+
+    '<div class="stagewrap"><canvas id="cv" width="960" height="540" tabindex="0" aria-label="Spielfeld: Der Pudú läuft nach rechts. Springen wählt das obere Wort."></canvas><div id="overlay" class="overlay" hidden></div></div>'+
+    '<div class="ctrl"><button type="button" id="bUp">⬆ Springen</button><button type="button" id="bPause" title="Pause (P)">⏸</button><button type="button" id="bDown">➡ Unten bleiben</button></div></section>';
+  setBanner(); updateHud();
+  const cvs=$('#cv');
+  cvs.addEventListener('pointerdown',e=>{ e.preventDefault(); jump(); });
+  $('#bUp').addEventListener('pointerdown',e=>{ e.preventDefault(); jump(); });
+  $('#bDown').addEventListener('pointerdown',e=>{ e.preventDefault(); if(G&&G.modal) return; dropDown(); });
+  $('#bPause').addEventListener('click',()=>{ if(G&&G.paused) continueOverlay(true); else openPause(); });
+  resize(); startLoop(); startOverlay();
+}
+
+function renderZwischen(){
+  const z=state.letzte||{}, next=etappen()[state.etappe];
+  app.innerHTML='<section class="card narrow"><h1>✅ '+(z.boss?'Boss besiegt':'Etappe geschafft')+': '+esc(z.name||'')+'</h1>'+
+    '<p>Richtig in dieser Runde: <strong>'+(z.ok||0)+' von '+(z.n||0)+'</strong> · 🌭 Completos insgesamt: <strong>'+state.completos+'</strong></p>'+
+    (z.mitKondor?(z.kondor?'<p class="okline">🦅 Du hast den Kondor gefunden!</p>':'<p class="muted small">🦅 Den Kondor hast du diesmal nicht gefunden. Tipp: Spring auf die rote Blume!</p>'):'')+
+    (next.boss?'<div class="tipbox bad"><p><strong>⚠️ Jetzt kommt die Bossrunde: '+esc(next.name)+'</strong></p><p>'+bossText(next.gegner)+' 5 Sätze, etwas schneller hintereinander.</p></div>'
+              :'<p>Weiter geht’s mit <strong>Etappe '+(next.idx+1)+': '+esc(next.name)+'</strong>.</p>')+
+    '<div class="row"><button type="button" id="btnRegeln">📌 Regeln ansehen</button><span class="spacer"></span><button type="button" class="primary" id="btnNext">Weiter ➜</button></div><div id="rg"></div></section>';
+  $('#btnNext').addEventListener('click',()=>{ state.phase='etappe'; save(); render(); });
+  $('#btnRegeln').addEventListener('click',()=>{ $('#rg').innerHTML=regelListe(state.level); });
+  focusEl('#btnNext');
+}
+
+const INPUT_ATTR='type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"';
+function renderName(){
+  app.innerHTML='<section class="card narrow"><h1>🏁 Alle Etappen geschafft!</h1><p>Schreib deinen Namen für das Ergebnis und den Prüfcode.</p>'+
+    '<p class="row"><label for="nameIn">Dein Name:</label> <input '+INPUT_ATTR+' id="nameIn" maxlength="60" style="flex:1;min-width:220px" placeholder="Vorname Nachname"></p><div id="nameFb" role="status"></div>'+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnName">Ergebnis anzeigen ➜</button></div></section>';
+  const go=()=>{ const n=$('#nameIn').value.trim().replace(/\s+/g,' '); if(normName(n).length<2){ $('#nameFb').innerHTML='<p class="badline">Bitte schreib deinen Namen.</p>'; return; } state.name=n; state.finished=new Date().toISOString(); state.phase='end'; save(); render(); };
+  $('#btnName').addEventListener('click',go); $('#nameIn').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }); focusEl('#nameIn');
+}
+function renderResult(){
+  const s=stats(), d=new Date(state.finished), code=makeCode(state.level,s.pct,s.k,d,state.name), nK=etappen().length-1;
+  const rows=[['Name',state.name],['Niveau',state.level+' – '+L().titel],['Richtig beim ersten Versuch',s.ok+' von '+s.total+' Sätzen'],['Prozent',s.pct+' %'],['Completos 🌭',state.completos],['Kondore 🦅',s.k+' von '+nK],['Zeit',fmtTime(state.elapsed)+' min'],['Datum',fmtDate(d)]];
+  let h='<section class="card narrow"><h1>🏆 Dein Ergebnis</h1>'+
+    '<table class="restable">'+rows.map(r=>'<tr><th scope="row">'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table>'+
+    '<p style="margin-bottom:0">Prüfcode:</p><div class="bigcode">'+esc(code)+'</div><p class="small muted">Mach einen Screenshot oder kopiere das Ergebnis und gib es in Google Classroom ab.</p>'+
+    '<div class="row"><button type="button" class="primary" id="btnCopy">📋 Ergebnis kopieren</button><button type="button" id="btnNew">↺ Neues Spiel</button><span id="copyFb" role="status" class="okline"></span></div>'+
+    '<h2 style="margin-top:1em">Falsch beim ersten Versuch ('+state.wrong.length+')</h2>';
+  h += state.wrong.length ? '<ol class="wronglist">'+state.wrong.map(w=>'<li><span class="muted small">'+esc(w.etappe)+'</span><br>'+fill(w,w.richtig,'okline')+'<br><span class="badline">✗ Deine Antwort: '+esc(w.deine)+'</span>'+regelHTML(w.regel)+'</li>').join('')+'</ol>' : '<p class="okline">✓ Keine Fehler – super!</p>';
+  app.innerHTML=h+'</section>';
+  $('#btnCopy').addEventListener('click',()=>copyText(resultText(code,s,d)));
+  $('#btnNew').addEventListener('click',()=>bestaetigen('Neues Spiel starten? Dieses Ergebnis wird gelöscht. Hast du schon einen Screenshot gemacht?', ()=>{ lsDel(LS_GAME); state=null; view='start'; render(); }));
+  focusEl('#btnCopy');
+}
+function resultText(code,s,d){
+  let t='Pudú-Sprung – haben oder sein?\nName: '+state.name+'\nNiveau: '+state.level+' – '+L().titel+
+    '\nRichtig beim ersten Versuch: '+s.ok+' / '+s.total+' ('+s.pct+' %)\nCompletos: '+state.completos+'\nKondore: '+s.k+' von '+(etappen().length-1)+'\nZeit: '+fmtTime(state.elapsed)+' min\nDatum: '+fmtDate(d)+'\nPrüfcode: '+code+'\n';
+  t+='\nFalsch beim ersten Versuch ('+state.wrong.length+'):\n'+(state.wrong.length?state.wrong.map((w,i)=>(i+1)+'. '+satzPlain(w,w.richtig)+'\n   Meine Antwort: '+w.deine+'\n   Regel: '+regelPlain(w.regel)).join('\n'):'–');
+  return t;
+}
+function copyText(t){
+  const done=()=>{ $('#copyFb').textContent='✓ Kopiert! Jetzt in Google Classroom einfügen (Strg + V).'; };
+  const fallback=()=>{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){ $('#copyFb').textContent='Kopieren hat nicht geklappt – bitte Screenshot machen.'; } ta.remove(); };
+  let settled=false; const once=f=>()=>{ if(!settled){ settled=true; f(); } };
+  try{ if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(t).then(once(done),once(fallback)); setTimeout(once(fallback),800); } else once(fallback)(); }catch(e){ once(fallback)(); }
+}
+
+/* ---------- Lehrkraft ---------- */
+function renderTeacher(){
+  app.innerHTML='<section class="card narrow"><h1>🔎 Prüfcode kontrollieren</h1><p class="muted">Für Lehrkräfte. Name so eingeben, wie er im Ergebnis steht (Groß-/Kleinschreibung, Akzente und Leerzeichen sind egal).</p>'+
+    '<p><label for="tName">Name</label><br><input '+INPUT_ATTR+' id="tName" style="width:100%"></p><p><label for="tCode">Prüfcode</label><br><input '+INPUT_ATTR+' id="tCode" style="width:100%" placeholder="z. B. A2-86-2-151026-K7QFM"></p>'+
+    '<div class="row"><button type="button" class="primary" id="tCheck">Prüfen</button><span class="spacer"></span><button type="button" id="tBack">← Zurück zum Spiel</button></div><div id="tRes" role="status" aria-live="polite" style="margin-top:.8em"></div></section>'+
+    '<section class="card narrow"><h2>ℹ️ Gut zu wissen</h2><ul>'+
+    '<li><strong>Prüfcode:</strong> Niveau – Prozent – Zahl der gefundenen Kondore – Datum – Kontrollzeichen.</li>'+
+    '<li><strong>Prozent:</strong> Sätze, die beim <em>ersten</em> Versuch richtig waren. Muss eine Etappe wiederholt werden (alle Herzen weg), zählen die Wiederholungen nicht mehr.</li>'+
+    '<li><strong>Completos</strong> sind nur zum Spaß: einer pro richtigem Sprung, einer weniger bei jedem Hindernis.</li>'+
+    '<li><strong>Kondore</strong> sind versteckt (auf die rote Copihue-Blume springen) und für das Ergebnis nicht nötig.</li>'+
+    '<li><strong>Tempo</strong> (langsam/normal/schnell) können die Lernenden jederzeit in der Pause ändern; es beeinflusst die Punkte nicht.</li></ul></section>'+
+    '<section class="card narrow"><h2>📚 Alle Sätze</h2>'+LEVELS.filter(lv=>SPIEL[lv]).map(lv=>'<details><summary>'+lv+' · '+esc(SPIEL[lv].titel)+' ('+alleSaetze(lv).length+' Sätze)</summary>'+
+      etappen(lv).map(e=>'<h3>'+(e.boss?'⚠️ Boss: ':'')+esc(e.name)+'</h3><ol class="lsatz">'+e.saetze.map(s=>'<li>'+fill(s,s.richtig,'okline')+' <span class="small muted">(falsch: '+esc(s.falsch)+' · '+esc(regelPlain(s.regel))+')</span></li>').join('')+'</ol>').join('')+'</details>').join('')+'</section>';
+  const go=()=>{ const r=verifyCode($('#tCode').value,$('#tName').value);
+    $('#tRes').innerHTML = r.valid ? '<p class="tipbox ok"><strong>✓ Der Code ist gültig.</strong><br>Niveau <strong>'+r.level+'</strong> · <strong>'+r.pct+' %</strong> · <strong>'+r.k+' Kondore</strong> · '+r.date+'</p>'
+      : '<p class="tipbox bad"><strong>✗ Der Code ist nicht gültig.</strong><br>'+esc(r.reason||'Name oder Code passen nicht zusammen.')+'</p>'; };
+  $('#tCheck').addEventListener('click',go); ['#tName','#tCode'].forEach(s=>$(s).addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }));
+  $('#tBack').addEventListener('click',()=>{ history.replaceState(null,'',location.pathname+location.search); render(); });
+  focusEl('#tName');
+}
+
+/* ---------- Tastatur ---------- */
+document.addEventListener('keydown',e=>{
+  if(!G || view!=='game' || state.phase!=='etappe' || location.hash) return;
+  const tag=(e.target&&e.target.tagName)||''; if(tag==='INPUT'||tag==='TEXTAREA') return;
+  if(document.querySelector('.confirmbox')) return;
+  const k=e.key;
+  if(G.modal && G.modal.menu){
+    if(k==='Escape'||k==='p'||k==='P'){ e.preventDefault(); continueOverlay(true); }
+    return;
+  }
+  if(k===' '||k==='Spacebar'||k==='ArrowUp'||k==='w'||k==='W'||k==='Enter'){ e.preventDefault(); if(e.repeat) return; jump(); }
+  else if(k==='ArrowDown'||k==='s'||k==='S'){ e.preventDefault(); dropDown(); }
+  else if(k==='Escape'||k==='p'||k==='P'){ e.preventDefault(); if(G.started) openPause(); }
+});
+document.addEventListener('visibilitychange',()=>{ if(document.hidden && G && G.started && !G.modal && !G.done) openPause(); });
+window.addEventListener('blur',()=>{ if(G && G.started && !G.modal && !G.done && !EINGEBETTET) openPause(); });
+window.addEventListener('resize',()=>{ if(G) resize(); });
+
+/* ---------- Start ---------- */
+(function init(){
+  try{ const s=JSON.parse(lsGet(LS_SET)||'{}'); if(s.sound) settings.sound=true; if(s.anim===false) settings.anim=false; if(E.tempo[s.tempo]) settings.tempo=s.tempo; }catch(e){}
+  const sb=$('#btnSound'), ab=$('#btnAnim');
+  const upd=()=>{ sb.textContent=settings.sound?'🔊 Ton an':'🔇 Ton aus'; sb.setAttribute('aria-pressed',String(settings.sound));
+    ab.textContent=settings.anim?'🎞 Animationen an':'🎞 Animationen aus'; ab.setAttribute('aria-pressed',String(!settings.anim)); };
+  upd();
+  sb.addEventListener('click',()=>{ settings.sound=!settings.sound; saveSettings(); upd(); sound('ok'); });
+  ab.addEventListener('click',()=>{ settings.anim=!settings.anim; saveSettings(); upd(); toast(settings.anim?'🎞 Animationen sind wieder an.':'🎞 Animationen sind aus – der Hintergrund bewegt sich nicht mehr, keine Effekte.'); });
+  $('#btnMenu').addEventListener('click',()=>{ if(location.hash) history.replaceState(null,'',location.pathname+location.search); stopLoop(); view='start'; state=null; render(); });
+  window.addEventListener('hashchange',render);
+  render();
+})();
+</script>
+</body>
+</html>
