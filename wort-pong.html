@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wort-Pong – Triff das richtige Wort!</title>
+<script>
+/* =====================================================================
+   WORT-PONG · Triff das richtige Wort!
+   =====================================================================
+
+   ANLEITUNG FÜR LEHRKRÄFTE
+   ---------------------------------------------------------------------
+   Alles, was Sie ändern können, steht in diesem ersten Abschnitt
+   (EINSTELLUNGEN, REGELN, SPIEL). Die Spiel-Logik weiter unten müssen
+   Sie nicht anfassen.
+
+   IDEE
+   Über dem Spielfeld steht ein Satz mit Lücke. Oben im Spielfeld liegen
+   3 oder 4 Wortfelder. Mit dem Balken unten lenkt man den Ball in das
+   richtige Feld. Wo der Ball den Balken trifft, bestimmt den Winkel
+   (Mitte = gerade nach oben, Rand = schräg).
+   Falsches Feld: Es wird gesperrt, man versucht es noch einmal.
+   Ball fällt unten heraus: ein Herz weniger.
+
+   AUFBAU
+   SPIEL → Niveau (A2, B1, B2, C1) → runden (je 8 Sätze)
+
+   FELDER EINES SATZES
+     satz    : Satz mit ___ (genau eine Lücke)
+     richtig : das richtige Wort
+     falsch  : die falschen Wörter als Liste (2 oder 3)
+     regel   : (optional) Name einer Regel aus REGELN
+     info    : (optional) Erklärung nach der Antwort (**Wort** = fett)
+     es      : (optional) Hilfe auf Spanisch (nur A2 und B1 sichtbar)
+     Beispiel:
+     { satz:"Ich warte ___ den Bus.", richtig:"auf", falsch:["für","an","nach"],
+       info:"warten **auf** + Akkusativ", es:"esperar a alguien → warten AUF" },
+
+   WICHTIG: Bitte nur falsche Wörter wählen, die wirklich nicht passen.
+
+   REGELN FÜR DIE DATEN
+     · Texte immer in "Anführungszeichen"; im Text selbst „…“ verwenden.
+     · Nach jedem Feld und jeder } ein Komma.
+     · Fehler in den Daten zeigt die Startseite als gelben Hinweis an.
+   ===================================================================== */
+
+const EINSTELLUNGEN = {
+  geheimwort: "Wort-Pong-Estrella-9",   // für den Prüfcode – bitte geheim halten
+  herzen: 3,              // Herzen zu Beginn jeder Runde
+  maxHerzen: 5,           // mit Sternen kann man bis zu so vielen Herzen sammeln
+  punkte: [10, 5, 2],     // Punkte beim 1., 2. und 3. Versuch
+  // Ballgeschwindigkeit und Lesezeit (Sekunden, in denen die Felder nach einem neuen Satz gesperrt sind)
+  tempo: { langsam:{ ball:290, lesen:3.0 }, normal:{ ball:360, lesen:2.2 }, schnell:{ ball:440, lesen:1.5 } },
+  spanischeHilfe: { A2:true, B1:true, B2:false, C1:false },
+};
+
+/* ---------------------------------------------------------------------
+   REGELN (für A2 und B2)
+   --------------------------------------------------------------------- */
+const REGELN = {
+  dativ:   { text:"**aus, bei, mit, nach, seit, von, zu** → immer **Dativ**: mit **dem** Bus, bei **der** Oma, von **mir**",
+             es:"Estas preposiciones siempre llevan dativo: dem / der / einem / meiner / mir / dir / ihm." },
+  akk:     { text:"**durch, für, gegen, ohne, um** → immer **Akkusativ**: für **den** Lehrer, ohne **dich** (Merkwort: **DOGFU**)",
+             es:"Estas preposiciones siempre llevan acusativo: den / einen / meinen / mich / dich / ihn." },
+  wegen:   { text:"**wegen** + Genitiv: nennt den **Grund** (Warum?)" },
+  aufgrund:{ text:"**aufgrund** + Genitiv: wie **wegen**, aber formeller (Grund)" },
+  trotz:   { text:"**trotz** + Genitiv: ein **Gegengrund** – es passiert trotzdem" },
+  waehrend:{ text:"**während** + Genitiv: **Zeitraum** – in der Zeit von …" },
+  innerhalb:{ text:"**innerhalb** + Genitiv: **in** einem Ort oder Zeitraum (nicht später als …)" },
+  ausserhalb:{ text:"**außerhalb** + Genitiv: **nicht in** einem Ort, draußen" },
+  statt:   { text:"**statt / anstatt** + Genitiv: **Ersatz** – etwas anderes an seiner Stelle" },
+  oberhalb:{ text:"**oberhalb** + Genitiv: **höher als** ein Ort" },
+  angesichts:{ text:"**angesichts** + Genitiv: **im Hinblick auf** eine (meist ernste) Situation" },
+};
+
+/* ---------------------------------------------------------------------
+   SPIEL
+   welt: "atacama" | "valparaiso" | "pucon" | "patagonien" (Hintergrund)
+   --------------------------------------------------------------------- */
+const SPIEL = {
+
+/* =========================== NIVEAU A2 =========================== */
+A2: {
+  titel: "Dativ oder Akkusativ?",
+  welt: "atacama",
+  schwerpunkt: "aus, bei, mit, nach, seit, von, zu → Dativ · durch, für, gegen, ohne, um → Akkusativ",
+  intro: "Welche Präposition passt? Schau genau auf das Wort nach der Lücke: **dem, der, mir** zeigen den Dativ – **den, dich, ihn** zeigen den Akkusativ.",
+  tipp: "Schau auf den Artikel nach der Lücke: dem/der/mir → Dativ, den/dich/ihn → Akkusativ.",
+  regeln: ["dativ","akk"],
+  runden: [
+    { name:"Unterwegs in Santiago", saetze:[
+      { satz:"Ich fahre jeden Tag ___ dem Bus zur Schule.", richtig:"mit", falsch:["für","ohne"], regel:"dativ" },
+      { satz:"Wir gehen ___ den Parque Forestal.", richtig:"durch", falsch:["aus","bei"], regel:"akk" },
+      { satz:"Sofía wohnt ___ ihrer Tante in Ñuñoa.", richtig:"bei", falsch:["für","gegen"], regel:"dativ" },
+      { satz:"Das Geschenk ist ___ meinen Bruder.", richtig:"für", falsch:["mit","von"], regel:"akk" },
+      { satz:"Matías kommt gerade ___ dem Supermarkt.", richtig:"aus", falsch:["durch","um"], regel:"dativ" },
+      { satz:"Ich gehe nie ___ meinen Hund spazieren.", richtig:"ohne", falsch:["mit","zu"], regel:"akk" },
+      { satz:"Am Sonntag fahren wir ___ meiner Oma.", richtig:"zu", falsch:["für","gegen"], regel:"dativ" },
+      { satz:"Colo-Colo spielt heute ___ die Universidad de Chile.", richtig:"gegen", falsch:["mit","bei"], regel:"akk" },
+    ]},
+    { name:"In der Schule", saetze:[
+      { satz:"___ einem Jahr lerne ich Deutsch.", richtig:"Seit", falsch:["Für","Um"], regel:"dativ" },
+      { satz:"In der Pause laufen die Kinder ___ das Schulgebäude.", richtig:"um", falsch:["aus","mit"], regel:"akk" },
+      { satz:"Ich habe eine E-Mail ___ meiner Lehrerin bekommen.", richtig:"von", falsch:["für","durch"], regel:"dativ" },
+      { satz:"Diese Blumen sind ___ unsere Lehrerin.", richtig:"für", falsch:["aus","bei"], regel:"akk" },
+      { satz:"Nach dem Sport kommen wir ___ der Turnhalle.", richtig:"aus", falsch:["durch","gegen"], regel:"dativ" },
+      { satz:"Benja kommt heute ___ seine Hausaufgaben in die Schule.", richtig:"ohne", falsch:["mit","bei"], regel:"akk" },
+      { satz:"Ich spreche ___ meinem Lehrer über die Note.", richtig:"mit", falsch:["für","um"], regel:"dativ" },
+      { satz:"Der Ball fliegt ___ das offene Fenster.", richtig:"durch", falsch:["aus","mit"], regel:"akk" },
+    ]},
+    { name:"Freizeit und Familie", saetze:[
+      { satz:"Am Wochenende fahre ich ___ meinem Opa nach Pucón.", richtig:"mit", falsch:["für","gegen"], regel:"dativ" },
+      { satz:"Ich kaufe ein Eis ___ dich.", richtig:"für", falsch:["mit","bei"], regel:"akk" },
+      { satz:"Heute Abend bleibe ich ___ meiner Freundin.", richtig:"bei", falsch:["für","durch"], regel:"dativ" },
+      { satz:"Ich bekomme ___ meinem Geburtstag ein Fahrrad.", richtig:"zu", falsch:["für","gegen"], regel:"dativ" },
+      { satz:"Ich kann nicht ___ dich leben!", richtig:"ohne", falsch:["mit","aus"], regel:"akk" },
+      { satz:"Wir wandern ___ den Wald.", richtig:"durch", falsch:["aus","zu"], regel:"akk" },
+      { satz:"Das Paket ist ___ meiner Oma aus Deutschland.", richtig:"von", falsch:["für","gegen"], regel:"dativ" },
+      { satz:"Matías ist ___ die Idee.", richtig:"gegen", falsch:["mit","bei"], regel:"akk" },
+    ]},
+  ],
+},
+
+/* =========================== NIVEAU B1 =========================== */
+B1: {
+  titel: "Verben mit Präposition",
+  welt: "valparaiso",
+  schwerpunkt: "warten auf, denken an, sich freuen auf/über, träumen von, Angst haben vor …",
+  intro: "Viele Verben haben eine feste Präposition – und oft ist sie anders als im Spanischen: **esperar a** → warten **auf**, **pensar en** → denken **an**, **soñar con** → träumen **von**.\n\nAchtung bei **sich freuen**: **auf** etwas, das noch kommt – **über** etwas, das schon da ist.",
+  tipp: "Welche Präposition gehört fest zu diesem Verb? Übersetze nicht Wort für Wort aus dem Spanischen!",
+  runden: [
+    { name:"Warten, denken, träumen", saetze:[
+      { satz:"Wir warten schon zwanzig Minuten ___ den Bus.", richtig:"auf", falsch:["für","an","nach"], info:"warten **auf** + Akkusativ", es:"esperar el bus / esperar a alguien → warten AUF. ¡Nunca «warten für»!" },
+      { satz:"Ich denke oft ___ meine Familie in Chile.", richtig:"an", falsch:["in","von","für"], info:"denken **an** + Akkusativ", es:"pensar en → denken AN (no «in»)." },
+      { satz:"Benja träumt ___ einer Reise nach Patagonien.", richtig:"von", falsch:["mit","über","an"], info:"träumen **von** + Dativ", es:"soñar con → träumen VON (no «mit»)." },
+      { satz:"Ich freue mich schon ___ die Ferien im Dezember.", richtig:"auf", falsch:["über","für","an"], info:"sich freuen **auf** + Akk.: etwas, das **noch kommt**", es:"alegrarse por algo que va a venir → sich freuen AUF." },
+      { satz:"Ich habe mich sehr ___ dein Geschenk gefreut.", richtig:"über", falsch:["auf","für","an"], info:"sich freuen **über** + Akk.: etwas, das **schon da ist**", es:"alegrarse por algo que ya pasó o que ya tengo → sich freuen ÜBER." },
+      { satz:"Sofía interessiert sich sehr ___ Fußball.", richtig:"für", falsch:["an","über","von"], info:"sich interessieren **für** + Akkusativ", es:"interesarse por → sich interessieren FÜR." },
+      { satz:"Kannst du dich noch ___ unseren ersten Schultag erinnern?", richtig:"an", falsch:["von","über","auf"], info:"sich erinnern **an** + Akkusativ", es:"acordarse de → sich erinnern AN (no «von»)." },
+      { satz:"Matías hat Angst ___ großen Hunden.", richtig:"vor", falsch:["von","für","über"], info:"Angst haben **vor** + Dativ", es:"tener miedo de / a → Angst haben VOR (no «von»)." },
+    ]},
+    { name:"In der Schule", saetze:[
+      { satz:"Alle Schüler nehmen ___ dem Wettbewerb teil.", richtig:"an", falsch:["in","mit","von"], info:"teilnehmen **an** + Dativ", es:"participar en → teilnehmen AN (no «in»)." },
+      { satz:"Wir müssen uns ___ den Text konzentrieren.", richtig:"auf", falsch:["in","an","für"], info:"sich konzentrieren **auf** + Akkusativ", es:"concentrarse en → sich konzentrieren AUF (no «in»)." },
+      { satz:"Der Lehrer achtet sehr ___ die Rechtschreibung.", richtig:"auf", falsch:["an","für","über"], info:"achten **auf** + Akkusativ", es:"fijarse en / prestar atención a → achten AUF." },
+      { satz:"Frau Weber hat sich ___ den Lärm in der Klasse geärgert.", richtig:"über", falsch:["an","für","von"], info:"sich ärgern **über** + Akkusativ", es:"enojarse por → sich ärgern ÜBER." },
+      { satz:"Die Prüfung besteht ___ drei Teilen.", richtig:"aus", falsch:["in","von","mit"], info:"bestehen **aus** + Dativ", es:"consistir en → bestehen AUS (no «in»)." },
+      { satz:"Ich habe ___ einen Termin beim Direktor gebeten.", richtig:"um", falsch:["für","nach","an"], info:"bitten **um** + Akkusativ", es:"pedir algo → bitten UM (no «für»)." },
+      { satz:"Der Austauschschüler hat ___ dem Weg zum Bahnhof gefragt.", richtig:"nach", falsch:["für","über","an"], info:"fragen **nach** + Dativ", es:"preguntar por → fragen NACH (no «für»)." },
+      { satz:"Viele Schüler haben sich ___ die Hausaufgaben beschwert.", richtig:"über", falsch:["von","für","an"], info:"sich beschweren **über** + Akkusativ", es:"quejarse de → sich beschweren ÜBER (no «von»)." },
+    ]},
+    { name:"Freunde und Gefühle", saetze:[
+      { satz:"Lena hat sich ___ einen Jungen aus Valparaíso verliebt.", richtig:"in", falsch:["von","mit","an"], info:"sich verlieben **in** + Akkusativ", es:"enamorarse de → sich verlieben IN (no «von»)." },
+      { satz:"Wir haben lange ___ den Witz gelacht.", richtig:"über", falsch:["von","an","mit"], info:"lachen **über** + Akkusativ", es:"reírse de → lachen ÜBER (no «von»)." },
+      { satz:"Meine Eltern sind sehr stolz ___ mich.", richtig:"auf", falsch:["von","über","für"], info:"stolz sein **auf** + Akkusativ", es:"estar orgulloso de → stolz sein AUF (no «von»)." },
+      { satz:"Heute habe ich keine Lust ___ Hausaufgaben.", richtig:"auf", falsch:["für","nach","an"], info:"Lust haben **auf** + Akkusativ", es:"tener ganas de → Lust haben AUF." },
+      { satz:"Der Ausflug hängt ___ dem Wetter ab.", richtig:"von", falsch:["an","in","mit"], info:"abhängen **von** + Dativ – wie im Spanischen!", es:"depender de → abhängen VON. ¡Aquí es igual que en español!" },
+      { satz:"Sofía kümmert sich ___ ihren kleinen Bruder.", richtig:"um", falsch:["für","an","mit"], info:"sich kümmern **um** + Akkusativ", es:"cuidar a / ocuparse de → sich kümmern UM." },
+      { satz:"Ich habe mich schon ___ das Wetter in Deutschland gewöhnt.", richtig:"an", falsch:["zu","mit","auf"], info:"sich gewöhnen **an** + Akkusativ", es:"acostumbrarse a → sich gewöhnen AN." },
+      { satz:"Am Flughafen haben wir uns ___ unseren Gastfamilien verabschiedet.", richtig:"von", falsch:["mit","an","bei"], info:"sich verabschieden **von** + Dativ – wie im Spanischen!", es:"despedirse de → sich verabschieden VON. ¡Igual que en español!" },
+    ]},
+  ],
+},
+
+/* =========================== NIVEAU B2 =========================== */
+B2: {
+  titel: "Präpositionen mit Genitiv",
+  welt: "pucon",
+  schwerpunkt: "wegen, aufgrund, trotz, während, innerhalb, außerhalb, statt, oberhalb, angesichts",
+  intro: "Alle Präpositionen in diesem Niveau stehen mit dem **Genitiv**: wegen **des** Regens, trotz **der** Kälte, während **eines** Spiels. Der Kasus hilft dir hier also nicht – entscheidend ist die **Bedeutung**: Grund? Gegengrund? Zeit? Ort? Ersatz?",
+  tipp: "Was passt zur Bedeutung: Grund (wegen), Gegengrund (trotz), Zeitraum (während), drinnen/draußen (innerhalb/außerhalb), Ersatz (statt)?",
+  regeln: ["wegen","aufgrund","trotz","waehrend","innerhalb","ausserhalb","statt","oberhalb","angesichts"],
+  runden: [
+    { name:"Unterwegs in Chile", saetze:[
+      { satz:"___ des Streiks fuhr den ganzen Tag keine Metro.", richtig:"Wegen", falsch:["Trotz","Statt","Außerhalb"], regel:"wegen" },
+      { satz:"___ des Regens gingen wir an den Strand.", richtig:"Trotz", falsch:["Wegen","Innerhalb","Oberhalb"], regel:"trotz" },
+      { satz:"___ der langen Fahrt nach Pucón haben wir viel gesungen.", richtig:"Während", falsch:["Außerhalb","Statt","Oberhalb"], regel:"waehrend" },
+      { satz:"Das Hotel liegt ___ der Stadt, mitten im Wald.", richtig:"außerhalb", falsch:["während","trotz","statt"], regel:"ausserhalb" },
+      { satz:"Bitte bezahlen Sie die Rechnung ___ einer Woche.", richtig:"innerhalb", falsch:["außerhalb","wegen","trotz"], regel:"innerhalb" },
+      { satz:"___ des Busses haben wir ein Taxi genommen.", richtig:"Statt", falsch:["Innerhalb","Oberhalb","Während"], regel:"statt" },
+      { satz:"Unsere Wohnung liegt am Cerro Alegre, ___ des Hafens.", richtig:"oberhalb", falsch:["während","wegen","statt"], regel:"oberhalb" },
+      { satz:"___ der hohen Preise kaufen viele Touristen Souvenirs.", richtig:"Trotz", falsch:["Statt","Innerhalb","Während"], regel:"trotz" },
+    ]},
+    { name:"Schule und Prüfungen", saetze:[
+      { satz:"___ der Prüfung darf man das Handy nicht benutzen.", richtig:"Während", falsch:["Statt","Trotz","Oberhalb"], regel:"waehrend" },
+      { satz:"___ seiner Krankheit hat Benja die Prüfung mitgeschrieben.", richtig:"Trotz", falsch:["Wegen","Statt","Innerhalb"], regel:"trotz" },
+      { satz:"___ der schlechten Noten muss Matías jetzt mehr lernen.", richtig:"Wegen", falsch:["Trotz","Statt","Oberhalb"], regel:"wegen" },
+      { satz:"Die Ergebnisse bekommt ihr ___ der nächsten zwei Wochen.", richtig:"innerhalb", falsch:["außerhalb","statt","wegen"], regel:"innerhalb" },
+      { satz:"___ eines Referats schreiben wir dieses Jahr einen Essay.", richtig:"Statt", falsch:["Trotz","Während","Oberhalb"], regel:"statt" },
+      { satz:"___ der Sommerferien ist die Schule geschlossen.", richtig:"Während", falsch:["Trotz","Statt","Oberhalb"], regel:"waehrend" },
+      { satz:"___ eines Fehlers im System kamen die Noten zu spät.", richtig:"Aufgrund", falsch:["Trotz","Statt","Innerhalb"], regel:"aufgrund" },
+      { satz:"___ des Schulgeländes ist Rauchen verboten.", richtig:"Innerhalb", falsch:["Trotz","Statt","Während"], regel:"innerhalb" },
+    ]},
+    { name:"Umwelt und Gesellschaft", saetze:[
+      { satz:"___ der langen Trockenheit gibt es in Zentralchile Wassermangel.", richtig:"Aufgrund", falsch:["Trotz","Statt","Innerhalb"], regel:"aufgrund" },
+      { satz:"___ aller Warnungen fahren viele Menschen weiter mit dem Auto.", richtig:"Trotz", falsch:["Wegen","Statt","Innerhalb"], regel:"trotz" },
+      { satz:"___ des Autos nehme ich jetzt jeden Tag das Fahrrad.", richtig:"Statt", falsch:["Trotz","Innerhalb","Oberhalb"], regel:"statt" },
+      { satz:"Viele Gletscher sind ___ weniger Jahrzehnte stark geschrumpft.", richtig:"innerhalb", falsch:["außerhalb","statt","trotz"], regel:"innerhalb" },
+      { satz:"___ der Klimakrise müssen wir sofort handeln.", richtig:"Angesichts", falsch:["Trotz","Statt","Außerhalb"], regel:"angesichts" },
+      { satz:"___ der Pandemie lernten viele Schüler online.", richtig:"Während", falsch:["Statt","Trotz","Oberhalb"], regel:"waehrend" },
+      { satz:"Der Wald ___ des Dorfes ist ein Naturschutzgebiet.", richtig:"außerhalb", falsch:["während","trotz","statt"], regel:"ausserhalb" },
+      { satz:"___ des starken Windes konnte die Fähre nicht ablegen.", richtig:"Wegen", falsch:["Trotz","Statt","Innerhalb"], regel:"wegen" },
+    ]},
+  ],
+},
+
+/* =========================== NIVEAU C1 =========================== */
+C1: {
+  titel: "Nomen-Verb-Verbindungen",
+  welt: "patagonien",
+  schwerpunkt: "eine Entscheidung treffen, Kritik üben, in Frage stellen, Maßnahmen ergreifen …",
+  intro: "Nomen-Verb-Verbindungen sind feste Wortpaare – typisch für die DSD-II-Prüfung. Das Verb kann man nicht logisch ableiten, man muss es lernen. Vorsicht vor dem Spanischen: **tomar una decisión** heißt **eine Entscheidung treffen** – aber **tomar asiento** heißt tatsächlich **Platz nehmen**.",
+  tipp: "Welches Verb gehört fest zu diesem Nomen? Übersetze nicht wörtlich aus dem Spanischen.",
+  runden: [
+    { name:"Entscheidungen und Diskussionen", saetze:[
+      { satz:"Bis Freitag müssen wir eine Entscheidung ___.", richtig:"treffen", falsch:["nehmen","machen","geben"], info:"eine Entscheidung **treffen** (auch: fällen) – nicht „nehmen“ wie span. „tomar una decisión“" },
+      { satz:"Der Bürgermeister hat heftige Kritik an dem Projekt ___.", richtig:"geübt", falsch:["gemacht","gegeben","gestellt"], info:"Kritik **üben** (an + Dativ) – auch: Kritik äußern" },
+      { satz:"Die neue Studie ___ die bisherigen Ergebnisse in Frage.", richtig:"stellt", falsch:["legt","bringt","nimmt"], info:"etwas in Frage **stellen** = bezweifeln (span. „poner en duda“)" },
+      { satz:"Darf ich Ihnen eine Frage ___?", richtig:"stellen", falsch:["machen","geben","nehmen"], info:"eine Frage **stellen** – nicht „machen“ wie span. „hacer una pregunta“" },
+      { satz:"Die Ministerin hat eine wichtige Rede ___.", richtig:"gehalten", falsch:["gegeben","gemacht","geführt"], info:"eine Rede **halten** – nicht „geben“ wie span. „dar un discurso“" },
+      { satz:"Wir haben ein langes Gespräch mit der Direktorin ___.", richtig:"geführt", falsch:["gehalten","gemacht","gestellt"], info:"ein Gespräch **führen** (span. „mantener una conversación“)" },
+      { satz:"Bitte ___ Sie Platz.", richtig:"nehmen", falsch:["setzen","machen","halten"], info:"Platz **nehmen** – hier passt das spanische „tomar asiento“ genau!" },
+      { satz:"Zu diesem Vorschlag möchte ich gern Stellung ___.", richtig:"nehmen", falsch:["geben","machen","treffen"], info:"Stellung **nehmen** zu = seine Meinung sagen (span. „tomar posición“) – hier passt „nehmen“!" },
+    ]},
+    { name:"Umwelt und Politik", saetze:[
+      { satz:"Die Regierung muss endlich Maßnahmen gegen den Wassermangel ___.", richtig:"ergreifen", falsch:["nehmen","machen","geben"], info:"Maßnahmen **ergreifen** (auch: treffen) – nicht „nehmen“ wie span. „tomar medidas“" },
+      { satz:"Jeder kann einen Beitrag zum Umweltschutz ___.", richtig:"leisten", falsch:["geben","machen","nehmen"], info:"einen Beitrag **leisten** (span. „contribuir“, „aportar“)" },
+      { satz:"Die Firma hat der Gemeinde das Grundstück zur Verfügung ___.", richtig:"gestellt", falsch:["gegeben","gelegt","gemacht"], info:"etwas zur Verfügung **stellen** (span. „poner a disposición“)" },
+      { satz:"Bei der Planung sollte man auch die Kosten in Betracht ___.", richtig:"ziehen", falsch:["nehmen","stellen","bringen"], info:"etwas in Betracht **ziehen** – nicht „nehmen“ wie span. „tomar en consideración“" },
+      { satz:"Die Demonstranten wollen Druck auf die Regierung ___.", richtig:"ausüben", falsch:["geben","nehmen","stellen"], info:"Druck **ausüben** auf + Akkusativ (span. „ejercer presión“)" },
+      { satz:"In der Diskussion hat sie ihre Sorge deutlich zum Ausdruck ___.", richtig:"gebracht", falsch:["gestellt","gemacht","gegeben"], info:"etwas zum Ausdruck **bringen** = deutlich sagen" },
+      { satz:"Die Umweltschützer haben beim Ministerium einen Antrag ___.", richtig:"gestellt", falsch:["gemacht","gegeben","gelegt"], info:"einen Antrag **stellen** (span. „presentar una solicitud“)" },
+      { satz:"Für eine saubere Umwelt würde ich höhere Preise in Kauf ___.", richtig:"nehmen", falsch:["geben","stellen","bringen"], info:"etwas in Kauf **nehmen** = einen Nachteil akzeptieren" },
+    ]},
+    { name:"Schule, Arbeit, Alltag", saetze:[
+      { satz:"Unsere Schule ___ großen Wert auf Pünktlichkeit.", richtig:"legt", falsch:["gibt","macht","nimmt"], info:"Wert **legen** auf + Akk. – nicht „geben“ wie span. „dar importancia“" },
+      { satz:"Bitte ___ Sie Rücksicht auf die Nachbarn.", richtig:"nehmen", falsch:["geben","machen","legen"], info:"Rücksicht **nehmen** auf + Akkusativ (span. „tener consideración“)" },
+      { satz:"Ich möchte mit meiner Gastfamilie Kontakt ___.", richtig:"aufnehmen", falsch:["nehmen","machen","geben"], info:"Kontakt **aufnehmen** mit/zu (span. „ponerse en contacto“)" },
+      { satz:"Soziale Medien ___ im Leben vieler Jugendlicher eine große Rolle.", richtig:"spielen", falsch:["machen","geben","halten"], info:"eine Rolle **spielen** (span. „desempeñar un papel“)" },
+      { satz:"Für dieses Problem müssen wir eine Lösung ___.", richtig:"finden", falsch:["treffen","machen","nehmen"], info:"eine Lösung **finden** (auch: erarbeiten)" },
+      { satz:"Vor der Reise haben wir alle nötigen Vorbereitungen ___.", richtig:"getroffen", falsch:["genommen","gestellt","gegeben"], info:"Vorbereitungen **treffen**" },
+      { satz:"Nach drei Wochen musste Matías Abschied von seiner Gastfamilie ___.", richtig:"nehmen", falsch:["machen","geben","treffen"], info:"Abschied **nehmen** von + Dativ = sich verabschieden" },
+      { satz:"In der Diskussion hat Sofía das Thema Rassismus zur Sprache ___.", richtig:"gebracht", falsch:["gestellt","gemacht","genommen"], info:"etwas zur Sprache **bringen** = ein Thema ansprechen" },
+    ]},
+  ],
+},
+
+};
+</script>
+<style>
+:root{
+  --bg:#13172a; --panel:#1d2340; --panel2:#283058; --line:#4a5694;
+  --text:#f6f4fb; --muted:#cfd3ea; --accent:#ffcf5a; --accent-text:#1a1a1a;
+  --ok:#5ee08f; --ok-bg:#103a26; --bad:#ff8a8a; --bad-bg:#4a1a1f;
+  --focus:#ffe066; --btn:#323b6e; --btnh:#3f4985; --herz:#ff5c8a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);background-image:radial-gradient(ellipse at 10% 0%,#2b2f5e 0%,transparent 55%),radial-gradient(ellipse at 95% 100%,#1f3d45 0%,transparent 50%);background-attachment:fixed;color:var(--text);font-family:Roboto,Arial,"Segoe UI",system-ui,sans-serif;font-size:19px;line-height:1.45;min-height:100vh}
+h1,h2,h3{line-height:1.2;margin:.2em 0 .5em} h1{font-size:1.7em} h2{font-size:1.25em} h3{font-size:1.05em}
+p{margin:.4em 0 .8em} a{color:var(--accent)}
+button{font:inherit;color:var(--text);cursor:pointer;border-radius:12px;border:2px solid #7280c4;background:var(--btn);padding:.35em .9em;min-height:46px;touch-action:manipulation}
+button:hover:not(:disabled){background:var(--btnh)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visible,summary:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.primary:hover:not(:disabled){background:#ffdc85}
+input[type=text]{font:inherit;color:#111;background:#fff;border:3px solid #9aa6e0;border-radius:10px;padding:.25em .45em;min-height:46px}
+.muted{color:var(--muted)} .small{font-size:.85em} .center{text-align:center}
+.row{display:flex;gap:.6em;flex-wrap:wrap;align-items:center} .spacer{flex:1}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:1em 1.3em;box-shadow:0 8px 24px rgba(0,0,0,.35);margin-bottom:.9em}
+.narrow{max-width:940px;margin-left:auto;margin-right:auto}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.1em .7em;white-space:nowrap;font-size:.9em}
+.warnbox{background:#4a3a00;border:2px solid var(--accent);border-radius:12px;padding:.6em 1em;margin:.6em auto;font-size:.85em}
+.warnbox ul{margin:.3em 0 0;padding-left:1.2em}
+.okline{color:var(--ok)} .badline{color:var(--bad)}
+.tipbox{background:#3a3214;border:2px solid #b89a3a;border-radius:12px;padding:.45em .85em;margin-top:.6em}
+.tipbox.ok{background:var(--ok-bg);border-color:var(--ok)}
+.tipbox.bad{background:var(--bad-bg);border-color:var(--bad)}
+.tipbox p{margin:.25em 0}
+.es{color:#9fd0ff}
+.star{color:#ffd23f}
+
+#top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.6em;flex-wrap:wrap;padding:.3em .8em;background:rgba(19,23,42,.96);border-bottom:2px solid var(--line)}
+#top .brand{font-weight:800;white-space:nowrap}
+#hud{display:flex;gap:.5em;flex-wrap:wrap;align-items:center;flex:1}
+#top .tools{display:flex;gap:.4em}
+#top .tools button{min-height:40px;padding:.2em .7em;font-size:.88em}
+.homelink{color:var(--muted);text-decoration:none;font-size:.85em;border:1px solid var(--line);border-radius:999px;padding:.15em .7em;white-space:nowrap}
+.homelink:hover{color:var(--text);border-color:var(--accent)}
+main{max-width:1340px;margin:0 auto;padding:.5em 1em 1.5em}
+.eingebettet .homelink{display:none}
+
+/* ---------- Start ---------- */
+.hero .herorow{display:flex;gap:1em;align-items:center;flex-wrap:wrap}
+.hero .herorow > div:first-child{flex:1 1 440px}
+.heroart{flex:0 1 260px;display:flex;justify-content:center}
+.heroart canvas{width:240px;height:135px;border-radius:12px}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8em;margin:.6em 0 .2em}
+.level{display:flex;flex-direction:column;align-items:flex-start;gap:.15em;text-align:left;padding:.8em 1em;border-radius:16px;min-height:130px}
+.level .lv{font-size:1.6em;font-weight:800;color:var(--accent)} .level .lt{font-weight:700}
+.level .lo{font-size:.8em;color:var(--muted)}
+.tempo{display:flex;gap:.5em;flex-wrap:wrap}
+.tempo button[aria-pressed="true"]{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:.3em .9em;align-items:center;margin:.4em 0}
+kbd{display:inline-block;background:#eef0fa;color:#1a1a1a;border-radius:6px;padding:0 .45em;font-family:inherit;font-weight:700;border-bottom:3px solid #9aa6e0;min-width:1.6em;text-align:center}
+.regelliste{list-style:none;padding:0;margin:.3em 0}
+.regelliste li{background:var(--panel2);border-radius:10px;padding:.35em .7em;margin:.35em 0}
+.regelliste li.ausn{border:2px solid #ffd23f}
+
+/* ---------- Spiel ---------- */
+.game{display:flex;flex-direction:column;align-items:center;gap:.45em}
+.banner{width:100%;max-width:1060px;background:#fffdf5;color:#1d1d1d;border-radius:14px;border:3px solid #e7c76a;padding:.3em .9em .35em;box-shadow:0 4px 14px rgba(0,0,0,.35);min-height:100px;display:flex;flex-direction:column;justify-content:center}
+.banner .bmeta{font-size:.72em;color:#6a5a2a;font-weight:700;letter-spacing:.02em}
+.banner .bsatz{font-size:1.32em;font-weight:600;line-height:1.3}
+.banner .gap{display:inline-block;min-width:3.2em;border-bottom:3px solid #c0392b;color:#c0392b;text-align:center}
+.banner .bopts{font-size:.8em;color:#4a4a4a}
+.banner .bopts b{font-size:1.15em;color:#1d1d1d;background:#ffe9a6;border-radius:6px;padding:0 .35em}
+.banner.ok{background:#e7fbef;border-color:#2ecc71}
+.banner.ok .fill{color:#13863f;font-weight:800}
+.banner.bad{background:#fde9ea;border-color:#e74c3c}
+.stagewrap{position:relative;border-radius:14px;overflow:hidden;border:3px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.4);background:#000;line-height:0}
+#cv{display:block;touch-action:none;cursor:none}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,12,28,.55);line-height:1.45;padding:1em}
+.overlay[hidden]{display:none}
+.overlay .box{background:var(--panel);border:3px solid var(--line);border-radius:16px;padding:.8em 1.2em;max-width:640px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.5);max-height:100%;overflow:auto}
+.overlay .box.bad{border-color:var(--bad)}
+.overlay.klein{font-size:.74em;padding:.4em}
+.overlay.klein .box{padding:.45em .8em}
+.overlay.klein button{min-height:38px}
+.overlay.klein .big{font-size:1.15em}
+.overlay .box.ok{border-color:var(--ok)}
+.overlay .big{font-size:1.25em;font-weight:700}
+.overlay .satzfull{background:#fffdf5;color:#1d1d1d;border-radius:10px;padding:.3em .6em;font-size:1.1em;margin:.4em 0}
+.overlay .satzfull strong{color:#13863f}
+.ctrl{display:flex;gap:.6em;width:100%;max-width:1060px;justify-content:space-between}
+.ctrl button{flex:1;min-height:56px;font-size:1.05em}
+.ctrl button b{background:#ffe9a6;color:#1d1d1d;border-radius:6px;padding:0 .4em;margin-left:.2em}
+.ctrl #bPause{flex:0 0 auto}
+
+
+.banner .binfo{font-size:.82em;color:#333;margin-top:.1em}
+.banner .binfo .es{color:#1f5f9a}
+.banner.bad .bmeta{color:#a52a2a}
+.hint{font-size:.8em;color:var(--muted);text-align:center}
+.ctrl button{min-height:50px}
+#bLaunch b{background:none;color:inherit;padding:0}
+/* Ergebnis */
+.restable{border-collapse:collapse;margin:.5em 0;width:100%}
+.restable th,.restable td{text-align:left;padding:.3em .6em;border-bottom:1px solid var(--line)}
+.restable th{color:var(--muted);font-weight:600;width:45%}
+.bigcode{font-family:Consolas,"Courier New",monospace;font-size:1.6em;font-weight:800;letter-spacing:.06em;background:#fff;color:#111;border-radius:12px;padding:.2em .6em;display:inline-block;margin:.2em 0 .5em;user-select:all}
+.wronglist li{margin:.5em 0}
+.lsatz li{margin:.2em 0}
+details{margin:.4em 0} summary{cursor:pointer;font-weight:700}
+
+.confirmbox{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center;padding:1em}
+.confirmbox .cb{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:1em 1.3em;max-width:520px}
+.confirmbox .cbrow{display:flex;gap:.6em;justify-content:flex-end}
+#toast{position:fixed;left:50%;bottom:1.2em;transform:translateX(-50%);background:#0c0f20;border:2px solid var(--accent);border-radius:12px;padding:.5em 1em;z-index:90;max-width:90vw}
+#toast[hidden]{display:none}
+
+@media (max-width:700px){ body{font-size:17px} .banner .bsatz{font-size:1.1em} .ctrl{flex-wrap:wrap} .ctrl button{min-width:0;font-size:.85em;padding:.2em .5em} }
+</style>
+</head>
+<body>
+<header id="top">
+  <a class="homelink" href="index.html" title="Zur Startseite mit allen Spielen">← Alle Spiele</a>
+  <span class="brand">🏓 Wort-Pong</span>
+  <div id="hud" aria-live="off"></div>
+  <div class="tools">
+    <button type="button" id="btnMenu" title="Zum Menü">☰ Menü</button>
+    <button type="button" id="btnAnim" aria-pressed="false" title="Animationen an/aus">🎞 Animationen an</button>
+    <button type="button" id="btnSound" aria-pressed="false" title="Ton an/aus">🔇 Ton aus</button>
+  </div>
+</header>
+<main id="app" tabindex="-1"></main>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<script>
+/* =====================================================================
+   AB HIER: SPIEL-LOGIK (muss nicht geändert werden)
+   ===================================================================== */
+const E = EINSTELLUNGEN;
+const LEVELS = ['A2','B1','B2','C1'];
+const WELTEN = ['atacama','valparaiso','pucon','patagonien'];
+const LS_GAME = 'wortpong.spiel.v1', LS_SET = 'wortpong.einstellungen.v1';
+const TEMPI = [['langsam','🐢 langsam'],['normal','🏓 normal'],['schnell','⚡ schnell']];
+
+const app = document.getElementById('app');
+let state=null, view='start', settings={ sound:false, anim:true, tempo:'normal', ziel:true };
+let G=null, raf=0, lastTs=0, ZEITRAFFER=1;
+
+/* ---------- Speicher ---------- */
+function lsGet(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { window.localStorage.setItem(k,v); } catch(e){} }
+function lsDel(k){ try { window.localStorage.removeItem(k); } catch(e){} }
+function save(){ if(state) lsSet(LS_GAME, JSON.stringify(state)); }
+function saveSettings(){ lsSet(LS_SET, JSON.stringify(settings)); }
+
+/* ---------- Helfer ---------- */
+const $  = (s,r) => (r||document).querySelector(s);
+const $$ = (s,r) => Array.from((r||document).querySelectorAll(s));
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+function plain(s){ return String(s==null?'':s).replace(/\*\*/g,''); }
+function paras(s){ return String(s||'').split(/\n\s*\n/).map(p => '<p>'+fmt(p)+'</p>').join(''); }
+function asList(x){ return x==null ? [] : (Array.isArray(x) ? x : [x]); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function range(n){ return Array.from({length:n},(_,i)=>i); }
+function mod(a,n){ return ((a%n)+n)%n; }
+function rnd(i){ const x=Math.sin(i*127.1+311.7)*43758.5453; return x-Math.floor(x); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function fmtTime(ms){ const s=Math.max(0,Math.round(ms/1000)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function fmtDate(d){ const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear(); }
+function focusEl(sel){ const el = sel ? (typeof sel==='string'?$(sel):sel) : null; (el||app).focus({preventScroll:true}); }
+let toastT=null;
+function toast(msg, ms){ const t=$('#toast'); t.innerHTML=fmt(msg); t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; }, ms||3000); }
+function ruhig(){ return !settings.anim || !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+function spanish(level){ return !!E.spanischeHilfe[level||(state&&state.level)]; }
+
+/* ---------- Eingebettet (z. B. Google Sites) ---------- */
+const EINGEBETTET = (()=>{ try { return window.self!==window.top; } catch(e){ return true; } })();
+if(EINGEBETTET) document.documentElement.classList.add('eingebettet');
+function bestaetigen(msg, ok){
+  const d=document.createElement('div'); d.className='confirmbox'; d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true');
+  d.innerHTML='<div class="cb"><p></p><div class="cbrow"><button type="button" class="cbno">Abbrechen</button><button type="button" class="primary cbyes">Ja</button></div></div>';
+  d.querySelector('p').textContent=msg; document.body.appendChild(d);
+  const close=()=>d.remove();
+  d.querySelector('.cbno').addEventListener('click',close);
+  d.querySelector('.cbyes').addEventListener('click',()=>{ close(); ok(); });
+  d.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Escape') close(); });
+  d.querySelector('.cbno').focus();
+}
+
+/* ---------- Daten ---------- */
+function runden(level){ return asList(SPIEL[level||state.level].runden).map((r,i)=>({ name:r.name, saetze:asList(r.saetze), idx:i })); }
+function alleSaetze(level){ return runden(level).reduce((a,r)=>a.concat(r.saetze.map((s,i)=>Object.assign({ id:r.idx+'.'+i, runde:r.name },s))),[]); }
+function signature(level){ return runden(level).map(r=>r.saetze.length).join('-'); }
+function L(){ return SPIEL[state.level]; }
+function fill(s, wort, cls){ return fmt(s.satz).replace('___', '<strong'+(cls?' class="'+cls+'"':'')+'>'+esc(wort)+'</strong>'); }
+function satzGap(s){ return esc(s.satz).replace('___','<span class="gap">___</span>'); }
+function satzPlain(s, wort){ return plain(s.satz).replace('___', wort); }
+function erklaerung(s, level, kurz){
+  let h='';
+  asList(s.regel).map(k=>REGELN[k]).filter(Boolean).forEach(r=>{ h+='<span>📌 '+fmt(r.text)+'</span>'+(spanish(level)&&r.es&&!s.es?'<br><span class="es" lang="es">🇨🇱 '+fmt(r.es)+'</span>':''); });
+  if(s.info) h+=(h?'<br>':'')+'<span>📌 '+fmt(s.info)+'</span>';
+  if(s.es && spanish(level)) h+='<br><span class="es" lang="es">🇨🇱 '+fmt(s.es)+'</span>';
+  return h;
+}
+function erklaerungPlain(s){ return asList(s.regel).map(k=>REGELN[k]).filter(Boolean).map(r=>plain(r.text)).concat(s.info?[plain(s.info)]:[]).join(' / '); }
+function regelListe(level){
+  const ks=asList(SPIEL[level].regeln); if(!ks.length) return '';
+  return '<ul class="regelliste">'+ks.map(k=>REGELN[k]).filter(Boolean).map(r=>'<li>📌 '+fmt(r.text)+(spanish(level)&&r.es?'<br><span class="es small" lang="es">🇨🇱 '+fmt(r.es)+'</span>':'')+'</li>').join('')+'</ul>';
+}
+
+function dataWarnings(){
+  const w=[];
+  LEVELS.forEach(lv=>{ const S=SPIEL[lv]; if(S==null) return;
+    if(!WELTEN.includes(S.welt)) w.push(lv+': welt muss '+WELTEN.join(', ')+' sein.');
+    if(!asList(S.runden).length) w.push(lv+': „runden“ fehlt.');
+    asList(S.regeln).forEach(k=>{ if(!REGELN[k]) w.push(lv+': Regel „'+k+'“ steht nicht in REGELN.'); });
+    runden(lv).forEach(r=>{
+      if(!r.saetze.length) w.push(lv+' · '+r.name+': keine Sätze.');
+      r.saetze.forEach((s,i)=>{ const where=lv+' · '+r.name+' · Satz '+(i+1)+': ';
+        if(!s || typeof s.satz!=='string' || s.satz.split('___').length!==2) w.push(where+'satz braucht genau eine Lücke ___.');
+        if(!s || !s.richtig) w.push(where+'richtig fehlt.');
+        const f=asList(s&&s.falsch);
+        if(f.length<2 || f.length>3) w.push(where+'falsch braucht 2 oder 3 Wörter.');
+        if(s && f.some(x=>String(x).trim()===String(s.richtig).trim())) w.push(where+'ein falsches Wort ist gleich dem richtigen.');
+        if(new Set(f).size!==f.length) w.push(where+'ein falsches Wort steht doppelt.');
+        asList(s&&s.regel).forEach(k=>{ if(!REGELN[k]) w.push(where+'Regel „'+k+'“ steht nicht in REGELN.'); });
+        if(s && !s.info && !asList(s.regel).length) w.push(where+'info oder regel fehlt (Erklärung).');
+      }); });
+  });
+  return w;
+}
+
+/* ---------- Prüfcode ---------- */
+function cyrb53(str){ let h1=0xdeadbeef, h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909); return 4294967296*(2097151&h2)+(h1>>>0); }
+const B32='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function normName(n){ return String(n||'').replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]/g,''); }
+function checksum(level,pct,k,d,name){ let n=cyrb53(['WP',level,pct,k,d,normName(name),E.geheimwort].join('|')); let s=''; for(let i=0;i<5;i++){ s+=B32[n%32]; n=Math.floor(n/32); } return s; }
+function makeCode(level,pct,k,date,name){ const p=n=>String(n).padStart(2,'0'); const d=p(date.getDate())+p(date.getMonth()+1)+p(date.getFullYear()%100); return level+'-'+pct+'-'+k+'-'+d+'-'+checksum(level,pct,k,d,name); }
+function verifyCode(code,name){
+  const m=String(code||'').toUpperCase().replace(/\s+/g,'').match(/^(A2|B1|B2|C1)-(\d{1,3})-(\d)-(\d{6})-([A-Z0-9]{5})$/);
+  if(!m) return { valid:false, reason:'Das Format stimmt nicht. Beispiel: B1-83-2-161026-K7QFM' };
+  return { valid: checksum(m[1],+m[2],+m[3],m[4],name)===m[5], level:m[1], pct:+m[2], k:+m[3], date:m[4].slice(0,2)+'.'+m[4].slice(2,4)+'.20'+m[4].slice(4) };
+}
+
+/* ---------- Ton ---------- */
+let actx=null;
+const SND={ pong:[[440,.04]], wand:[[330,.03]], ok:[[660,.1],[880,.18]], bad:[[220,.22]], weg:[[300,.1],[200,.25]], stern:[[784,.1],[988,.1],[1175,.1],[1568,.3]], fanfare:[[523,.15],[659,.15],[784,.15],[1047,.4]], start:[[523,.06],[784,.08]] };
+function sound(n){ if(!settings.sound) return; try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); let t=actx.currentTime;
+  (SND[n]||[]).forEach(([f,d])=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type='triangle'; o.frequency.value=f; g.gain.setValueAtTime(.15,t); g.gain.exponentialRampToValueAtTime(.001,t+d); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d+.02); t+=d*.8; }); }catch(e){} }
+
+/* ---------- Spielstand ---------- */
+function newGame(level){ state={ v:1, level, sig:signature(level), runde:0, phase:'intro', res:{}, punkte:0, wrong:[], sterne:{}, elapsed:0, name:'', finished:null, letzte:null }; save(); }
+function loadSaved(){ try{ const s=JSON.parse(lsGet(LS_GAME)||'null'); if(s && s.v===1 && SPIEL[s.level] && s.sig===signature(s.level)) return s; }catch(e){} return null; }
+function stats(){ const all=alleSaetze(), ok=all.filter(s=>state.res[s.id]===1).length; return { ok, total:all.length, pct: all.length?Math.round(ok*100/all.length):0, k:Object.keys(state.sterne).length, max:all.length*E.punkte[0] }; }
+
+/* =====================================================================
+   SPIELFELD (Canvas 960 × 540)
+   ===================================================================== */
+const W=960, H=540, FT=12, FB=104, PY=496, PH=14, PW=160, BR=10, MARGIN=12;
+function tempo(){ return E.tempo[settings.tempo] || E.tempo.normal; }
+function ballSpeed(){ return tempo().ball*(G?G.speedMul:1); }
+
+function startRunde(){
+  const r=runden()[state.runde];
+  G={ r, n:r.saetze.length, order:shuffle(range(r.saetze.length)), i:0, fields:[], s:null, lockT:0, lockMax:1, okT:0, tries:0, first:true,
+      ball:{ x:W/2, y:PY-BR, vx:0, vy:0, rest:true }, fangen:false, paddle:{ x:W/2, tx:W/2, vx:0 }, keys:{ l:false, r:false },
+      hearts:E.herzen, speedMul:1, started:false, paused:false, modal:null, done:false, star:null, starDone:false, parts:[], trail:[], t:0, okFirst:0, lockUntil:0 };
+  setupSatz();
+}
+function setupSatz(){
+  const si=G.order[G.i], s=G.r.saetze[si], id=G.r.idx+'.'+si;
+  G.s=s; G.si=si; G.id=id; G.first=state.res[id]===undefined; G.tries=0; G.okT=0;
+  const opts=shuffle([s.richtig].concat(asList(s.falsch))), n=opts.length, fw=(W-2*MARGIN)/n;
+  G.fields=opts.map((w,k)=>({ w, x:MARGIN+k*fw, w2:fw, state:'' }));
+  G.lockMax=tempo().lesen; G.lockT=G.lockMax;
+  setBanner();
+}
+function fieldAt(x){ return G.fields.find(f=>x>=f.x && x<f.x+f.w2) || (x<MARGIN?G.fields[0]:G.fields[G.fields.length-1]); }
+
+/* ---------- Steuerung ---------- */
+function launch(){
+  if(!G) return;
+  if(G.modal){ continueOverlay(); return; }
+  if(!G.started || G.paused || G.done) return;
+  const b=G.ball; if(!b.rest) return;
+  b.x=G.paddle.x; b.y=PY-BR; b.rest=false; b.vx=0; b.vy=-ballSpeed(); G.fangen=false; setCtrl(); sound('start');
+}
+
+function fangen(){
+  if(!G || G.modal || !G.started || G.paused || G.done || G.ball.rest) return;
+  G.fangen=!G.fangen; sound('wand'); setCtrl();
+}
+function setCtrl(){ const b=$('#bFang'); if(b){ b.setAttribute('aria-pressed',String(!!(G&&G.fangen))); b.innerHTML='🧲 Fangen'+(G&&G.fangen?' <b>bereit</b>':'')+' <span class="small">(↓)</span>'; } }
+
+/* ---------- Physik ---------- */
+function step(dt){
+  G.t+=dt;
+  G.parts.forEach(q=>{ q.x+=q.vx*dt; q.y+=q.vy*dt; q.vy+=q.g*dt; q.life-=dt; }); G.parts=G.parts.filter(q=>q.life>0);
+  if(G.done) return;
+  if(G.lockT>0 && G.okT<=0) G.lockT=Math.max(0,G.lockT-dt);
+  if(G.okT>0){ G.okT-=dt; if(G.okT<=0) naechsterSatz(); if(!G || G.done) return; }
+  // Balken
+  const p=G.paddle, before=p.x;
+  if(G.keys.l || G.keys.r){ p.x+=(G.keys.r?1:-1)*(G.keys.l&&G.keys.r?0:1)*780*dt; p.tx=p.x; }
+  else { const d=p.tx-p.x, mx=1600*dt; p.x+=clamp(d,-mx,mx); }
+  p.x=clamp(p.x, PW/4, W-PW/4); p.vx=(p.x-before)/Math.max(dt,1e-6);
+  // Stern
+  if(!G.starDone && !G.star && G.i>=2 && !state.sterne[G.r.idx]){ G.star={ x:-30, y:220+Math.random()*90, vx:70+Math.random()*30 }; }
+  if(G.star){ const st=G.star; st.x+=st.vx*dt; st.y+=Math.sin(G.t*2)*12*dt; if(st.x>W+40){ st.x=-30; } }
+  // Ball
+  const b=G.ball;
+  if(b.rest){ b.x=p.x; b.y=PY-BR; return; }
+  if(!ruhig()){ G.trail.push([b.x,b.y]); if(G.trail.length>8) G.trail.shift(); }
+  b.x+=b.vx*dt; b.y+=b.vy*dt;
+  if(b.x<BR){ b.x=BR; b.vx=Math.abs(b.vx); sound('wand'); }
+  if(b.x>W-BR){ b.x=W-BR; b.vx=-Math.abs(b.vx); sound('wand'); }
+  if(b.vy<0 && b.y-BR<=FB){ b.y=FB+BR; b.vy=Math.abs(b.vy); const f=fieldAt(b.x); if(G.lockT<=0 && G.okT<=0 && f && f.state==='') waehle(f); else sound('wand'); }
+  if(b.vy>0 && b.y+BR>=PY && b.y+BR<=PY+PH+12 && Math.abs(b.x-p.x)<=PW/2+BR){
+    const rel=clamp((b.x-p.x)/(PW/2+BR),-1,1), ang=rel*1.05, sp=ballSpeed();
+    if(G.fangen){ G.fangen=false; b.rest=true; b.vx=b.vy=0; b.y=PY-BR; G.paddle.tx=b.x; G.paddle.x=clamp(b.x,PW/4,W-PW/4); G.trail=[]; sound('start'); setCtrl(); return; }
+    b.vx=sp*Math.sin(ang); b.vy=-sp*Math.cos(ang); b.y=PY-BR; sound('pong');
+  }
+  const st=G.star;
+  if(st){ const dx=b.x-st.x, dy=b.y-st.y; if(dx*dx+dy*dy<(BR+24)*(BR+24)){ G.star=null; G.starDone=true; state.sterne[G.r.idx]=true; G.hearts=Math.min(E.maxHerzen,G.hearts+1); sound('stern'); toast('⭐ Stern gefangen! +1 ❤️',3000); burst(st.x,st.y,['#fff','#ffd23f','#5aa0ff']); updateHud(); save(); } }
+  if(b.y-BR>H){ ballWeg(); }
+}
+function burst(x,y,cols){ if(ruhig()) return; for(let i=0;i<14;i++){ const a=Math.random()*Math.PI*2; G.parts.push({ x, y, vx:Math.cos(a)*150, vy:Math.sin(a)*150-60, g:300, life:.8, c:cols[i%cols.length] }); } }
+
+function waehle(f){
+  G.tries++;
+  const s=G.s, ok=f.w===s.richtig;
+  if(ok){
+    f.state='ok';
+    if(G.first){ state.punkte+=E.punkte[Math.min(G.tries-1,E.punkte.length-1)]||0; state.res[G.id]=G.tries===1?1:0; if(G.tries===1) G.okFirst++; }
+    G.speedMul=Math.min(1.25,G.speedMul*1.03);
+    sound('ok'); burst(f.x+f.w2/2, FB-20, ['#5ee08f','#ffd23f','#fff']);
+    G.okT=1.8; setBannerOk(); save(); updateHud();
+  } else {
+    f.state='bad';
+    if(G.first && G.tries===1){ state.res[G.id]=0; if(!state.wrong.some(w=>w.id===G.id)) state.wrong.push(Object.assign({ id:G.id, runde:G.r.name, deine:f.w }, s)); save(); }
+    sound('bad'); setBannerBad(f.w);
+  }
+}
+function naechsterSatz(){
+  G.i++;
+  if(G.i>=G.n){ G.done=true; G.ball.rest=true; sound('fanfare'); setTimeout(rundeFertig, ruhig()?300:1000); return; }
+  setupSatz();
+}
+function ballWeg(){
+  const b=G.ball; b.rest=true; b.vx=0; b.vy=0; G.trail=[];
+  G.hearts--; sound('weg'); updateHud();
+  if(G.hearts<=0){
+    openOverlay('<div class="box bad" role="alertdialog" aria-labelledby="ovT"><p class="big badline" id="ovT">💔 Keine Herzen mehr!</p><p>Die Runde beginnt noch einmal. Deine Punkte vom ersten Versuch bleiben gespeichert.</p>'+
+      '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="ovGo">Neu starten ➜ <span class="small">(Leertaste)</span></button></div></div>',
+      ()=>{ startRunde(); renderGameDOM(); }, 700);
+  } else toast('Ball verloren – ❤️ noch '+G.hearts+'. Leertaste oder Klick: neuer Ball.',2500);
+}
+
+/* ---------- Overlays ---------- */
+function openOverlay(html, onGo, lock, menu){
+  const ov=$('#overlay'); if(!ov) return;
+  G.modal={ onGo, menu:!!menu }; G.lockUntil=performance.now()+(lock||0);
+  ov.innerHTML=html; ov.hidden=false;
+  const b=$('#ovGo',ov); if(b){ b.addEventListener('click',()=>continueOverlay(true)); setTimeout(()=>{ if(G && G.modal && b.isConnected) b.focus({preventScroll:true}); }, Math.min(lock||0,400)); }
+}
+function closeOverlay(){ const ov=$('#overlay'); if(ov){ ov.hidden=true; ov.innerHTML=''; } if(G) G.modal=null; const cv=$('#cv'); if(cv) cv.focus({preventScroll:true}); }
+function continueOverlay(force){
+  if(!G || !G.modal) return;
+  if(!force && performance.now()<G.lockUntil) return;
+  const fn=G.modal.onGo; closeOverlay(); if(fn) fn();
+}
+function startOverlay(){
+  const r=G.r, nR=runden().length;
+  openOverlay('<div class="box" role="dialog" aria-labelledby="ovT"><p class="big" id="ovT">Runde '+(r.idx+1)+' von '+nR+': '+esc(r.name)+'</p>'+
+    '<p>Lies den Satz oben und lenk den Ball in das <strong>richtige Wortfeld</strong>. Triffst du den Ball mit der <strong>Mitte</strong> des Balkens, fliegt er gerade nach oben – mit dem <strong>Rand</strong> fliegt er schräg.</p><p>🧲 Zu schwierig? Drück <strong>↓</strong> (oder klick), während der Ball fliegt: Dann <strong>fängst</strong> du ihn und kannst in Ruhe zielen.</p>'+
+    (state.runde===0?'<p class="small muted">Nach jedem neuen Satz sind die Felder kurz gesperrt – Zeit zum Lesen. ⭐ Fang den Stern, dann bekommst du ein Extra-Herz.</p>':'')+
+    '<div class="row"><span class="small muted">❤️ '+G.hearts+' Herzen · '+G.n+' Sätze</span><span class="spacer"></span><button type="button" class="primary" id="ovGo">Los! <span class="small">(Leertaste)</span></button></div></div>',
+    ()=>{ G.started=true; lastTs=0; }, 250);
+}
+function openPause(){
+  if(!G || G.modal || G.done) return;
+  G.paused=true; G.keys.l=G.keys.r=false;
+  openOverlay('<div class="box" role="dialog" aria-labelledby="ovT"><p class="big" id="ovT">⏸ Pause</p>'+
+    '<p class="small muted">Tempo:</p><div class="tempo">'+TEMPI.map(t=>'<button type="button" data-t="'+t[0]+'" aria-pressed="'+(settings.tempo===t[0])+'">'+t[1]+'</button>').join('')+'</div>'+
+    (regelListe(state.level)?'<details><summary>📌 Regeln ansehen</summary>'+regelListe(state.level)+'</details>':'')+
+    '<div class="row" style="margin-top:.6em"><button type="button" class="primary" id="ovGo">▶ Weiter <span class="small">(P)</span></button><button type="button" id="ovRestart">↺ Runde neu</button><span class="spacer"></span><button type="button" id="ovMenu">☰ Menü</button></div></div>',
+    ()=>{ G.paused=false; lastTs=0; }, 0, true);
+  $$('#overlay .tempo button').forEach(b=>b.addEventListener('click',()=>{ settings.tempo=b.dataset.t; saveSettings(); $$('#overlay .tempo button').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); }));
+  $('#ovRestart').addEventListener('click',()=>{ closeOverlay(); startRunde(); renderGameDOM(); });
+  $('#ovMenu').addEventListener('click',()=>{ closeOverlay(); stopLoop(); view='start'; state=null; render(); });
+}
+
+/* ---------- Banner ---------- */
+function meta(){ return 'Runde '+(G.r.idx+1)+' · '+esc(G.r.name)+' · Satz '+Math.min(G.i+1,G.n)+' von '+G.n; }
+function setBanner(){
+  const bn=$('#banner'); if(!bn || !G) return; bn.className='banner';
+  bn.innerHTML='<div class="bmeta">'+meta()+'</div><div class="bsatz">'+satzGap(G.s)+'</div><div class="binfo">'+G.fields.map(f=>'<b>'+esc(f.w)+'</b>').join(' · ')+'</div>';
+}
+function setBannerOk(){
+  const bn=$('#banner'); if(!bn) return; bn.className='banner ok';
+  bn.innerHTML='<div class="bmeta">✓ Richtig!'+(G.first?' +'+(E.punkte[Math.min(G.tries-1,E.punkte.length-1)]||0)+' Punkte':'')+'</div><div class="bsatz">'+fill(G.s,G.s.richtig,'fill')+'</div><div class="binfo">'+erklaerung(G.s)+'</div>';
+}
+function setBannerBad(w){
+  const bn=$('#banner'); if(!bn) return; bn.className='banner bad';
+  bn.innerHTML='<div class="bmeta">✗ „'+esc(w)+'“ passt nicht – versuch es noch einmal!</div><div class="bsatz">'+satzGap(G.s)+'</div><div class="binfo">💡 '+esc(L().tipp||'')+'</div>';
+}
+
+/* ---------- Zeichnen ---------- */
+let cv=null, ctx=null, scaleK=1;
+function resize(){
+  cv=$('#cv'); if(!cv) return;
+  const top=$('#top').offsetHeight, bn=$('#banner').offsetHeight, ct=$('.ctrl').offsetHeight, hi=($('.hint')||{offsetHeight:0}).offsetHeight;
+  const availH=Math.max(200, window.innerHeight-top-bn-ct-hi-40), availW=Math.min(app.clientWidth-8, 1060);
+  let w=Math.min(availW, availH*16/9); w=Math.max(280,Math.floor(w)); const h=Math.round(w*9/16);
+  cv.style.width=w+'px'; cv.style.height=h+'px'; const ov=$('#overlay'); if(ov) ov.classList.toggle('klein', h<400);
+  const dpr=Math.min(2, window.devicePixelRatio||1);
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); scaleK=cv.width/W;
+  ctx=cv.getContext('2d'); draw();
+}
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function circ(x,y,r,c){ ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,Math.max(.1,r),0,Math.PI*2); ctx.fill(); }
+function ell(x,y,rx,ry,c){ ctx.fillStyle=c; ctx.beginPath(); ctx.ellipse(x,y,Math.max(.1,rx),Math.max(.1,ry),0,0,Math.PI*2); ctx.fill(); }
+function poly(pts,c){ ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(pts[0],pts[1]); for(let i=2;i<pts.length;i+=2) ctx.lineTo(pts[i],pts[i+1]); ctx.closePath(); ctx.fill(); }
+
+const THEME={
+  atacama:{ sky:['#0b1033','#2a1f4a'], far:'#3a2a4a', near:'#4a3345', paddle:['#ffcf5a','#e0912f'] },
+  valparaiso:{ sky:['#0a1630','#1c2f55'], far:'#1d2b45', near:'#26344f', paddle:['#7ee0ff','#2e8fd0'] },
+  pucon:{ sky:['#0c1a24','#1e3340'], far:'#22303a', near:'#1a2a24', paddle:['#9ff07a','#3e9e3c'] },
+  patagonien:{ sky:['#0d1730','#2b4466'], far:'#3a4a63', near:'#cfe3f0', paddle:['#d7f2ff','#6aa3c0'] },
+};
+function drawBg(welt){
+  const T=THEME[welt], t=G?G.t:0;
+  const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,T.sky[0]); g.addColorStop(1,T.sky[1]); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  for(let i=0;i<70;i++){ const tw=ruhig()?1:.6+.4*Math.sin(t*2+i); ctx.globalAlpha=tw*(.4+rnd(i+7)*.6); circ(rnd(i)*W, 110+rnd(i+3)*300, rnd(i+5)<.15?1.8:1.1, '#fff'); } ctx.globalAlpha=1;
+  if(welt==='atacama'){
+    circ(820,170,28,'#f6f0d8'); circ(808,162,28,T.sky[0]);
+    poly([0,H, 0,420, 200,330, 380,400, 560,300, 760,390, 960,340, 960,H],T.far);
+    ctx.fillStyle=T.near; ctx.beginPath(); ctx.moveTo(0,H); for(let x=0;x<=W;x+=40) ctx.lineTo(x,450+Math.sin(x/90)*18); ctx.lineTo(W,H); ctx.fill();
+    circ(650,352,22,'#5b4a66'); ctx.fillStyle='#5b4a66'; ctx.fillRect(628,352,44,20); circ(720,362,14,'#5b4a66'); ctx.fillRect(706,362,28,14);
+  } else if(welt==='valparaiso'){
+    ctx.fillStyle='#0d1f3d'; ctx.fillRect(0,440,W,H-440);
+    for(let x=0;x<W;x+=8){ ctx.globalAlpha=.25; ctx.fillStyle='#ffd27a'; ctx.fillRect(x,446+mod(x*7,60),4,2); } ctx.globalAlpha=1;
+    ctx.fillStyle=T.far; ctx.beginPath(); ctx.moveTo(0,440); ctx.quadraticCurveTo(240,250,480,330); ctx.quadraticCurveTo(720,230,960,320); ctx.lineTo(960,440); ctx.fill();
+    for(let i=0;i<120;i++){ const x=rnd(i+11)*W, y=300+rnd(i+13)*130; const yMax=440; if(y<yMax-5){ ctx.fillStyle=['#ffd27a','#ffb35a','#fff1b0'][i%3]; ctx.globalAlpha=.85; ctx.fillRect(x,y,3,3); } } ctx.globalAlpha=1;
+  } else if(welt==='pucon'){
+    poly([200,H, 480,250, 520,250, 800,H],T.far); poly([455,290, 480,250, 520,250, 545,290, 520,282, 500,292, 480,282],'#d8e2ea');
+    const gl=ruhig()?.5:.4+.2*Math.sin(t*3); ctx.globalAlpha=gl; ell(500,252,26,6,'#ff6a2a'); ctx.globalAlpha=1;
+    ctx.fillStyle='#163447'; ctx.fillRect(0,430,W,40);
+    for(let i=0;i<9;i++){ const x=40+i*115+rnd(i)*30, h=110+rnd(i+2)*60; ctx.fillStyle=T.near; ctx.fillRect(x-4,H-h,8,h); for(let l=0;l<3;l++) ell(x,H-h+l*16,46-l*9,8,T.near); }
+  } else {
+    circ(150,170,30,'#f3f6ff');
+    [[600,180,46],[680,150,40],[750,190,44]].forEach(([x,top,w])=>{ poly([x-w/2,H-110, x-w/3,top, x+w/3,top-6, x+w/2,H-110],T.far); poly([x-w/3,top, x+w/3,top-6, x+w/4,top+16, x-w/4,top+18],'#e6f0ff'); });
+    poly([0,H-110, 960,H-110, 960,H, 0,H],'#22405f'); ctx.fillStyle=T.near; ctx.beginPath(); ctx.moveTo(0,H); for(let x=0;x<=W;x+=48) ctx.lineTo(x,470+((x/48)%2?-12:6)); ctx.lineTo(W,H); ctx.fill();
+  }
+}
+const FCOL=['#3e7bd6','#c0507a','#2f9e8f','#c78a2c'];
+function zielX(){
+  const b=G.ball; if(b.rest) return b.x;
+  if(b.vy>=0) return null;
+  const t=(b.y-(FB+BR))/(-b.vy); let x=b.x+b.vx*t; const span=W-2*BR; x=mod(x-BR,2*span); if(x>span) x=2*span-x; return x+BR;
+}
+function zielPfad(){
+  const b=G.ball, pts=[[b.x,b.y]]; let x=b.x, y=b.y, vx=b.rest?0:b.vx, vy=b.rest?-1:b.vy;
+  for(let k=0;k<4;k++){ const tTop=(y-(FB+BR))/(-vy); let tWall=Infinity; if(vx>0) tWall=(W-BR-x)/vx; else if(vx<0) tWall=(BR-x)/vx;
+    if(tTop<=tWall){ pts.push([x+vx*tTop, FB+BR]); break; } x+=vx*tWall; y+=vy*tWall; pts.push([x,y]); vx=-vx; }
+  return pts;
+}
+function drawFields(){
+  const target = settings.ziel && G.started ? zielX() : null, tf = target!=null ? fieldAt(target) : null;
+  const locked = G.lockT>0 && G.okT<=0;
+  G.fields.forEach((f,k)=>{
+    const x=f.x+3, w=f.w2-6;
+    let bg=FCOL[k%4]; if(f.state==='bad') bg='#5a2026'; else if(f.state==='ok') bg='#1e9e50'; else if(G.okT>0) bg='#3a3f5c'; else if(locked) bg='#4a5070';
+    ctx.fillStyle=bg; rr(x,FT,w,FB-FT,12); ctx.fill();
+    if(f===tf && f.state==='' && !locked && G.okT<=0){ ctx.lineWidth=5; ctx.strokeStyle='#ffe066'; rr(x,FT,w,FB-FT,12); ctx.stroke(); }
+    else { ctx.lineWidth=2; ctx.strokeStyle='rgba(255,255,255,.35)'; rr(x,FT,w,FB-FT,12); ctx.stroke(); }
+    let fs=40; ctx.font='bold '+fs+'px Arial'; while(ctx.measureText(f.w).width>w-24 && fs>18){ fs-=2; ctx.font='bold '+fs+'px Arial'; }
+    ctx.fillStyle= f.state==='bad' ? 'rgba(255,255,255,.45)' : '#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(f.w, x+w/2, (FT+FB)/2+2);
+    if(f.state==='bad'){ ctx.strokeStyle='#ff8a8a'; ctx.lineWidth=4; const tw=ctx.measureText(f.w).width; ctx.beginPath(); ctx.moveTo(x+w/2-tw/2-6,(FT+FB)/2+2); ctx.lineTo(x+w/2+tw/2+6,(FT+FB)/2+2); ctx.stroke(); }
+    if(f.state==='ok'){ ctx.font='bold 26px Arial'; ctx.fillText('✓', x+w-22, FT+22); }
+    ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  });
+  if(locked){ const frac=G.lockT/G.lockMax; ctx.fillStyle='rgba(0,0,0,.35)'; ctx.fillRect(MARGIN,FB+6,W-2*MARGIN,8); ctx.fillStyle='#ffd23f'; ctx.fillRect(MARGIN,FB+6,(W-2*MARGIN)*frac,8);
+    ctx.font='bold 16px Arial'; ctx.fillStyle='#ffe9a6'; ctx.textAlign='center'; ctx.fillText('📖 Lies den Satz …', W/2, FB+34); ctx.textAlign='left'; }
+}
+function drawZiel(){
+  if(!settings.ziel || !G.started || G.done) return;
+  const b=G.ball; if(!b.rest && b.vy>=0) return;
+  const pts=zielPfad(); ctx.save(); ctx.setLineDash([6,10]); ctx.strokeStyle='rgba(255,230,102,.45)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]); pts.slice(1).forEach(p=>ctx.lineTo(p[0],p[1])); ctx.stroke(); ctx.restore();
+}
+function drawStar(st){
+  circ(st.x,st.y,22,'#0039a6'); ctx.fillStyle='#fff'; ctx.beginPath();
+  for(let i=0;i<10;i++){ const r=i%2?7:16, a=-Math.PI/2+i*Math.PI/5+(ruhig()?0:G.t); ctx.lineTo(st.x+Math.cos(a)*r, st.y+Math.sin(a)*r); } ctx.closePath(); ctx.fill();
+}
+function draw(){
+  if(!ctx || !G) return;
+  const welt=L().welt, T=THEME[welt];
+  ctx.setTransform(scaleK,0,0,scaleK,0,0);
+  drawBg(welt);
+  drawFields();
+  drawZiel();
+  if(G.star) drawStar(G.star);
+  // Balken
+  const p=G.paddle, g=ctx.createLinearGradient(0,PY,0,PY+PH); g.addColorStop(0,T.paddle[0]); g.addColorStop(1,T.paddle[1]);
+  ctx.fillStyle=g; rr(p.x-PW/2,PY,PW,PH,7); ctx.fill(); ctx.fillStyle='rgba(255,255,255,.55)'; ctx.fillRect(p.x-2,PY+2,4,PH-4);
+  if(G.fangen){ ctx.lineWidth=3; ctx.strokeStyle='#ff5c8a'; rr(p.x-PW/2-3,PY-3,PW+6,PH+6,9); ctx.stroke(); ctx.font='20px Arial'; ctx.textAlign='center'; ctx.fillText('🧲',p.x,PY+36); ctx.textAlign='left'; }
+  // Ball
+  const b=G.ball;
+  G.trail.forEach((q,i)=>{ ctx.globalAlpha=(i+1)/G.trail.length*.25; circ(q[0],q[1],BR*(.5+i/G.trail.length*.5),'#ffe9a6'); }); ctx.globalAlpha=1;
+  if(!ruhig()){ ctx.globalAlpha=.3; circ(b.x,b.y,BR*2,'#ffe9a6'); ctx.globalAlpha=1; }
+  circ(b.x,b.y,BR,'#fffdf2'); circ(b.x-3,b.y-3,3,'#fff');
+  if(b.rest && G.started && !G.modal && !G.paused && !G.done){ ctx.font='bold 18px Arial'; ctx.fillStyle='#ffe9a6'; ctx.textAlign='center'; ctx.fillText('Leertaste oder Klick: Ball abschießen', W/2, PY-34); ctx.textAlign='left'; }
+  G.parts.forEach(q=>{ ctx.globalAlpha=Math.max(0,Math.min(1,q.life*1.5)); circ(q.x,q.y,3.5,q.c); ctx.globalAlpha=1; });
+  ctx.font='24px Arial'; for(let i=0;i<Math.max(E.herzen,G.hearts);i++){ ctx.globalAlpha=i<G.hearts?1:.25; ctx.fillText('❤️',W-40-i*32,H-14); } ctx.globalAlpha=1;
+}
+
+/* ---------- Schleife ---------- */
+function frame(ts){
+  raf=requestAnimationFrame(frame);
+  if(!G) return;
+  if(!lastTs) lastTs=ts;
+  let dt=Math.min(.05,(ts-lastTs)/1000); lastTs=ts;
+  if(G.started && !G.paused && !G.modal && !document.hidden){ state.elapsed+=dt*1000; let rem=dt*ZEITRAFFER; while(rem>1e-6 && G && !G.modal && !G.paused){ const d=Math.min(rem,1/240); step(d); rem-=d; } }
+  else if(G.parts.length){ G.parts.forEach(q=>{ q.life-=dt; }); G.parts=G.parts.filter(q=>q.life>0); }
+  if(!G) return;
+  draw();
+  if(Math.floor(state.elapsed/1000)!==G._sec){ G._sec=Math.floor(state.elapsed/1000); const c=$('#clock'); if(c) c.textContent='⏱ '+fmtTime(state.elapsed); }
+}
+function startLoop(){ cancelAnimationFrame(raf); lastTs=0; raf=requestAnimationFrame(frame); }
+function stopLoop(){ cancelAnimationFrame(raf); raf=0; G=null; }
+
+function rundeFertig(){
+  if(!G || !state) return;
+  state.letzte={ name:G.r.name, ok:G.okFirst, n:G.n, stern:!!state.sterne[G.r.idx] };
+  stopLoop();
+  state.runde++;
+  state.phase = state.runde>=runden().length ? 'name' : 'zwischen';
+  save(); render();
+}
+
+/* =====================================================================
+   BILDSCHIRME
+   ===================================================================== */
+function updateHud(){
+  const hud=$('#hud');
+  if(!state || view!=='game' || location.hash==='#lehrer' || ['name','end'].includes(state.phase)){ hud.innerHTML=''; return; }
+  const nR=runden().length, r=Math.min(state.runde,nR-1);
+  hud.innerHTML='<span class="pill">'+esc(state.level)+'</span><span class="pill">🏓 Runde '+(r+1)+'/'+nR+'</span>'+
+    (G&&state.phase==='runde'?'<span class="pill" title="Herzen">❤️ '+G.hearts+'</span>':'')+
+    '<span class="pill" title="Punkte">⭐ '+state.punkte+'</span><span class="pill" title="Sterne">🌟 '+Object.keys(state.sterne).length+'/'+nR+'</span><span class="pill" id="clock">⏱ '+fmtTime(state.elapsed)+'</span>';
+}
+
+function render(){
+  if(location.hash==='#lehrer'){ stopLoop(); renderTeacher(); updateHud(); return; }
+  if(view==='start' || !state){ stopLoop(); renderStart(); }
+  else if(state.phase==='intro') renderIntro();
+  else if(state.phase==='runde') renderGame();
+  else if(state.phase==='zwischen') renderZwischen();
+  else if(state.phase==='name') renderName();
+  else renderResult();
+  updateHud();
+}
+
+function heroArt(){
+  const c=document.createElement('canvas'); c.width=480; c.height=270; const old=ctx, oldG=G;
+  G={ t:0, fields:[{w:'auf',x:MARGIN,w2:312,state:''},{w:'für',x:MARGIN+312,w2:312,state:''},{w:'an',x:MARGIN+624,w2:312,state:''}], lockT:0, okT:0, started:false };
+  ctx=c.getContext('2d'); ctx.setTransform(.5,0,0,.5,0,0); drawBg('valparaiso'); drawFields();
+  const g=ctx.createLinearGradient(0,PY,0,PY+PH); g.addColorStop(0,'#7ee0ff'); g.addColorStop(1,'#2e8fd0'); ctx.fillStyle=g; rr(400,PY,PW,PH,7); ctx.fill();
+  ctx.save(); ctx.setLineDash([6,10]); ctx.strokeStyle='rgba(255,230,102,.6)'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(470,PY-12); ctx.lineTo(300,250); ctx.lineTo(170,FB+BR); ctx.stroke(); ctx.restore();
+  circ(300,250,BR*1.4,'#fffdf2');
+  ctx=old; G=oldG; return c;
+}
+
+function renderStart(){
+  view='start';
+  const saved=loadSaved(), warn=dataWarnings();
+  let h='<section class="card narrow hero"><div class="herorow"><div><h1>🏓 Wort-Pong: Triff das richtige Wort!</h1>'+
+    '<p>Über dem Spielfeld steht ein Satz mit Lücke, oben im Spielfeld liegen die Wortfelder. Lenk den Ball mit dem Balken ins <strong>richtige Feld</strong>! Mit der Mitte des Balkens fliegt der Ball gerade, mit dem Rand schräg.</p>'+
+    '<p class="small es" lang="es">🇨🇱 Un juego tipo «pong» para practicar preposiciones y expresiones fijas.</p></div><div class="heroart" id="heroArt"></div></div></section>';
+  if(warn.length) h+='<div class="warnbox narrow"><strong>⚠️ Hinweis für Lehrkräfte – in den Daten stimmt etwas nicht:</strong><ul>'+warn.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+  if(saved){
+    const r=runden(saved.level)[Math.min(saved.runde,runden(saved.level).length-1)];
+    h+='<section class="card narrow"><h2>▶ Weiterspielen</h2><p>Niveau <strong>'+esc(saved.level)+'</strong> · '+(saved.phase==='end'?'fertig':(saved.phase==='name'?'alle Runden geschafft':'Runde '+(r.idx+1)+': '+esc(r.name)+(saved.phase==='runde'?' <span class="small muted">(beginnt von vorn)</span>':'')))+'</p>'+
+      '<div class="row"><button type="button" class="primary" id="btnCont">'+(saved.phase==='end'?'🏆 Ergebnis ansehen':'Weiterspielen ➜')+'</button><button type="button" id="btnDiscard">Neu beginnen</button></div></section>';
+  } else {
+    h+='<section class="card narrow"><h2>Wähle dein Niveau</h2><div class="levels">'+LEVELS.map(lv=>{ const S=SPIEL[lv];
+      return S ? '<button type="button" class="level" data-l="'+lv+'"><span class="lv">'+lv+'</span><span class="lt">'+esc(S.titel)+'</span><span class="lo">'+esc(S.schwerpunkt||'')+'</span></button>'
+               : '<button type="button" class="level" disabled><span class="lv">'+lv+'</span><span class="lt">🔒 kommt bald</span></button>'; }).join('')+'</div></section>';
+  }
+  h+=steuerCard();
+  h+='<p class="small center"><a href="#lehrer">Für Lehrkräfte: Prüfcode kontrollieren und alle Sätze ansehen</a></p>';
+  app.innerHTML=h;
+  try{ $('#heroArt').appendChild(heroArt()); }catch(e){}
+  bindSteuer();
+  if($('#btnCont')) $('#btnCont').addEventListener('click',()=>{ state=saved; view='game'; render(); });
+  if($('#btnDiscard')) $('#btnDiscard').addEventListener('click',()=>bestaetigen('Das gespeicherte Spiel wird gelöscht. Wirklich neu beginnen?', ()=>{ lsDel(LS_GAME); state=null; render(); }));
+  $$('.level[data-l]').forEach(b=>b.addEventListener('click',()=>{ newGame(b.dataset.l); view='game'; render(); window.scrollTo(0,0); }));
+}
+function steuerCard(){
+  return '<section class="card narrow"><h2>So spielst du</h2><div class="keys">'+
+    '<span>🖱️ Maus / 👆 Finger</span><span>Balken hin und her bewegen</span>'+
+    '<span><kbd>←</kbd> <kbd>→</kbd></span><span>Balken mit der Tastatur bewegen</span>'+
+    '<span><kbd>Leertaste</kbd> / Klick</span><span>Ball abschießen</span>'+
+    '<span><kbd>↓</kbd> / Klick im Flug</span><span>🧲 Ball fangen: Er bleibt auf dem Balken liegen – dann in Ruhe zielen und abschießen</span>'+
+    '<span><kbd>P</kbd> <kbd>Esc</kbd></span><span>Pause (dort kannst du auch das Tempo ändern)</span></div>'+
+    '<p class="small muted" style="margin-bottom:.3em">Tempo:</p><div class="tempo" id="tempoSel">'+TEMPI.map(t=>'<button type="button" data-t="'+t[0]+'" aria-pressed="'+(settings.tempo===t[0])+'">'+t[1]+'</button>').join('')+'</div>'+
+    '<p class="small muted" style="margin:.6em 0 .3em">🎯 Zielhilfe (gestrichelte Linie zeigt, wo der Ball oben ankommt):</p><div class="tempo" id="zielSel"><button type="button" data-z="1" aria-pressed="'+settings.ziel+'">an</button><button type="button" data-z="0" aria-pressed="'+(!settings.ziel)+'">aus</button></div></section>';
+}
+function bindSteuer(){
+  $$('#tempoSel button').forEach(b=>b.addEventListener('click',()=>{ settings.tempo=b.dataset.t; saveSettings(); $$('#tempoSel button').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); }));
+  $$('#zielSel button').forEach(b=>b.addEventListener('click',()=>{ settings.ziel=b.dataset.z==='1'; saveSettings(); $$('#zielSel button').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); }));
+}
+
+function renderIntro(){
+  const S=L(), nR=runden().length;
+  app.innerHTML='<section class="card narrow"><h1>'+esc(state.level)+' · '+esc(S.titel)+'</h1>'+paras(S.intro)+
+    '<p class="small muted">'+nR+' Runden mit je '+runden()[0].saetze.length+' Sätzen · '+E.herzen+' Herzen pro Runde · in jeder Runde ein Bonusstern 🌟</p>'+
+    (regelListe(state.level)?'<h2>📌 Die Regeln</h2>'+regelListe(state.level):'')+'</section>'+steuerCard()+
+    '<div class="narrow row"><span class="spacer"></span><button type="button" class="primary" id="btnGo">Los geht’s ➜</button></div>';
+  bindSteuer();
+  $('#btnGo').addEventListener('click',()=>{ state.phase='runde'; save(); render(); window.scrollTo(0,0); });
+  focusEl('#btnGo');
+}
+
+function renderGame(){ view='game'; startRunde(); renderGameDOM(); }
+function renderGameDOM(){
+  app.innerHTML='<section class="game"><div id="banner" class="banner" aria-live="polite"></div>'+
+    '<div class="stagewrap"><canvas id="cv" width="960" height="540" tabindex="0" aria-label="Spielfeld: Bewege den Balken und lenke den Ball in das richtige Wortfeld."></canvas><div id="overlay" class="overlay" hidden></div></div>'+
+    '<div class="ctrl"><button type="button" id="bLaunch" title="Maus oder Finger bewegt den Balken, ← → mit der Tastatur">🚀 Ball abschießen <span class="small">(Leertaste)</span></button><button type="button" id="bFang" aria-pressed="false">🧲 Fangen <span class="small">(↓)</span></button><button type="button" id="bZiel" aria-pressed="'+settings.ziel+'">🎯 Zielhilfe '+(settings.ziel?'an':'aus')+'</button><button type="button" id="bPause" title="Pause (P)">⏸</button></div>'+
+    '</section>';
+  setBanner(); updateHud();
+  const cvs=$('#cv');
+  const toX=e=>{ const r=cvs.getBoundingClientRect(); return (e.clientX-r.left)/r.width*W; };
+  cvs.addEventListener('pointermove',e=>{ if(G && !G.modal){ G.paddle.tx=toX(e); G.keys.l=G.keys.r=false; } });
+  cvs.addEventListener('pointerdown',e=>{ e.preventDefault(); if(!G) return; if(G.modal){ continueOverlay(); return; } G.paddle.tx=toX(e); if(G.ball.rest) launch(); else fangen(); });
+  $('#bLaunch').addEventListener('click',()=>launch());
+  $('#bFang').addEventListener('click',()=>fangen());
+  $('#bZiel').addEventListener('click',()=>{ settings.ziel=!settings.ziel; saveSettings(); const b=$('#bZiel'); b.textContent='🎯 Zielhilfe '+(settings.ziel?'an':'aus'); b.setAttribute('aria-pressed',String(settings.ziel)); });
+  $('#bPause').addEventListener('click',()=>{ if(G&&G.paused) continueOverlay(true); else openPause(); });
+  resize(); startLoop(); startOverlay();
+}
+
+function renderZwischen(){
+  const z=state.letzte||{}, next=runden()[state.runde];
+  app.innerHTML='<section class="card narrow"><h1>✅ Runde geschafft: '+esc(z.name||'')+'</h1>'+
+    '<p>Beim ersten Versuch richtig: <strong>'+(z.ok||0)+' von '+(z.n||0)+'</strong> · ⭐ Punkte insgesamt: <strong>'+state.punkte+'</strong></p>'+
+    (z.stern?'<p class="okline">🌟 Du hast den Bonusstern gefangen!</p>':'<p class="muted small">🌟 Den Bonusstern hast du diesmal nicht gefangen.</p>')+
+    '<p>Weiter geht’s mit <strong>Runde '+(next.idx+1)+': '+esc(next.name)+'</strong>.</p>'+
+    '<div class="row">'+(regelListe(state.level)?'<button type="button" id="btnRegeln">📌 Regeln ansehen</button>':'')+'<span class="spacer"></span><button type="button" class="primary" id="btnNext">Weiter ➜</button></div><div id="rg"></div></section>';
+  $('#btnNext').addEventListener('click',()=>{ state.phase='runde'; save(); render(); });
+  if($('#btnRegeln')) $('#btnRegeln').addEventListener('click',()=>{ $('#rg').innerHTML=regelListe(state.level); });
+  focusEl('#btnNext');
+}
+
+const INPUT_ATTR='type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"';
+function renderName(){
+  app.innerHTML='<section class="card narrow"><h1>🏁 Alle Runden geschafft!</h1><p>Schreib deinen Namen für das Ergebnis und den Prüfcode.</p>'+
+    '<p class="row"><label for="nameIn">Dein Name:</label> <input '+INPUT_ATTR+' id="nameIn" maxlength="60" style="flex:1;min-width:220px" placeholder="Vorname Nachname"></p><div id="nameFb" role="status"></div>'+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnName">Ergebnis anzeigen ➜</button></div></section>';
+  const go=()=>{ const n=$('#nameIn').value.trim().replace(/\s+/g,' '); if(normName(n).length<2){ $('#nameFb').innerHTML='<p class="badline">Bitte schreib deinen Namen.</p>'; return; } state.name=n; state.finished=new Date().toISOString(); state.phase='end'; save(); render(); };
+  $('#btnName').addEventListener('click',go); $('#nameIn').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }); focusEl('#nameIn');
+}
+function renderResult(){
+  const s=stats(), d=new Date(state.finished), code=makeCode(state.level,s.pct,s.k,d,state.name), nR=runden().length;
+  const rows=[['Name',state.name],['Niveau',state.level+' – '+L().titel],['Richtig beim ersten Versuch',s.ok+' von '+s.total+' Sätzen'],['Prozent',s.pct+' %'],['Punkte ⭐',state.punkte+' von '+s.max],['Bonussterne 🌟',s.k+' von '+nR],['Zeit',fmtTime(state.elapsed)+' min'],['Datum',fmtDate(d)]];
+  let h='<section class="card narrow"><h1>🏆 Dein Ergebnis</h1>'+
+    '<table class="restable">'+rows.map(r=>'<tr><th scope="row">'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table>'+
+    '<p style="margin-bottom:0">Prüfcode:</p><div class="bigcode">'+esc(code)+'</div><p class="small muted">Mach einen Screenshot oder kopiere das Ergebnis und gib es in Google Classroom ab.</p>'+
+    '<div class="row"><button type="button" class="primary" id="btnCopy">📋 Ergebnis kopieren</button><button type="button" id="btnNew">↺ Neues Spiel</button><span id="copyFb" role="status" class="okline"></span></div>'+
+    '<h2 style="margin-top:1em">Falsch beim ersten Versuch ('+state.wrong.length+')</h2>';
+  h += state.wrong.length ? '<ol class="wronglist">'+state.wrong.map(w=>'<li><span class="muted small">'+esc(w.runde)+'</span><br>'+fill(w,w.richtig,'okline')+'<br><span class="badline">✗ Deine erste Antwort: '+esc(w.deine)+'</span><br><span class="small">'+erklaerung(w)+'</span></li>').join('')+'</ol>' : '<p class="okline">✓ Keine Fehler – super!</p>';
+  app.innerHTML=h+'</section>';
+  $('#btnCopy').addEventListener('click',()=>copyText(resultText(code,s,d)));
+  $('#btnNew').addEventListener('click',()=>bestaetigen('Neues Spiel starten? Dieses Ergebnis wird gelöscht. Hast du schon einen Screenshot gemacht?', ()=>{ lsDel(LS_GAME); state=null; view='start'; render(); }));
+  focusEl('#btnCopy');
+}
+function resultText(code,s,d){
+  let t='Wort-Pong – Triff das richtige Wort!\nName: '+state.name+'\nNiveau: '+state.level+' – '+L().titel+
+    '\nRichtig beim ersten Versuch: '+s.ok+' / '+s.total+' ('+s.pct+' %)\nPunkte: '+state.punkte+' / '+s.max+'\nBonussterne: '+s.k+' von '+runden().length+'\nZeit: '+fmtTime(state.elapsed)+' min\nDatum: '+fmtDate(d)+'\nPrüfcode: '+code+'\n';
+  t+='\nFalsch beim ersten Versuch ('+state.wrong.length+'):\n'+(state.wrong.length?state.wrong.map((w,i)=>(i+1)+'. '+satzPlain(w,w.richtig)+'\n   Meine erste Antwort: '+w.deine+'\n   Erklärung: '+erklaerungPlain(w)).join('\n'):'–');
+  return t;
+}
+function copyText(t){
+  const done=()=>{ $('#copyFb').textContent='✓ Kopiert! Jetzt in Google Classroom einfügen (Strg + V).'; };
+  const fallback=()=>{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){ $('#copyFb').textContent='Kopieren hat nicht geklappt – bitte Screenshot machen.'; } ta.remove(); };
+  let settled=false; const once=f=>()=>{ if(!settled){ settled=true; f(); } };
+  try{ if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(t).then(once(done),once(fallback)); setTimeout(once(fallback),800); } else once(fallback)(); }catch(e){ once(fallback)(); }
+}
+
+/* ---------- Lehrkraft ---------- */
+function renderTeacher(){
+  app.innerHTML='<section class="card narrow"><h1>🔎 Prüfcode kontrollieren</h1><p class="muted">Für Lehrkräfte. Name so eingeben, wie er im Ergebnis steht (Groß-/Kleinschreibung, Akzente und Leerzeichen sind egal).</p>'+
+    '<p><label for="tName">Name</label><br><input '+INPUT_ATTR+' id="tName" style="width:100%"></p><p><label for="tCode">Prüfcode</label><br><input '+INPUT_ATTR+' id="tCode" style="width:100%" placeholder="z. B. B1-83-2-161026-K7QFM"></p>'+
+    '<div class="row"><button type="button" class="primary" id="tCheck">Prüfen</button><span class="spacer"></span><button type="button" id="tBack">← Zurück zum Spiel</button></div><div id="tRes" role="status" aria-live="polite" style="margin-top:.8em"></div></section>'+
+    '<section class="card narrow"><h2>ℹ️ Gut zu wissen</h2><ul>'+
+    '<li><strong>Prüfcode:</strong> Niveau – Prozent – Zahl der Bonussterne – Datum – Kontrollzeichen.</li>'+
+    '<li><strong>Prozent:</strong> Sätze, die beim <em>ersten</em> Versuch richtig waren. Muss eine Runde wiederholt werden (alle Herzen weg), zählen die Wiederholungen nicht mehr.</li>'+
+    '<li><strong>Punkte:</strong> '+E.punkte.join(' / ')+' beim 1., 2., 3. Versuch. Ein falsches Feld kostet kein Herz – Herzen gehen nur verloren, wenn der Ball unten herausfällt.</li>'+
+    '<li><strong>Zielhilfe:</strong> zeigt mit einer gestrichelten Linie, wo der Ball oben ankommt. Sie kann auf der Startseite und während des Spiels ausgeschaltet werden.</li>'+
+    '<li><strong>Tempo</strong> (Ballgeschwindigkeit und Lesezeit) können die Lernenden jederzeit in der Pause ändern; es beeinflusst die Punkte nicht.</li></ul></section>'+
+    '<section class="card narrow"><h2>📚 Alle Sätze</h2>'+LEVELS.filter(lv=>SPIEL[lv]).map(lv=>'<details><summary>'+lv+' · '+esc(SPIEL[lv].titel)+' ('+alleSaetze(lv).length+' Sätze)</summary>'+
+      runden(lv).map(r=>'<h3>'+esc(r.name)+'</h3><ol class="lsatz">'+r.saetze.map(s=>'<li>'+fill(s,s.richtig,'okline')+' <span class="small muted">(falsch: '+esc(asList(s.falsch).join(', '))+' · '+esc(erklaerungPlain(s))+')</span></li>').join('')+'</ol>').join('')+'</details>').join('')+'</section>';
+  const go=()=>{ const r=verifyCode($('#tCode').value,$('#tName').value);
+    $('#tRes').innerHTML = r.valid ? '<p class="tipbox ok"><strong>✓ Der Code ist gültig.</strong><br>Niveau <strong>'+r.level+'</strong> · <strong>'+r.pct+' %</strong> · <strong>'+r.k+' Bonussterne</strong> · '+r.date+'</p>'
+      : '<p class="tipbox bad"><strong>✗ Der Code ist nicht gültig.</strong><br>'+esc(r.reason||'Name oder Code passen nicht zusammen.')+'</p>'; };
+  $('#tCheck').addEventListener('click',go); ['#tName','#tCode'].forEach(s=>$(s).addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }));
+  $('#tBack').addEventListener('click',()=>{ history.replaceState(null,'',location.pathname+location.search); render(); });
+  focusEl('#tName');
+}
+
+/* ---------- Tastatur ---------- */
+document.addEventListener('keydown',e=>{
+  if(!G || view!=='game' || state.phase!=='runde' || location.hash) return;
+  const tag=(e.target&&e.target.tagName)||''; if(tag==='INPUT'||tag==='TEXTAREA') return;
+  if(document.querySelector('.confirmbox')) return;
+  const k=e.key;
+  if(G.modal && G.modal.menu){ if(k==='Escape'||k==='p'||k==='P'){ e.preventDefault(); continueOverlay(true); } return; }
+  if(k==='ArrowLeft'||k==='a'||k==='A'){ e.preventDefault(); G.keys.l=true; }
+  else if(k==='ArrowRight'||k==='d'||k==='D'){ e.preventDefault(); G.keys.r=true; }
+  else if(k===' '||k==='Spacebar'||k==='ArrowUp'||k==='Enter'){ e.preventDefault(); if(e.repeat) return; launch(); }
+  else if(k==='ArrowDown'||k==='s'||k==='S'){ e.preventDefault(); if(e.repeat) return; fangen(); }
+  else if(k==='Escape'||k==='p'||k==='P'){ e.preventDefault(); if(G.started) openPause(); }
+});
+document.addEventListener('keyup',e=>{ if(!G) return; const k=e.key;
+  if(k==='ArrowLeft'||k==='a'||k==='A') G.keys.l=false; if(k==='ArrowRight'||k==='d'||k==='D') G.keys.r=false; });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden && G && G.started && !G.modal && !G.done) openPause(); });
+window.addEventListener('blur',()=>{ if(G){ G.keys.l=G.keys.r=false; } if(G && G.started && !G.modal && !G.done && !EINGEBETTET) openPause(); });
+window.addEventListener('resize',()=>{ if(G) resize(); });
+
+/* ---------- Start ---------- */
+(function init(){
+  try{ const s=JSON.parse(lsGet(LS_SET)||'{}'); if(s.sound) settings.sound=true; if(s.anim===false) settings.anim=false; if(E.tempo[s.tempo]) settings.tempo=s.tempo; if(s.ziel===false) settings.ziel=false; }catch(e){}
+  const sb=$('#btnSound'), ab=$('#btnAnim');
+  const upd=()=>{ sb.textContent=settings.sound?'🔊 Ton an':'🔇 Ton aus'; sb.setAttribute('aria-pressed',String(settings.sound));
+    ab.textContent=settings.anim?'🎞 Animationen an':'🎞 Animationen aus'; ab.setAttribute('aria-pressed',String(!settings.anim)); };
+  upd();
+  sb.addEventListener('click',()=>{ settings.sound=!settings.sound; saveSettings(); upd(); sound('ok'); });
+  ab.addEventListener('click',()=>{ settings.anim=!settings.anim; saveSettings(); upd(); toast(settings.anim?'🎞 Animationen sind wieder an.':'🎞 Animationen sind aus – keine Effekte, kein Funkeln.'); });
+  $('#btnMenu').addEventListener('click',()=>{ if(location.hash) history.replaceState(null,'',location.pathname+location.search); stopLoop(); view='start'; state=null; render(); });
+  window.addEventListener('hashchange',render);
+  render();
+})();
+</script>
+</body>
+</html>
