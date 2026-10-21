@@ -625,14 +625,14 @@ function wrong(p, correct){
     '<div class="solution">'+c.toks.map(tokHTML).join('')+'<span class="blk end">'+esc(c.end)+'</span></div>'+
     '<div class="tipbox"><p><strong>💡 '+esc(R.name||'')+':</strong> '+fmt(R.de||'')+'</p>'+
     (E.spanischeHilfe[G.level]&&R.es?'<p style="color:#9fd0ff">🇨🇱 '+fmt(R.es)+'</p>':'')+'</div>'+
-    '<div class="row" style="margin-top:.7em"><span class="small muted">Der Satz wird zur Schrott-Zeile.</span><span class="spacer"></span><button type="button" class="primary" id="btnGoOn">Weiter (Leertaste) ➜</button></div><div class="bar"><div id="wbar"></div></div></div>';
+    '<div class="row" style="margin-top:.7em"><span class="small muted">Der Satz wird zur Schrott-Zeile.</span><span class="spacer"></span><button type="button" class="primary" id="btnGoOn">Weiter (Leertaste) ➜</button></div></div>';
   // Overlay über dem Spielfeld, aber den markierten Satz sichtbar lassen
   $('#board').appendChild(ov);
   // Overlay nur über dem leeren Bereich – die markierte Satzzeile bleibt sichtbar
   const rowTop=$('#srow') ? $('#srow').offsetTop : 0;
   ov.style.bottom=Math.max(0,$('#board').clientHeight-rowTop)+'px';
-  let left=8000; const total=left;
-  G.wTimer=setInterval(()=>{ if(G.paused) return; left-=100; const b=$('#wbar'); if(b) b.style.width=Math.max(0,left/total*100)+'%'; if(left<=0) goOn(); },100);
+  // Erklärung bleibt stehen, bis sie aktiv weggeklickt wird (kurze Sperre gegen versehentliches Wegdrücken)
+  G.wLock=performance.now()+1200;
   $('#btnGoOn').addEventListener('click',goOn); $('#btnGoOn').focus({preventScroll:true});
   renderHud();
 }
@@ -763,7 +763,7 @@ function renderTeacher(){
 /* ---------- Steuerung ---------- */
 document.addEventListener('keydown',e=>{
   if(location.hash==='#lehrer' || !G) return;
-  if(G.phase==='wrong'){ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); goOn(); } return; }
+  if(G.phase==='wrong'){ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); if(!e.repeat && performance.now()>=(G.wLock||0)) goOn(); } return; }
   if(G.phase!=='play') return;
   if(e.target && e.target.tagName==='INPUT') return;
   const k=e.key;
