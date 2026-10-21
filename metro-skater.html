@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metro-Skater – Matías in Santiago</title>
+<script>
+/* =====================================================================
+   METRO-SKATER · Matías in der Metro de Santiago
+   =====================================================================
+
+   ANLEITUNG FÜR LEHRKRÄFTE
+   ---------------------------------------------------------------------
+   Alles, was Sie ändern können, steht in diesem ersten Abschnitt
+   (EINSTELLUNGEN, LINIE, SPIEL). Die Spiel-Logik weiter unten müssen
+   Sie nicht anfassen.
+
+   IDEE
+   Matías fährt auf dem Skateboard durch die Metro. Oben steht eine
+   Aufgabe. Dann kommen drei Tore – eines pro Spur. Er muss durch das
+   Tor mit der richtigen Antwort fahren. Dazwischen: Hindernisse
+   (springen, ducken, Spur wechseln) und Completos zum Sammeln.
+
+   ZWEI MODI
+   🎓 Unterricht : alle Aufgaben eines Niveaus einmal, falsche werden am
+                   Ende wiederholt. Ergebnis mit Prüfcode.
+   ♾️ Endlos     : Aufgaben in Zufallsfolge, immer schneller, 3 Herzen.
+                   Rekord wird im Browser gespeichert.
+
+   FELDER EINER AUFGABE
+     satz    : Aufgabe mit ___ (eine Lücke) oder ___ … ___ (zwei Lücken,
+               z. B. Perfekt: „Wir ___ nach Pucón ___.“)
+     richtig : die richtige Antwort; bei zwei Lücken mit " … " getrennt:
+               "sind … gefahren"
+     falsch  : genau zwei falsche Antworten (Liste)
+     info    : Erklärung (**Wort** = fett)
+     es      : (optional) Hilfe auf Spanisch (nur A2 und B1 sichtbar)
+     Beispiel:
+     { satz:"___ Metro", richtig:"die", falsch:["der","das"],
+       info:"…", es:"el metro → DIE Metro" },
+
+   WICHTIG: Die falschen Antworten müssen wirklich falsch sein.
+
+   REGELN FÜR DIE DATEN
+     · Texte immer in "Anführungszeichen"; im Text selbst „…“ verwenden.
+     · Nach jedem Feld und jeder } ein Komma.
+     · Fehler in den Daten zeigt die Startseite als gelben Hinweis an.
+   ===================================================================== */
+
+const EINSTELLUNGEN = {
+  geheimwort: "Metro-Skater-Linea-1",   // für den Prüfcode – bitte geheim halten
+  // Geschwindigkeit (Meter pro Sekunde) und Lesezeit (Sekunden bis zum nächsten Tor)
+  tempo: { langsam:{ v:8, lesen:8 }, normal:{ v:11, lesen:6.5 }, schnell:{ v:14, lesen:5 } },
+  aufgabenProStation: 3,     // nach so vielen Toren kommt eine Station
+  endlos: { herzen:3, startV:10, plusV:0.25, maxV:22, minLesen:3 },
+  spanischeHilfe: { A2:true, B1:true, B2:false, C1:false },
+};
+
+/* Línea 1 der Metro de Santiago (von West nach Ost) */
+const LINIE = ["San Pablo","Neptuno","Pajaritos","Las Rejas","Ecuador","San Alberto Hurtado","Universidad de Santiago","Estación Central","Unión Latinoamericana","República","Los Héroes","La Moneda","Universidad de Chile","Santa Lucía","Universidad Católica","Baquedano","Salvador","Manuel Montt","Pedro de Valdivia","Los Leones","Tobalaba","El Golf","Alcántara","Escuela Militar","Manquehue","Hernando de Magallanes","Los Dominicos"];
+
+/* ---------------------------------------------------------------------
+   SPIEL
+   start: Station, an der die Fahrt im Unterrichtsmodus beginnt
+   --------------------------------------------------------------------- */
+const SPIEL = {
+
+/* =========================== NIVEAU A2 =========================== */
+A2: {
+  titel: "der, die oder das?",
+  schwerpunkt: "Artikel – mit Endungsregeln (-ung, -heit, -chen, -um …) und Tipps, wo das Spanische täuscht",
+  start: "San Pablo",
+  intro: "Welcher Artikel passt? Viele Endungen verraten den Artikel: **-ung, -heit, -keit, -ion, -tät, -in → die**, **-chen, -um → das**, Wochentage und Jahreszeiten → **der**. Bei Komposita entscheidet das **letzte** Wort.\n\nVorsicht: Das Spanische hilft nicht immer! **el sol** → **die** Sonne, **la luna** → **der** Mond.",
+  aufgaben: [
+    { satz:"___ Metro", richtig:"die", falsch:["der","das"], info:"**die** Metro (auch: die U-Bahn)", es:"En Chile decimos «el metro», en alemán es femenino: DIE Metro." },
+    { satz:"___ Bahnhof", richtig:"der", falsch:["die","das"], info:"**der** Bahnhof – aber **die** Station", es:"la estación → der Bahnhof / die Station" },
+    { satz:"___ Station", richtig:"die", falsch:["der","das"], info:"Wörter auf **-ion** sind immer feminin: **die** Station, die Information", es:"-ion → siempre DIE" },
+    { satz:"___ Zug", richtig:"der", falsch:["die","das"], info:"**der** Zug", es:"el tren → der Zug (igual)" },
+    { satz:"___ Fahrkarte", richtig:"die", falsch:["der","das"], info:"Komposita: das **letzte** Wort entscheidet: die Fahr**karte** → die Karte", es:"En palabras compuestas manda la última palabra: die Karte → die Fahrkarte." },
+    { satz:"___ Ticket", richtig:"das", falsch:["der","die"], info:"**das** Ticket", es:"el boleto / el pasaje → das Ticket" },
+    { satz:"___ Haltestelle", richtig:"die", falsch:["der","das"], info:"die Halte**stelle** – das letzte Wort entscheidet: die Stelle", es:"el paradero → die Haltestelle" },
+    { satz:"___ Fahrrad", richtig:"das", falsch:["der","die"], info:"das Fahr**rad** – das letzte Wort entscheidet: das Rad", es:"la bicicleta → das Fahrrad (¡no es femenino!)" },
+    { satz:"___ Rucksack", richtig:"der", falsch:["die","das"], info:"**der** Rucksack (der Sack)", es:"la mochila → der Rucksack (¡masculino!)" },
+    { satz:"___ Zeitung", richtig:"die", falsch:["der","das"], info:"**-ung** → immer **die**: die Zeitung, die Wohnung", es:"-ung → siempre DIE" },
+    { satz:"___ Mädchen", richtig:"das", falsch:["der","die"], info:"**-chen** → immer **das** – auch bei Personen: das Mädchen", es:"-chen → siempre DAS, aunque sea una niña." },
+    { satz:"___ Gesundheit", richtig:"die", falsch:["der","das"], info:"**-heit / -keit** → immer **die**", es:"-heit / -keit → siempre DIE" },
+    { satz:"___ Montag", richtig:"der", falsch:["die","das"], info:"Wochentage sind maskulin: **der** Montag, der Freitag", es:"Los días de la semana → DER" },
+    { satz:"___ Sommer", richtig:"der", falsch:["die","das"], info:"Jahreszeiten sind maskulin: **der** Sommer, der Winter", es:"Las estaciones del año → DER" },
+    { satz:"___ Sonne", richtig:"die", falsch:["der","das"], info:"**die** Sonne – anders als im Spanischen!", es:"el sol → DIE Sonne (¡al revés!)" },
+    { satz:"___ Mond", richtig:"der", falsch:["die","das"], info:"**der** Mond – anders als im Spanischen!", es:"la luna → DER Mond (¡al revés!)" },
+    { satz:"___ Auto", richtig:"das", falsch:["der","die"], info:"**das** Auto", es:"el auto → das Auto (neutro)" },
+    { satz:"___ Information", richtig:"die", falsch:["der","das"], info:"**-ion** → immer **die**", es:"-ion → siempre DIE" },
+    { satz:"___ Brötchen", richtig:"das", falsch:["der","die"], info:"**-chen** → immer **das**", es:"-chen → siempre DAS" },
+    { satz:"___ Lehrer", richtig:"der", falsch:["die","das"], info:"Männliche Personen auf **-er** → **der**: der Lehrer, der Fahrer", es:"el profesor → der Lehrer" },
+    { satz:"___ Lehrerin", richtig:"die", falsch:["der","das"], info:"**-in** (weibliche Person) → immer **die**", es:"-in (mujer) → siempre DIE" },
+    { satz:"___ Wasser", richtig:"das", falsch:["der","die"], info:"**das** Wasser", es:"el agua → das Wasser (neutro)" },
+    { satz:"___ Milch", richtig:"die", falsch:["der","das"], info:"**die** Milch", es:"la leche → die Milch (igual)" },
+    { satz:"___ Problem", richtig:"das", falsch:["der","die"], info:"**das** Problem – nicht maskulin wie im Spanischen", es:"el problema → DAS Problem" },
+    { satz:"___ Universität", richtig:"die", falsch:["der","das"], info:"**-tät** → immer **die**", es:"-tät → siempre DIE" },
+    { satz:"___ Museum", richtig:"das", falsch:["der","die"], info:"**-um** → meistens **das**: das Museum, das Zentrum", es:"-um → casi siempre DAS" },
+    { satz:"___ Hund", richtig:"der", falsch:["die","das"], info:"**der** Hund", es:"el perro → der Hund" },
+    { satz:"___ Haus", richtig:"das", falsch:["der","die"], info:"**das** Haus", es:"la casa → DAS Haus (¡neutro!)" },
+    { satz:"___ Wohnung", richtig:"die", falsch:["der","das"], info:"**-ung** → immer **die**", es:"-ung → siempre DIE" },
+    { satz:"___ Handy", richtig:"das", falsch:["der","die"], info:"**das** Handy", es:"el celular → das Handy (neutro)" },
+  ],
+},
+
+/* =========================== NIVEAU B1 =========================== */
+B1: {
+  titel: "Perfekt: haben oder sein – und das richtige Partizip",
+  schwerpunkt: "sind gefahren · hat studiert · ist aufgestanden · hat vergessen",
+  start: "Estación Central",
+  intro: "Zwei Dinge musst du prüfen: das **Hilfsverb** (haben oder sein) und das **Partizip**.\n\n**sein**: Bewegung von A nach B und Veränderung (fahren, aufstehen, einschlafen, werden …). **haben**: fast alle anderen Verben. Partizip: **ge-…-t** (gemacht) oder **ge-…-en** (gegessen) – ohne ge- bei **-ieren** (studiert) und bei **be-, ver-, er-** (bekommen, vergessen).",
+  aufgaben: [
+    { satz:"Gestern ___ wir mit der Metro zur Schule ___. (fahren)", richtig:"sind … gefahren", falsch:["haben … gefahren","sind … gefahrt"], info:"Bewegung von A nach B → **sein**; fahren → gefahren", es:"ir en metro = movimiento → «sein» (en español siempre «haber»)." },
+    { satz:"Matías ___ heute um sechs Uhr ___. (aufstehen)", richtig:"ist … aufgestanden", falsch:["hat … aufgestanden","ist … geaufstanden"], info:"Veränderung → **sein**; trennbares Verb: auf**ge**standen", es:"levantarse = cambio de estado → «sein». El «ge-» va en el medio: auf-ge-standen." },
+    { satz:"Ich ___ eine Empanada ___. (essen)", richtig:"habe … gegessen", falsch:["bin … gegessen","habe … gegesst"], info:"**haben**; essen → gegessen (unregelmäßig)", es:"comer → «haben»; Partizip: gegessen." },
+    { satz:"Sofía ___ in Concepción ___. (studieren)", richtig:"hat … studiert", falsch:["ist … studiert","hat … gestudiert"], info:"Verben auf **-ieren** → Partizip **ohne ge-**: studiert", es:"Verbos en -ieren: sin «ge-» → studiert." },
+    { satz:"Der Zug ___ pünktlich ___. (ankommen)", richtig:"ist … angekommen", falsch:["hat … angekommen","ist … angekommt"], info:"Bewegung → **sein**; kommen → gekommen → an**ge**kommen", es:"llegar = movimiento → «sein»." },
+    { satz:"Wir ___ den ganzen Tag im Park ___. (bleiben)", richtig:"sind … geblieben", falsch:["haben … geblieben","sind … gebleibt"], info:"**bleiben** → immer **sein**: ich bin geblieben", es:"quedarse (bleiben) → «sein»." },
+    { satz:"Benja ___ sein Handy in der Metro ___. (vergessen)", richtig:"hat … vergessen", falsch:["ist … vergessen","hat … gevergessen"], info:"**haben**; Vorsilbe **ver-** → kein ge-: vergessen", es:"Prefijos be-, ver-, er- → sin «ge-»." },
+    { satz:"Was ___ du am Wochenende ___? (machen)", richtig:"hast … gemacht", falsch:["bist … gemacht","hast … gemachen"], info:"**haben**; regelmäßig: ge-mach-**t**", es:"hacer → «haben»; regular: gemacht." },
+    { satz:"Die Kinder ___ im Pazifik ___. (schwimmen)", richtig:"sind … geschwommen", falsch:["haben … geschwommen","sind … geschwimmt"], info:"⭐ Ausnahme – einfach lernen: **schwimmen** → **sein**, auch ohne Ziel", es:"Excepción: nadar (schwimmen) → «sein»." },
+    { satz:"Ich ___ meiner Oma einen Brief ___. (schreiben)", richtig:"habe … geschrieben", falsch:["bin … geschrieben","habe … geschreibt"], info:"**haben**; schreiben → geschrieben (unregelmäßig)", es:"escribir → «haben»; geschrieben." },
+    { satz:"Der Film ___ um acht Uhr ___. (beginnen)", richtig:"hat … begonnen", falsch:["ist … begonnen","hat … gebeginnt"], info:"**beginnen** → **haben** (kein Ortswechsel); be- → kein ge-", es:"empezar → «haben»." },
+    { satz:"In Baquedano ___ wir in die Linie 5 ___. (umsteigen)", richtig:"sind … umgestiegen", falsch:["haben … umgestiegen","sind … geumsteigt"], info:"Bewegung → **sein**; um**ge**stiegen", es:"hacer combinación = movimiento → «sein»." },
+    { satz:"Lena ___ Lehrerin ___. (werden)", richtig:"ist … geworden", falsch:["hat … geworden","ist … gewordet"], info:"**werden** → **sein**: ist geworden", es:"llegar a ser (werden) → «sein»." },
+    { satz:"Ich ___ dich gestern ___. (anrufen)", richtig:"habe … angerufen", falsch:["bin … angerufen","habe … angeruft"], info:"**haben**; rufen → gerufen → an**ge**rufen", es:"llamar por teléfono → «haben»." },
+    { satz:"Was ___ hier ___? (passieren)", richtig:"ist … passiert", falsch:["hat … passiert","ist … gepassiert"], info:"**passieren** → **sein**; -ieren → kein ge-", es:"pasar / ocurrir → «sein»; sin «ge-»." },
+    { satz:"Der Hund ___ sofort ___. (einschlafen)", richtig:"ist … eingeschlafen", falsch:["hat … eingeschlafen","ist … eingeschlaft"], info:"Veränderung → **sein**; schlafen → geschlafen", es:"dormirse = cambio de estado → «sein»." },
+    { satz:"Wir ___ sehr viel ___. (lachen)", richtig:"haben … gelacht", falsch:["sind … gelacht","haben … gelachen"], info:"**haben**; regelmäßig: gelacht", es:"reír → «haben»." },
+    { satz:"Sofía ___ ein Geschenk ___. (bekommen)", richtig:"hat … bekommen", falsch:["ist … bekommen","hat … gebekommen"], info:"**bekommen** → **haben** (nicht kommen!); be- → kein ge-", es:"recibir (bekommen) → «haben». ¡No confundir con kommen!" },
+    { satz:"Ich ___ meinen Schlüssel ___. (verlieren)", richtig:"habe … verloren", falsch:["bin … verloren","habe … verliert"], info:"**haben**; verlieren → verloren (unregelmäßig, kein ge-)", es:"perder → «haben»; verloren." },
+    { satz:"Benja ___ vom Skateboard ___. (fallen)", richtig:"ist … gefallen", falsch:["hat … gefallen","ist … gefallt"], info:"Bewegung → **sein**: ist gefallen", es:"caer = movimiento → «sein»." },
+    { satz:"Das Konzert ___ mir sehr gut ___. (gefallen)", richtig:"hat … gefallen", falsch:["ist … gefallen","hat … gegefallen"], info:"**gefallen** (= gustar) → **haben** – nicht verwechseln mit fallen!", es:"gustar (gefallen) → «haben». ¡No es «fallen» (caer)!" },
+    { satz:"Wir ___ bis Mitternacht Cueca ___. (tanzen)", richtig:"haben … getanzt", falsch:["sind … getanzt","haben … getanzen"], info:"⭐ Ausnahme – einfach lernen: **tanzen** → **haben**, obwohl man sich bewegt", es:"Excepción: bailar (tanzen) → «haben»." },
+    { satz:"Ich ___ zur Metrostation ___. (laufen)", richtig:"bin … gelaufen", falsch:["habe … gelaufen","bin … gelauft"], info:"Bewegung → **sein**; laufen → gelaufen", es:"correr / ir a pie = movimiento → «sein»." },
+    { satz:"Wann ___ ihr in Santiago ___? (landen)", richtig:"seid … gelandet", falsch:["habt … gelandet","seid … gelandt"], info:"Bewegung → **sein**; landen → gelandet (-et nach d)", es:"aterrizar = movimiento → «sein»." },
+    { satz:"Matías ___ die Aufgabe nicht ___. (verstehen)", richtig:"hat … verstanden", falsch:["ist … verstanden","hat … verstehen"], info:"**haben**; verstehen → verstanden", es:"entender → «haben»; verstanden." },
+    { satz:"Wir ___ einem alten Freund ___. (begegnen)", richtig:"sind … begegnet", falsch:["haben … begegnet","sind … gebegegnet"], info:"**begegnen** → **sein**; be- → kein ge-", es:"encontrarse con alguien → «sein»." },
+    { satz:"Ich ___ heute noch nichts ___. (trinken)", richtig:"habe … getrunken", falsch:["bin … getrunken","habe … getrinkt"], info:"**haben**; trinken → getrunken", es:"tomar / beber → «haben»; getrunken." },
+    { satz:"Die Sonne ___ schon ___. (untergehen)", richtig:"ist … untergegangen", falsch:["hat … untergegangen","ist … untergegeht"], info:"Bewegung → **sein**; gehen → gegangen → unter**ge**gangen", es:"ponerse (el sol) → «sein»." },
+    { satz:"Sofía ___ zwei Stunden auf den Bus ___. (warten)", richtig:"hat … gewartet", falsch:["ist … gewartet","hat … gewarten"], info:"**haben**; warten → gewartet (-et nach t)", es:"esperar → «haben»." },
+    { satz:"Wir ___ uns sehr ___. (freuen)", richtig:"haben … gefreut", falsch:["sind … gefreut","haben … gefreuen"], info:"Reflexive Verben → immer **haben**", es:"Verbos reflexivos → siempre «haben»." },
+  ],
+},
+
+/* =========================== NIVEAU B2 =========================== */
+B2: {
+  titel: "Feste Verbindungen",
+  schwerpunkt: "Verben mit Präposition (leiden unter, sich verlassen auf …) · Nomen-Verb-Verbindungen (in Kauf nehmen, zur Sprache kommen …)",
+  start: "Universidad de Chile",
+  intro: "Zwei Arten fester Verbindungen: **Verben mit Präposition** (warten **auf**, sich verlassen **auf**, leiden **unter**) und **Nomen-Verb-Verbindungen** (in Kauf **nehmen**, eine Rolle **spielen**). Man kann sie nicht logisch ableiten – man muss sie lernen. Und: Wörtlich aus dem Spanischen übersetzen geht oft schief!",
+  aufgaben: [
+    { satz:"Wir haben lange ___ das Problem diskutiert.", richtig:"über", falsch:["von","an"], info:"diskutieren **über** + Akkusativ" },
+    { satz:"Die Lösung hängt ___ vielen Faktoren ab.", richtig:"von", falsch:["an","in"], info:"abhängen **von** + Dativ (wie span. „depender de“)" },
+    { satz:"Viele Jugendliche leiden ___ Stress.", richtig:"unter", falsch:["von","mit"], info:"leiden **unter** + Dativ (bei Krankheiten: leiden an)" },
+    { satz:"Ich verlasse mich ___ dich.", richtig:"auf", falsch:["an","in"], info:"sich verlassen **auf** + Akkusativ (span. „confiar en“ – nicht „in“!)" },
+    { satz:"Er hat sich ___ seinen Fehler entschuldigt.", richtig:"für", falsch:["über","von"], info:"sich entschuldigen **für** etwas (bei jemandem)" },
+    { satz:"Wir müssen mehr ___ die Umwelt achten.", richtig:"auf", falsch:["an","über"], info:"achten **auf** + Akkusativ" },
+    { satz:"Sie beschäftigt sich intensiv ___ dem Klimawandel.", richtig:"mit", falsch:["über","an"], info:"sich beschäftigen **mit** + Dativ" },
+    { satz:"Die Regierung reagiert ___ die Proteste.", richtig:"auf", falsch:["an","über"], info:"reagieren **auf** + Akkusativ" },
+    { satz:"Ich gratuliere dir ___ deinem Geburtstag.", richtig:"zu", falsch:["für","über"], info:"gratulieren **zu** + Dativ (nicht „für“ wie span. „felicitar por“)" },
+    { satz:"Morgen sprechen wir ___ das Thema Migration.", richtig:"über", falsch:["an","auf"], info:"sprechen **über** + Akkusativ" },
+    { satz:"Die Schüler kämpfen ___ einen besseren Schulweg.", richtig:"für", falsch:["an","über"], info:"kämpfen **für** + Akkusativ (für ein Ziel)" },
+    { satz:"Ich zweifle ___ seiner Aussage.", richtig:"an", falsch:["von","über"], info:"zweifeln **an** + Dativ (span. „dudar de“ – nicht „von“!)" },
+    { satz:"Die Stadt investiert viel Geld ___ neue Metrolinien.", richtig:"in", falsch:["an","auf"], info:"investieren **in** + Akkusativ" },
+    { satz:"Ich bin schon sehr gespannt ___ deine Meinung.", richtig:"auf", falsch:["über","an"], info:"gespannt sein **auf** + Akkusativ" },
+    { satz:"Wir sind ___ dem Ergebnis sehr zufrieden.", richtig:"mit", falsch:["über","von"], info:"zufrieden sein **mit** + Dativ" },
+    { satz:"Für ein günstiges Ticket muss man Wartezeiten in Kauf ___.", richtig:"nehmen", falsch:["bringen","stellen"], info:"etwas in Kauf **nehmen** = einen Nachteil akzeptieren" },
+    { satz:"Der Lehrer hat meine Idee in Frage ___.", richtig:"gestellt", falsch:["genommen","gebracht"], info:"in Frage **stellen** = bezweifeln" },
+    { satz:"Bis morgen müssen wir eine Entscheidung ___.", richtig:"treffen", falsch:["nehmen","machen"], info:"eine Entscheidung **treffen** – nicht „nehmen“ wie span. „tomar una decisión“" },
+    { satz:"Sie hat einen wichtigen Beitrag zum Projekt ___.", richtig:"geleistet", falsch:["gegeben","gemacht"], info:"einen Beitrag **leisten**" },
+    { satz:"Die Metro ___ im Alltag der Stadt eine wichtige Rolle.", richtig:"spielt", falsch:["macht","gibt"], info:"eine Rolle **spielen** (span. „desempeñar un papel“)" },
+    { satz:"Darf ich Ihnen eine Frage ___?", richtig:"stellen", falsch:["machen","geben"], info:"eine Frage **stellen** – nicht „machen“ wie span. „hacer una pregunta“" },
+    { satz:"Bitte ___ Sie Rücksicht auf ältere Fahrgäste.", richtig:"nehmen", falsch:["geben","machen"], info:"Rücksicht **nehmen** auf + Akkusativ" },
+    { satz:"Das Problem muss endlich zur Sprache ___.", richtig:"kommen", falsch:["gehen","stehen"], info:"zur Sprache **kommen** = besprochen werden" },
+    { satz:"Der Plan wurde schnell in die Tat ___.", richtig:"umgesetzt", falsch:["gesetzt","gebracht"], info:"etwas in die Tat **umsetzen** = verwirklichen" },
+    { satz:"Die Firma hat das Geld zur Verfügung ___.", richtig:"gestellt", falsch:["gegeben","gelegt"], info:"etwas zur Verfügung **stellen** (span. „poner a disposición“)" },
+    { satz:"Wir sollten auch andere Möglichkeiten in Betracht ___.", richtig:"ziehen", falsch:["nehmen","stellen"], info:"in Betracht **ziehen** – nicht „nehmen“ wie span. „tomar en consideración“" },
+    { satz:"Er hat schon immer großen Wert auf Pünktlichkeit ___.", richtig:"gelegt", falsch:["gegeben","gemacht"], info:"Wert **legen** auf – nicht „geben“ wie span. „dar importancia“" },
+    { satz:"Die Regierung hat neue Maßnahmen ___.", richtig:"ergriffen", falsch:["genommen","gemacht"], info:"Maßnahmen **ergreifen** (auch: treffen) – nicht „nehmen“ wie span. „tomar medidas“" },
+    { satz:"Sie hat ihre Meinung deutlich zum Ausdruck ___.", richtig:"gebracht", falsch:["gestellt","gemacht"], info:"etwas zum Ausdruck **bringen** = deutlich sagen" },
+    { satz:"Nach drei Wochen hat Matías Abschied von Santiago ___.", richtig:"genommen", falsch:["gemacht","gegeben"], info:"Abschied **nehmen** von = sich verabschieden" },
+  ],
+},
+
+/* =========================== NIVEAU C1 =========================== */
+C1: {
+  titel: "Mischung auf C1-Niveau",
+  schwerpunkt: "schwierige Artikel (das Ergebnis, die Erkenntnis) · Perfekt (übergesetzt/übersetzt) · Verben mit Präposition · Nomen-Verb-Verbindungen",
+  start: "Baquedano",
+  intro: "Alles gemischt – auf C1-Niveau: Artikel abstrakter Nomen (**-nis**: die Erkenntnis, aber **das** Ergebnis), knifflige Perfektformen (**hat übergesetzt** oder **hat übersetzt**?), Verben mit Präposition (verzichten **auf**, beitragen **zu**) und Nomen-Verb-Verbindungen aus der DSD-II-Prüfung (zur Kenntnis **nehmen**, unter Beweis **stellen**).",
+  aufgaben: [
+    { satz:"___ Gremium", richtig:"das", falsch:["der","die"], info:"**-um** → meistens **das**: das Gremium, das Studium" },
+    { satz:"___ Hürde", richtig:"die", falsch:["der","das"], info:"**die** Hürde (Wörter auf **-e** sind oft feminin)" },
+    { satz:"___ Konsens", richtig:"der", falsch:["die","das"], info:"**der** Konsens" },
+    { satz:"___ Bündnis", richtig:"das", falsch:["der","die"], info:"**-nis**: oft **die** (die Erkenntnis) – aber **das** Bündnis, das Ergebnis, das Verhältnis" },
+    { satz:"___ Erkenntnis", richtig:"die", falsch:["der","das"], info:"**die** Erkenntnis (-nis: meist feminin, wenn ein Vorgang/Zustand gemeint ist)" },
+    { satz:"___ Verhältnis", richtig:"das", falsch:["der","die"], info:"**das** Verhältnis – -nis kann auch neutral sein" },
+    { satz:"___ Verdacht", richtig:"der", falsch:["die","das"], info:"**der** Verdacht" },
+    { satz:"___ Ergebnis", richtig:"das", falsch:["der","die"], info:"**das** Ergebnis – -nis kann auch neutral sein" },
+    { satz:"Die Mieten in Santiago ___ stark ___. (steigen)", richtig:"sind … gestiegen", falsch:["haben … gestiegen","sind … gesteigt"], info:"Veränderung → **sein**; steigen → gestiegen" },
+    { satz:"Der Fährmann ___ uns ans andere Ufer ___. (übersetzen)", richtig:"hat … übergesetzt", falsch:["hat … übersetzt","ist … übergesetzt"], info:"**übersetzen** (= ans andere Ufer bringen) ist **trennbar** → über**ge**setzt; mit Akkusativobjekt (uns) → **haben**" },
+    { satz:"Sie ___ den Roman ins Spanische ___. (übersetzen)", richtig:"hat … übersetzt", falsch:["hat … übergesetzt","ist … übersetzt"], info:"**übersetzen** (= in eine andere Sprache) ist **untrennbar** → übersetzt, ohne ge-" },
+    { satz:"Viele Menschen ___ vor dem Krieg ___. (fliehen)", richtig:"sind … geflohen", falsch:["haben … geflohen","sind … gefliehen"], info:"Bewegung → **sein**; fliehen → geflohen" },
+    { satz:"Der Minister ___ nach dem Skandal ___. (zurücktreten)", richtig:"ist … zurückgetreten", falsch:["hat … zurückgetreten","ist … zurückgetretet"], info:"zurücktreten (= sein Amt aufgeben) → **sein**; treten → getreten" },
+    { satz:"Das Eis am Ufer ___ in der Sonne ___. (schmelzen)", richtig:"ist … geschmolzen", falsch:["hat … geschmolzen","ist … geschmelzt"], info:"ohne Akkusativobjekt, Veränderung → **sein**; schmelzen → geschmolzen" },
+    { satz:"Der laute Knall ___ alle Fahrgäste ___. (erschrecken)", richtig:"hat … erschreckt", falsch:["ist … erschrocken","hat … erschrocken"], info:"**jemanden erschrecken** (mit Akkusativobjekt) → **hat erschreckt**; aber: **ich bin erschrocken** (= Angst bekommen)" },
+    { satz:"Viele Bürger verzichten inzwischen ___ das Auto.", richtig:"auf", falsch:["an","von"], info:"verzichten **auf** + Akkusativ (span. „renunciar a“)" },
+    { satz:"Die Studie bezieht sich ___ Daten aus dem letzten Jahr.", richtig:"auf", falsch:["an","zu"], info:"sich beziehen **auf** + Akkusativ" },
+    { satz:"Jeder kann ___ einer Lösung beitragen.", richtig:"zu", falsch:["an","für"], info:"beitragen **zu** + Dativ" },
+    { satz:"Wir müssen uns kritisch ___ dem Thema auseinandersetzen.", richtig:"mit", falsch:["über","an"], info:"sich auseinandersetzen **mit** + Dativ" },
+    { satz:"Die Autorin weist ___ ein wichtiges Problem hin.", richtig:"auf", falsch:["an","zu"], info:"hinweisen **auf** + Akkusativ" },
+    { satz:"Er bemüht sich ___ eine bessere Note.", richtig:"um", falsch:["für","an"], info:"sich bemühen **um** + Akkusativ" },
+    { satz:"Junge Menschen neigen manchmal ___ Übertreibungen.", richtig:"zu", falsch:["an","für"], info:"neigen **zu** + Dativ" },
+    { satz:"Der Erfolg beruht ___ harter Arbeit.", richtig:"auf", falsch:["an","von"], info:"beruhen **auf** + Dativ" },
+    { satz:"Wir haben die Kritik zur Kenntnis ___.", richtig:"genommen", falsch:["gebracht","gestellt"], info:"etwas zur Kenntnis **nehmen** = bemerken, akzeptieren" },
+    { satz:"Viele Familien ___ die Hilfe des Staates in Anspruch.", richtig:"nehmen", falsch:["stellen","bringen"], info:"etwas in Anspruch **nehmen** = nutzen" },
+    { satz:"In meinem Text möchte ich Bezug auf die Statistik ___.", richtig:"nehmen", falsch:["stellen","machen"], info:"Bezug **nehmen** auf + Akkusativ" },
+    { satz:"Der Vorschlag hat bei den Schülern großen Anklang ___.", richtig:"gefunden", falsch:["genommen","gemacht"], info:"Anklang **finden** = positiv aufgenommen werden" },
+    { satz:"Im Interview musste sie ihr Wissen unter Beweis ___.", richtig:"stellen", falsch:["bringen","nehmen"], info:"etwas unter Beweis **stellen** = zeigen, beweisen" },
+    { satz:"Die Reform ___ zurzeit noch zur Debatte.", richtig:"steht", falsch:["liegt","kommt"], info:"zur Debatte **stehen** = noch diskutiert werden" },
+    { satz:"Bitte ___ Sie den Anweisungen des Personals Folge.", richtig:"leisten", falsch:["geben","machen"], info:"einer Anweisung Folge **leisten** = sie befolgen" },
+  ],
+},
+
+};
+</script>
+<style>
+:root{
+  --bg:#13172a; --panel:#1d2340; --panel2:#283058; --line:#4a5694;
+  --text:#f6f4fb; --muted:#cfd3ea; --accent:#ffcf5a; --accent-text:#1a1a1a;
+  --ok:#5ee08f; --ok-bg:#103a26; --bad:#ff8a8a; --bad-bg:#4a1a1f;
+  --focus:#ffe066; --btn:#323b6e; --btnh:#3f4985; --herz:#ff5c8a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);background-image:radial-gradient(ellipse at 10% 0%,#2b2f5e 0%,transparent 55%),radial-gradient(ellipse at 95% 100%,#4a1f24 0%,transparent 50%);background-attachment:fixed;color:var(--text);font-family:Roboto,Arial,"Segoe UI",system-ui,sans-serif;font-size:19px;line-height:1.45;min-height:100vh}
+h1,h2,h3{line-height:1.2;margin:.2em 0 .5em} h1{font-size:1.7em} h2{font-size:1.25em} h3{font-size:1.05em}
+p{margin:.4em 0 .8em} a{color:var(--accent)}
+button{font:inherit;color:var(--text);cursor:pointer;border-radius:12px;border:2px solid #7280c4;background:var(--btn);padding:.35em .9em;min-height:46px;touch-action:manipulation}
+button:hover:not(:disabled){background:var(--btnh)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visible,summary:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.primary:hover:not(:disabled){background:#ffdc85}
+input[type=text]{font:inherit;color:#111;background:#fff;border:3px solid #9aa6e0;border-radius:10px;padding:.25em .45em;min-height:46px}
+.muted{color:var(--muted)} .small{font-size:.85em} .center{text-align:center}
+.row{display:flex;gap:.6em;flex-wrap:wrap;align-items:center} .spacer{flex:1}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:1em 1.3em;box-shadow:0 8px 24px rgba(0,0,0,.35);margin-bottom:.9em}
+.narrow{max-width:940px;margin-left:auto;margin-right:auto}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.1em .7em;white-space:nowrap;font-size:.9em}
+.warnbox{background:#4a3a00;border:2px solid var(--accent);border-radius:12px;padding:.6em 1em;margin:.6em auto;font-size:.85em}
+.warnbox ul{margin:.3em 0 0;padding-left:1.2em}
+.okline{color:var(--ok)} .badline{color:var(--bad)}
+.tipbox{background:#3a3214;border:2px solid #b89a3a;border-radius:12px;padding:.45em .85em;margin-top:.6em}
+.tipbox.ok{background:var(--ok-bg);border-color:var(--ok)}
+.tipbox.bad{background:var(--bad-bg);border-color:var(--bad)}
+.tipbox p{margin:.25em 0}
+.es{color:#9fd0ff}
+.star{color:#ffd23f}
+
+#top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.6em;flex-wrap:wrap;padding:.3em .8em;background:rgba(19,23,42,.96);border-bottom:2px solid var(--line)}
+#top .brand{font-weight:800;white-space:nowrap}
+#hud{display:flex;gap:.5em;flex-wrap:wrap;align-items:center;flex:1}
+#top .tools{display:flex;gap:.4em}
+#top .tools button{min-height:40px;padding:.2em .7em;font-size:.88em}
+.homelink{color:var(--muted);text-decoration:none;font-size:.85em;border:1px solid var(--line);border-radius:999px;padding:.15em .7em;white-space:nowrap}
+.homelink:hover{color:var(--text);border-color:var(--accent)}
+main{max-width:1340px;margin:0 auto;padding:.5em 1em 1.5em}
+.eingebettet .homelink{display:none}
+
+/* ---------- Start ---------- */
+.hero .herorow{display:flex;gap:1em;align-items:center;flex-wrap:wrap}
+.hero .herorow > div:first-child{flex:1 1 440px}
+.heroart{flex:0 1 260px;display:flex;justify-content:center}
+.heroart canvas{width:240px;height:135px;border-radius:12px}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8em;margin:.6em 0 .2em}
+.level{display:flex;flex-direction:column;align-items:flex-start;gap:.15em;text-align:left;padding:.8em 1em;border-radius:16px;min-height:130px}
+.level .lv{font-size:1.6em;font-weight:800;color:var(--accent)} .level .lt{font-weight:700}
+.level .lo{font-size:.8em;color:var(--muted)}
+.tempo{display:flex;gap:.5em;flex-wrap:wrap}
+.tempo button[aria-pressed="true"]{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:700}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:.3em .9em;align-items:center;margin:.4em 0}
+kbd{display:inline-block;background:#eef0fa;color:#1a1a1a;border-radius:6px;padding:0 .45em;font-family:inherit;font-weight:700;border-bottom:3px solid #9aa6e0;min-width:1.6em;text-align:center}
+.regelliste{list-style:none;padding:0;margin:.3em 0}
+.regelliste li{background:var(--panel2);border-radius:10px;padding:.35em .7em;margin:.35em 0}
+.regelliste li.ausn{border:2px solid #ffd23f}
+
+/* ---------- Spiel ---------- */
+.game{display:flex;flex-direction:column;align-items:center;gap:.45em}
+.banner{width:100%;max-width:1060px;background:#fffdf5;color:#1d1d1d;border-radius:14px;border:3px solid #e7c76a;padding:.3em .9em .35em;box-shadow:0 4px 14px rgba(0,0,0,.35);min-height:100px;display:flex;flex-direction:column;justify-content:center}
+.banner .bmeta{font-size:.72em;color:#6a5a2a;font-weight:700;letter-spacing:.02em}
+.banner .bsatz{font-size:1.32em;font-weight:600;line-height:1.3}
+.banner .gap{display:inline-block;min-width:3.2em;border-bottom:3px solid #c0392b;color:#c0392b;text-align:center}
+.banner .bopts{font-size:.8em;color:#4a4a4a}
+.banner .bopts b{font-size:1.15em;color:#1d1d1d;background:#ffe9a6;border-radius:6px;padding:0 .35em}
+.banner.ok{background:#e7fbef;border-color:#2ecc71}
+.banner.ok .fill{color:#13863f;font-weight:800}
+.banner.bad{background:#fde9ea;border-color:#e74c3c}
+.stagewrap{position:relative;border-radius:14px;overflow:hidden;border:3px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.4);background:#000;line-height:0}
+#cv{display:block;touch-action:none;cursor:none}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,12,28,.55);line-height:1.45;padding:1em}
+.overlay[hidden]{display:none}
+.overlay .box{background:var(--panel);border:3px solid var(--line);border-radius:16px;padding:.8em 1.2em;max-width:640px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.5);max-height:100%;overflow:auto}
+.overlay .box.bad{border-color:var(--bad)}
+.overlay.klein{font-size:.74em;padding:.4em}
+.overlay.klein .box{padding:.45em .8em}
+.overlay.klein button{min-height:38px}
+.overlay.klein .big{font-size:1.15em}
+.overlay .box.ok{border-color:var(--ok)}
+.overlay .big{font-size:1.25em;font-weight:700}
+.overlay .satzfull{background:#fffdf5;color:#1d1d1d;border-radius:10px;padding:.3em .6em;font-size:1.1em;margin:.4em 0}
+.overlay .satzfull strong{color:#13863f}
+.ctrl{display:flex;gap:.6em;width:100%;max-width:1060px;justify-content:space-between}
+.ctrl button{flex:1;min-height:56px;font-size:1.05em}
+.ctrl button b{background:#ffe9a6;color:#1d1d1d;border-radius:6px;padding:0 .4em;margin-left:.2em}
+.ctrl #bPause{flex:0 0 auto}
+
+
+.banner .binfo{font-size:.82em;color:#333;margin-top:.1em}
+.banner .binfo .es{color:#1f5f9a}
+.banner.bad .bmeta{color:#a52a2a}
+.hint{font-size:.8em;color:var(--muted);text-align:center}
+.ctrl button{min-height:50px}
+#bLaunch b{background:none;color:inherit;padding:0}
+
+.game .banner{min-height:124px}
+.lanes{display:flex;gap:.4em;margin-top:.2em;flex-wrap:wrap}
+.lane{border-radius:8px;padding:.05em .55em;font-weight:800;color:#fff;font-size:.95em}
+.lane.l0{background:#2f6fd6} .lane.l1{background:#d9822b} .lane.l2{background:#2a9d6a}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8em}
+.modes button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:.8em 1em;border-radius:16px;gap:.2em}
+.modes .mt{font-weight:800;font-size:1.15em}
+.modes .md{font-size:.85em;color:var(--muted)}
+.touch{display:flex;gap:.5em;width:100%;max-width:1060px}
+.touch button{flex:1;min-height:52px;font-size:1.2em}
+/* Ergebnis */
+.restable{border-collapse:collapse;margin:.5em 0;width:100%}
+.restable th,.restable td{text-align:left;padding:.3em .6em;border-bottom:1px solid var(--line)}
+.restable th{color:var(--muted);font-weight:600;width:45%}
+.bigcode{font-family:Consolas,"Courier New",monospace;font-size:1.6em;font-weight:800;letter-spacing:.06em;background:#fff;color:#111;border-radius:12px;padding:.2em .6em;display:inline-block;margin:.2em 0 .5em;user-select:all}
+.wronglist li{margin:.5em 0}
+.lsatz li{margin:.2em 0}
+details{margin:.4em 0} summary{cursor:pointer;font-weight:700}
+
+.confirmbox{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center;padding:1em}
+.confirmbox .cb{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:1em 1.3em;max-width:520px}
+.confirmbox .cbrow{display:flex;gap:.6em;justify-content:flex-end}
+#toast{position:fixed;left:50%;bottom:1.2em;transform:translateX(-50%);background:#0c0f20;border:2px solid var(--accent);border-radius:12px;padding:.5em 1em;z-index:90;max-width:90vw}
+#toast[hidden]{display:none}
+
+@media (max-width:700px){ body{font-size:17px} .banner .bsatz{font-size:1.1em} .ctrl{flex-wrap:wrap} .ctrl button{min-width:0;font-size:.85em;padding:.2em .5em} }
+</style>
+</head>
+<body>
+<header id="top">
+  <a class="homelink" href="index.html" title="Zur Startseite mit allen Spielen">← Alle Spiele</a>
+  <span class="brand">🛹 Metro-Skater</span>
+  <div id="hud" aria-live="off"></div>
+  <div class="tools">
+    <button type="button" id="btnMenu" title="Zum Menü">☰ Menü</button>
+    <button type="button" id="btnAnim" aria-pressed="false" title="Animationen an/aus">🎞 Animationen an</button>
+    <button type="button" id="btnSound" aria-pressed="false" title="Ton an/aus">🔇 Ton aus</button>
+  </div>
+</header>
+<main id="app" tabindex="-1"></main>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<script>
+/* =====================================================================
+   AB HIER: SPIEL-LOGIK (muss nicht geändert werden)
+   ===================================================================== */
+const E = EINSTELLUNGEN;
+const LEVELS = ['A2','B1','B2','C1'];
+const LS_GAME = 'metroskater.spiel.v1', LS_SET = 'metroskater.einstellungen.v1', LS_REK = 'metroskater.rekord.v1';
+const TEMPI = [['langsam','🐢 langsam'],['normal','🛹 normal'],['schnell','⚡ schnell']];
+const TEMPO_ZIFFER = { langsam:1, normal:2, schnell:3 };
+const LANE_NAME = ['links','Mitte','rechts'];
+
+const app = document.getElementById('app');
+let state=null, view='start', settings={ sound:false, anim:true, tempo:'normal' };
+let G=null, raf=0, lastTs=0, ZEITRAFFER=1, endlosLevel=null, endlosErgebnis=null;
+
+/* ---------- Speicher ---------- */
+function lsGet(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { window.localStorage.setItem(k,v); } catch(e){} }
+function lsDel(k){ try { window.localStorage.removeItem(k); } catch(e){} }
+function save(){ if(state) lsSet(LS_GAME, JSON.stringify(state)); }
+function saveSettings(){ lsSet(LS_SET, JSON.stringify(settings)); }
+function rekorde(){ try{ return JSON.parse(lsGet(LS_REK)||'{}')||{}; }catch(e){ return {}; } }
+
+/* ---------- Helfer ---------- */
+const $  = (s,r) => (r||document).querySelector(s);
+const $$ = (s,r) => Array.from((r||document).querySelectorAll(s));
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+function plain(s){ return String(s==null?'':s).replace(/\*\*/g,''); }
+function paras(s){ return String(s||'').split(/\n\s*\n/).map(p => '<p>'+fmt(p)+'</p>').join(''); }
+function asList(x){ return x==null ? [] : (Array.isArray(x) ? x : [x]); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function range(n){ return Array.from({length:n},(_,i)=>i); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function mod(a,n){ return ((a%n)+n)%n; }
+function rnd(i){ const x=Math.sin(i*127.1+311.7)*43758.5453; return x-Math.floor(x); }
+function fmtTime(ms){ const s=Math.max(0,Math.round(ms/1000)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function fmtDate(d){ const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear(); }
+function focusEl(sel){ const el = sel ? (typeof sel==='string'?$(sel):sel) : null; (el||app).focus({preventScroll:true}); }
+let toastT=null;
+function toast(msg, ms){ const t=$('#toast'); t.innerHTML=fmt(msg); t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{ t.hidden=true; }, ms||2500); }
+function ruhig(){ return !settings.anim || !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+function spanish(level){ return !!E.spanischeHilfe[level]; }
+
+/* ---------- Eingebettet (z. B. Google Sites) ---------- */
+const EINGEBETTET = (()=>{ try { return window.self!==window.top; } catch(e){ return true; } })();
+if(EINGEBETTET) document.documentElement.classList.add('eingebettet');
+function bestaetigen(msg, ok){
+  const d=document.createElement('div'); d.className='confirmbox'; d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true');
+  d.innerHTML='<div class="cb"><p></p><div class="cbrow"><button type="button" class="cbno">Abbrechen</button><button type="button" class="primary cbyes">Ja</button></div></div>';
+  d.querySelector('p').textContent=msg; document.body.appendChild(d);
+  const close=()=>d.remove();
+  d.querySelector('.cbno').addEventListener('click',close);
+  d.querySelector('.cbyes').addEventListener('click',()=>{ close(); ok(); });
+  d.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Escape') close(); });
+  d.querySelector('.cbno').focus();
+}
+
+/* ---------- Daten ---------- */
+function items(level){ return asList(SPIEL[level].aufgaben).map((a,i)=>Object.assign({ id:String(i) },a)); }
+function item(level,id){ return items(level)[+id]; }
+function signature(level){ return String(items(level).length); }
+function teile(w){ return String(w).split(' … '); }
+function fill(a, wort, cls){
+  const t=teile(wort); let i=0;
+  return fmt(a.satz).replace(/___/g, ()=>'<strong'+(cls?' class="'+cls+'"':'')+'>'+esc(t[Math.min(i++,t.length-1)])+'</strong>');
+}
+function fillPlain(a, wort){ const t=teile(wort); let i=0; return plain(a.satz).replace(/___/g, ()=>t[Math.min(i++,t.length-1)]); }
+function satzGap(a){ return esc(a.satz).replace(/___/g,'<span class="gap">___</span>'); }
+function erklaerung(a, level){ return (a.info?'<span>📌 '+fmt(a.info)+'</span>':'')+(a.es&&spanish(level)?'<br><span class="es" lang="es">🇨🇱 '+fmt(a.es)+'</span>':''); }
+function startIdx(level){ const i=LINIE.indexOf(SPIEL[level].start); return i<0?0:i; }
+
+function dataWarnings(){
+  const w=[];
+  if(!Array.isArray(LINIE) || LINIE.length<2) w.push('LINIE braucht mindestens zwei Stationen.');
+  LEVELS.forEach(lv=>{ const S=SPIEL[lv]; if(S==null) return;
+    if(!asList(S.aufgaben).length) w.push(lv+': „aufgaben“ fehlt.');
+    if(S.start && LINIE.indexOf(S.start)<0) w.push(lv+': Station „'+S.start+'“ steht nicht in LINIE.');
+    asList(S.aufgaben).forEach((a,i)=>{ const where=lv+' · Aufgabe '+(i+1)+': ';
+      const n=a&&typeof a.satz==='string' ? a.satz.split('___').length-1 : 0;
+      if(n<1 || n>2) w.push(where+'satz braucht ___ (eine oder zwei Lücken).');
+      if(!a || !a.richtig) w.push(where+'richtig fehlt.');
+      const f=asList(a&&a.falsch); if(f.length!==2) w.push(where+'falsch braucht genau zwei Antworten.');
+      if(a && f.some(x=>String(x).trim()===String(a.richtig).trim())) w.push(where+'eine falsche Antwort ist gleich der richtigen.');
+      if(a && f[0]===f[1]) w.push(where+'die beiden falschen Antworten sind gleich.');
+      if(a && n===2 && [a.richtig].concat(f).some(x=>teile(x).length!==2)) w.push(where+'bei zwei Lücken bitte die Antworten mit " … " trennen.');
+      if(a && !a.info) w.push(where+'info (Erklärung) fehlt.');
+    }); });
+  return w;
+}
+
+/* ---------- Prüfcode ---------- */
+function cyrb53(str){ let h1=0xdeadbeef, h2=0x41c6ce57; for(let i=0;i<str.length;i++){ const ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909); h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909); return 4294967296*(2097151&h2)+(h1>>>0); }
+const B32='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function normName(n){ return String(n||'').replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]/g,''); }
+function checksum(level,pct,k,d,name){ let n=cyrb53(['MS',level,pct,k,d,normName(name),E.geheimwort].join('|')); let s=''; for(let i=0;i<5;i++){ s+=B32[n%32]; n=Math.floor(n/32); } return s; }
+function makeCode(level,pct,k,date,name){ const p=n=>String(n).padStart(2,'0'); const d=p(date.getDate())+p(date.getMonth()+1)+p(date.getFullYear()%100); return level+'-'+pct+'-'+k+'-'+d+'-'+checksum(level,pct,k,d,name); }
+function verifyCode(code,name){
+  const m=String(code||'').toUpperCase().replace(/\s+/g,'').match(/^(A2|B1|B2|C1)-(\d{1,3})-(\d)-(\d{6})-([A-Z0-9]{5})$/);
+  if(!m) return { valid:false, reason:'Das Format stimmt nicht. Beispiel: A2-87-2-211026-K7QFM' };
+  return { valid: checksum(m[1],+m[2],+m[3],m[4],name)===m[5], level:m[1], pct:+m[2], k:+m[3], date:m[4].slice(0,2)+'.'+m[4].slice(2,4)+'.20'+m[4].slice(4) };
+}
+
+/* ---------- Ton ---------- */
+let actx=null;
+const SND={ hop:[[520,.05],[700,.06]], swish:[[400,.04]], ok:[[660,.1],[880,.18]], bad:[[220,.25]], crash:[[180,.12],[120,.2]], pick:[[880,.05]], mote:[[523,.08],[659,.08],[784,.15]], station:[[659,.15],[523,.25]], fanfare:[[523,.15],[659,.15],[784,.15],[1047,.4]] };
+function sound(n){ if(!settings.sound) return; try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); let t=actx.currentTime;
+  (SND[n]||[]).forEach(([f,d])=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type='triangle'; o.frequency.value=f; g.gain.setValueAtTime(.14,t); g.gain.exponentialRampToValueAtTime(.001,t+d); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d+.02); t+=d*.8; }); }catch(e){} }
+
+/* ---------- Spielstand (Unterricht) ---------- */
+function newGame(level){ state={ v:1, level, sig:signature(level), phase:'intro', queue:shuffle(items(level).map(a=>a.id)), pos:0, repeated:{}, res:{}, wrong:[], completos:0, elapsed:0, name:'', finished:null }; save(); }
+function loadSaved(){ try{ const s=JSON.parse(lsGet(LS_GAME)||'null'); if(s && s.v===1 && SPIEL[s.level] && s.sig===signature(s.level)) return s; }catch(e){} return null; }
+function stats(){ const all=items(state.level), ok=all.filter(a=>state.res[a.id]===1).length; return { ok, total:all.length, pct: all.length?Math.round(ok*100/all.length):0 }; }
+
+/* =====================================================================
+   3D-METRO (Canvas 960 × 540, einfache Perspektive)
+   ===================================================================== */
+const W=960, H=540, HY=150, K=418, CAMH=3.83, ZP=5, ZN=1.3, ZF=105, WALL=4.1, CEIL=4.6, LX=[-2.2,0,2.2];
+function proj(X,h,z){ return [W/2+X*K/z, HY+(CAMH-h)*K/z]; }
+function sc(z){ return K/z; }
+
+function startFahrt(mode, level){
+  const lv=level||state.level;
+  G={ mode, level:lv, d:0, v:0, X:0, lane:1, h:0, vh:0, duck:0, stumble:0, inv:0, slow:0, objs:[], stations:[], gate:null, q:null, t:0,
+      started:false, paused:false, modal:null, done:false, parts:[], hearts:E.endlos.herzen, okCount:0, wrongCount:0, score:0, completos:0,
+      answered:0, stationNr:0, bannerT:0, lockUntil:0, pool:[], seq:0, lastSpawnEnd:12 };
+  if(mode==='endlos'){ G.v=E.endlos.startV; G.pool=shuffle(items(lv).map(a=>a.id)); }
+  else { G.v=tempoCfg().v; G.answered=state.pos; G.stationNr=Math.floor(state.pos/E.aufgabenProStation); }
+  neueAufgabe(true);
+}
+function tempoCfg(){ return E.tempo[settings.tempo]||E.tempo.normal; }
+function lesezeit(){ return G.mode==='endlos' ? Math.max(E.endlos.minLesen, tempoCfg().lesen - G.okCount*0.08) : tempoCfg().lesen; }
+function currentV(){ return (G.mode==='endlos'?G.v:tempoCfg().v)*(G.slow>0?.65:1)*(G.stumble>0?.55:1); }
+function stationName(nr){
+  const s=startIdx(G.level), L=LINIE.length;
+  if(G.mode!=='endlos') return LINIE[Math.min(L-1, s+nr)];
+  const p=mod(s+nr, 2*(L-1)); return LINIE[p<L ? p : 2*(L-1)-p];
+}
+
+function naechsteId(){
+  if(G.mode==='endlos'){ if(!G.pool.length) G.pool=shuffle(items(G.level).map(a=>a.id)); return G.pool.shift(); }
+  return state.pos<state.queue.length ? state.queue[state.pos] : null;
+}
+function neueAufgabe(first){
+  const id=naechsteId();
+  if(id==null){ fahrtEnde(); return; }
+  const a=item(G.level,id), opts=shuffle([a.richtig].concat(asList(a.falsch)));
+  const dist=Math.max(40, (G.mode==='endlos'?G.v:tempoCfg().v)*lesezeit()) + (first?20:0);
+  const gs=G.d+dist;
+  G.q={ id, a, opts, wiederholung: G.mode!=='endlos' && state.res[id]!==undefined };
+  G.gate={ type:'gate', s:gs, opts, passed:false };
+  G.objs=G.objs.filter(o=>o.s>G.d-8);
+  G.objs.push(G.gate);
+  spawnHindernisse(Math.max(G.d+14, G.lastSpawnEnd), gs-24);
+  G.lastSpawnEnd=gs+10;
+  setBanner();
+}
+function spawnHindernisse(a, b){
+  const dichte = G.mode==='endlos' ? Math.min(.85, .45+G.okCount*.02) : .5;
+  let s=a;
+  while(s<b-4){
+    const gap=16+Math.random()*10*(1.2-dichte); s+=gap; if(s>b-4) break;
+    if(Math.random()>dichte+.25){ // Completo-Reihe
+      const ln=Math.floor(Math.random()*3); for(let k=0;k<5;k++) G.objs.push({ type:'completo', s:s+k*2.2, lane:ln }); s+=10; continue; }
+    const zwei = Math.random()<(G.mode==='endlos'?.25+G.okCount*.01:.2);
+    const lanes=shuffle([0,1,2]).slice(0, zwei?2:1), frei=[0,1,2].find(l=>!lanes.includes(l));
+    let maxLen=0.6;
+    lanes.forEach(ln=>{ const r=Math.random(); let type= r<.32?'barrera': r<.58?'balken': r<.78?'perro':'zug';
+      if(type==='zug' && s+14>b) type='barrera';
+      const len = type==='zug'?14 : .7; maxLen=Math.max(maxLen,len);
+      G.objs.push({ type, s, lane:ln, len, hit:false }); });
+    if(Math.random()<.5){ for(let k=0;k<3;k++) G.objs.push({ type:'completo', s:s+k*2.2, lane:frei }); }
+    if(Math.random()<.06) G.objs.push({ type:'mote', s:s+6, lane:frei });
+    s+=maxLen;
+  }
+}
+function spawnStation(){
+  G.stationNr++; const name=stationName(G.stationNr);
+  G.stations.push({ s0:G.d+18, s1:G.d+62, name });
+  toast('🚇 Estación '+name, 2200); sound('station');
+}
+
+/* ---------- Steuerung ---------- */
+function spur(dir){ if(!aktiv()) return; const nl=clamp(G.lane+dir,0,2); if(nl!==G.lane){ G.lane=nl; sound('swish'); } }
+function springen(){ if(!G) return; if(G.modal){ continueOverlay(); return; } if(!aktiv()) return; if(G.h<=0.001){ G.vh=7.5; G.duck=0; sound('hop'); } }
+function ducken(){ if(!aktiv()) return; G.duck=0.8; if(G.h>0.01) G.vh=Math.min(G.vh,-9); }
+function aktiv(){ return G && G.started && !G.paused && !G.modal && !G.done; }
+
+/* ---------- Physik ---------- */
+function step(dt){
+  G.t+=dt;
+  G.parts.forEach(q=>{ q.x+=q.vx*dt; q.y+=q.vy*dt; q.vy+=q.g*dt; q.life-=dt; }); G.parts=G.parts.filter(q=>q.life>0);
+  if(G.bannerT>0){ G.bannerT-=dt; if(G.bannerT<=0 && !G.done) setBanner(); }
+  if(G.done){ return; }
+  G.stumble=Math.max(0,G.stumble-dt); G.inv=Math.max(0,G.inv-dt); G.slow=Math.max(0,G.slow-dt); G.duck=Math.max(0,G.duck-dt);
+  G.d+=currentV()*dt;
+  const tx=LX[G.lane], dx=tx-G.X, mx=13*dt; G.X+=clamp(dx,-mx,mx);
+  if(G.h>0 || G.vh>0){ G.vh-=20*dt; G.h+=G.vh*dt; if(G.h<=0){ G.h=0; G.vh=0; } }
+  // Kollisionen
+  for(const o of G.objs){
+    const near = o.type==='zug' ? (G.d>o.s-0.5 && G.d<o.s+o.len+0.3) : Math.abs(o.s-G.d)<0.55;
+    if(!near || o.type==='gate') continue;
+    const sameLane=Math.abs(G.X-LX[o.lane])<1.15;
+    if(!sameLane) continue;
+    if(o.type==='completo'){ if(!o.got && G.h<1.6){ o.got=true; pickup(); } continue; }
+    if(o.type==='mote'){ if(!o.got){ o.got=true; G.slow=7; sound('mote'); toast('🥤 Mote con huesillo! Alles läuft kurz langsamer.',2200); } continue; }
+    if(o.hit || G.inv>0) continue;
+    let hit=false;
+    if(o.type==='barrera') hit=G.h<0.95; else if(o.type==='perro') hit=G.h<0.6; else if(o.type==='balken') hit=G.duck<=0; else if(o.type==='zug') hit=true;
+    if(hit){ o.hit=true; crash(o); if(!G || G.modal) return; }
+  }
+  // Tor
+  const g=G.gate;
+  if(g && !g.passed && G.d>=g.s){ g.passed=true; torErreicht(g); }
+}
+function pickup(){
+  G.completos++; if(G.mode!=='endlos'){ state.completos++; } else G.score+=10; sound('pick');
+  if(!ruhig()){ const [x,y]=proj(G.X,1,ZP); G.parts.push({ x, y:y-60, vx:0, vy:-60, g:0, life:.6, txt:'+1 🌭' }); }
+  updateHud();
+}
+function crash(o){
+  sound('crash'); G.stumble=.8; G.inv=1.2;
+  const was = o.type==='zug'?'der Zug':o.type==='balken'?'das Schild':o.type==='perro'?'der Hund':'die Absperrung';
+  const mitWem = o.type==='zug'?'dem Zug':o.type==='balken'?'dem Schild':o.type==='perro'?'dem Hund':'der Absperrung';
+  if(G.mode==='endlos'){
+    G.hearts--; updateHud();
+    if(G.hearts<=0){ gameOver('💥 Zusammenstoß mit '+mitWem+'!'); return; }
+    toast('💥 Autsch! ❤️ noch '+G.hearts, 1800);
+  } else {
+    if(state.completos>0){ state.completos--; } toast('💥 Autsch – '+was+'! −1 🌭', 1800); updateHud();
+  }
+  if(o.type==='zug'){ // auf eine freie Spur ausweichen
+    const frei=[0,1,2].filter(l=>!G.objs.some(q=>q.type==='zug' && q.lane===l && G.d>q.s-1 && G.d<q.s+q.len)); if(frei.length){ G.lane=frei.sort((a,b)=>Math.abs(a-G.lane)-Math.abs(b-G.lane))[0]; G.X=LX[G.lane]; } }
+}
+function torErreicht(g){
+  const lane = G.X< -1.1 ? 0 : G.X>1.1 ? 2 : 1, gew=g.opts[lane], a=G.q.a, ok=gew===a.richtig, id=G.q.id;
+  if(G.mode!=='endlos'){
+    if(state.res[id]===undefined){ state.res[id]=ok?1:0; if(!ok){ state.wrong.push({ id, deine:gew }); if(!state.repeated[id]){ state.repeated[id]=1; state.queue.push(id); } } }
+    state.pos++; save();
+  }
+  G.answered++;
+  if(ok){
+    G.okCount++; sound('ok');
+    if(G.mode==='endlos'){ G.score+=100; G.v=Math.min(E.endlos.maxV, G.v+E.endlos.plusV); }
+    burst();
+    setBannerOk(); G.bannerT=1.4;
+    weiter();
+  } else {
+    G.wrongCount++; sound('bad'); G.stumble=.6;
+    if(G.mode==='endlos'){ G.hearts--; updateHud(); }
+    const bn=$('#banner'); if(bn) bn.className='banner bad';
+    openOverlay('<div class="box bad" role="alertdialog" aria-labelledby="ovT"><p class="big badline" id="ovT">✗ Falsches Tor – du bist durch „'+esc(gew)+'“ gefahren.</p>'+
+      '<div class="satzfull">'+fill(a,a.richtig)+'</div><p>'+erklaerung(a,G.level)+'</p>'+
+      (G.mode==='endlos'?(G.hearts>0?'<p class="small muted">❤️ noch '+G.hearts+'</p>':'<p class="badline"><strong>💔 Keine Herzen mehr!</strong></p>'):(G.q.wiederholung?'':'<p class="small muted">Diese Aufgabe kommt am Ende noch einmal.</p>'))+
+      '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="ovGo">Weiter ➜ <span class="small">(Leertaste)</span></button></div></div>',
+      ()=>{ if(G.mode==='endlos' && G.hearts<=0){ gameOver('Keine Herzen mehr.'); return; } weiter(); }, 1200);
+  }
+  updateHud();
+}
+function weiter(){
+  if(G.mode!=='endlos' && G.answered%E.aufgabenProStation===0) spawnStation();
+  else if(G.mode==='endlos' && G.answered%5===0) spawnStation();
+  if(G.mode==='endlos' && G.bannerT>0){ neueAufgabeSpaeter(); return; }
+  if(G.bannerT>0) neueAufgabeSpaeter(); else neueAufgabe();
+}
+function neueAufgabeSpaeter(){ // Tor sofort platzieren, Banner nach der Rückmeldung zeigen
+  const t=G.bannerT; neueAufgabe(); if(!G || G.done) return; G.bannerT=t; setBannerOk(true);
+}
+function burst(){ if(ruhig()) return; const [x,y]=proj(G.X,2.6,ZP+1.5); for(let i=0;i<16;i++){ const a=Math.random()*Math.PI*2; G.parts.push({ x, y, vx:Math.cos(a)*170, vy:Math.sin(a)*170-80, g:340, life:.8, c:['#5ee08f','#ffd23f','#fff','#ff7f50'][i%4] }); } }
+function fahrtEnde(){
+  G.done=true; G.gate=null; sound('fanfare'); setBannerEnde();
+  setTimeout(()=>{ if(!G) return; stopLoop(); state.phase='name'; save(); render(); }, ruhig()?600:2200);
+}
+function gameOver(grund){
+  G.done=true; sound('crash');
+  const lv=G.level, rek=rekorde(), dist=Math.round(G.d), punkte=G.score+dist, neu=!(rek[lv]>=punkte);
+  if(neu){ rek[lv]=punkte; lsSet(LS_REK, JSON.stringify(rek)); }
+  endlosErgebnis={ level:lv, grund, dist, punkte, ok:G.okCount, falsch:G.wrongCount, completos:G.completos, neu, rekord:rek[lv], station:stationName(G.stationNr) };
+  setTimeout(()=>{ stopLoop(); view='endlosEnde'; render(); }, ruhig()?300:900);
+}
+
+/* ---------- Overlays ---------- */
+function openOverlay(html, onGo, lock, menu){
+  const ov=$('#overlay'); if(!ov) return;
+  G.modal={ onGo, menu:!!menu }; G.lockUntil=performance.now()+(lock||0);
+  ov.innerHTML=html; ov.hidden=false;
+  const b=$('#ovGo',ov); if(b){ b.addEventListener('click',()=>continueOverlay(true)); setTimeout(()=>{ if(G && G.modal && b.isConnected) b.focus({preventScroll:true}); }, Math.min(lock||0,400)); }
+}
+function closeOverlay(){ const ov=$('#overlay'); if(ov){ ov.hidden=true; ov.innerHTML=''; } if(G) G.modal=null; const cv=$('#cv'); if(cv) cv.focus({preventScroll:true}); }
+function continueOverlay(force){
+  if(!G || !G.modal) return;
+  if(!force && performance.now()<G.lockUntil) return;
+  const fn=G.modal.onGo; closeOverlay(); lastTs=0; if(fn) fn();
+}
+function startOverlay(){
+  const endlos=G.mode==='endlos';
+  openOverlay('<div class="box" role="dialog" aria-labelledby="ovT"><p class="big" id="ovT">'+(endlos?'♾️ Endlos-Modus · '+esc(G.level):'🎓 Línea 1 · ab '+esc(stationName(G.stationNr)))+'</p>'+
+    '<p>Lies die Aufgabe oben und fahr durch das <strong>Tor mit der richtigen Antwort</strong>. Spur wechseln mit <kbd>←</kbd> <kbd>→</kbd>, springen mit <kbd>↑</kbd>, ducken mit <kbd>↓</kbd> – auf dem Tablet wischen.</p>'+
+    '<p class="small muted">'+(endlos?'Jedes richtige Tor macht dich schneller. Fehler und Zusammenstöße kosten ein Herz. 🥤 Mote con huesillo macht alles kurz langsamer.':'Hindernisse kosten einen Completo 🌭. Falsche Antworten kommen am Ende noch einmal.')+'</p>'+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="ovGo">Los! <span class="small">(Leertaste)</span></button></div></div>',
+    ()=>{ G.started=true; lastTs=0; }, 250);
+}
+function openPause(){
+  if(!G || G.modal || G.done || !G.started) return;
+  G.paused=true;
+  openOverlay('<div class="box" role="dialog" aria-labelledby="ovT"><p class="big" id="ovT">⏸ Pause</p>'+
+    (G.mode!=='endlos'?'<p class="small muted">Tempo:</p><div class="tempo">'+TEMPI.map(t=>'<button type="button" data-t="'+t[0]+'" aria-pressed="'+(settings.tempo===t[0])+'">'+t[1]+'</button>').join('')+'</div>':'<p class="small muted">Im Endlos-Modus wird es mit jedem richtigen Tor schneller.</p>')+
+    '<div class="row" style="margin-top:.6em"><button type="button" class="primary" id="ovGo">▶ Weiter <span class="small">(P)</span></button><span class="spacer"></span><button type="button" id="ovMenu">☰ Menü</button></div></div>',
+    ()=>{ G.paused=false; lastTs=0; }, 0, true);
+  $$('#overlay .tempo button').forEach(b=>b.addEventListener('click',()=>{ settings.tempo=b.dataset.t; saveSettings(); $$('#overlay .tempo button').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); }));
+  $('#ovMenu').addEventListener('click',()=>{ closeOverlay(); stopLoop(); view='start'; state=null; render(); });
+}
+
+/* ---------- Banner ---------- */
+function bannerMeta(){
+  if(G.mode==='endlos') return '♾️ Endlos · '+esc(G.level)+' · nächste Station: '+esc(stationName(G.stationNr+1))+' · ✓ '+G.okCount;
+  const n=state.queue.length, base=items(state.level).length;
+  return 'Línea 1 · nächste Station: '+esc(stationName(G.stationNr+1))+' · Aufgabe '+Math.min(state.pos+1,n)+' von '+n+(n>base?' (mit Wiederholungen)':'')+(G.q&&G.q.wiederholung?' · 🔁 Wiederholung':'');
+}
+function lanesHTML(opts){ return '<div class="lanes">'+opts.map((o,i)=>'<span class="lane l'+i+'">'+['◀ links:','◆ Mitte:','▶ rechts:'][i]+' '+esc(o)+'</span>').join('')+'</div>'; }
+function setBanner(){
+  const bn=$('#banner'); if(!bn || !G || !G.q) return; bn.className='banner';
+  bn.innerHTML='<div class="bmeta">'+bannerMeta()+'</div><div class="bsatz">'+satzGap(G.q.a)+'</div>'+lanesHTML(G.q.opts);
+}
+function setBannerOk(behalten){
+  const bn=$('#banner'); if(!bn) return; bn.className='banner ok';
+  const a=behalten&&G.lastOk?G.lastOk:G.q.a; G.lastOk=a;
+  bn.innerHTML='<div class="bmeta">✓ Richtig!</div><div class="bsatz">'+fill(a,a.richtig,'fill')+'</div><div class="binfo">'+erklaerung(a,G.level)+'</div>';
+}
+function setBannerEnde(){ const bn=$('#banner'); if(!bn) return; bn.className='banner ok'; bn.innerHTML='<div class="bmeta">🏁 Endstation!</div><div class="bsatz">Geschafft – alle Aufgaben gelöst! 🎉</div>'; }
+
+/* ---------- Zeichnen ---------- */
+let cv=null, ctx=null, scaleK=1;
+function resize(){
+  cv=$('#cv'); if(!cv) return;
+  const top=$('#top').offsetHeight, bn=$('#banner').offsetHeight, ct=($('.touch')||{offsetHeight:0}).offsetHeight;
+  const availH=Math.max(200, window.innerHeight-top-bn-ct-34), availW=Math.min(app.clientWidth-8, 1060);
+  let w=Math.min(availW, availH*16/9); w=Math.max(280,Math.floor(w)); const h=Math.round(w*9/16);
+  cv.style.width=w+'px'; cv.style.height=h+'px'; const ov=$('#overlay'); if(ov) ov.classList.toggle('klein', h<400);
+  const dpr=Math.min(2, window.devicePixelRatio||1);
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); scaleK=cv.width/W;
+  ctx=cv.getContext('2d'); draw();
+}
+function poly(pts,c){ ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]); ctx.closePath(); ctx.fill(); }
+function circ(x,y,r,c){ ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,Math.max(.1,r),0,Math.PI*2); ctx.fill(); }
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function quad(X0,X1,h0,h1,z0,z1,c){ // Fläche quer (z0=z1) oder längs
+  poly([proj(X0,h0,z0),proj(X1,h0,z0),proj(X1,h1,z1),proj(X0,h1,z1)],c); }
+function zOf(s){ return s-G.d+ZP; }
+
+function drawTunnel(){
+  const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#0e1018'); g.addColorStop(1,'#1a1c26'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  // Boden, Wände, Decke
+  poly([proj(-WALL,0,ZN),proj(WALL,0,ZN),proj(WALL,0,ZF),proj(-WALL,0,ZF)],'#2b2a2e');
+  poly([proj(-WALL,0,ZN),proj(-WALL,CEIL,ZN),proj(-WALL,CEIL,ZF),proj(-WALL,0,ZF)],'#3a3f4c');
+  poly([proj(WALL,0,ZN),proj(WALL,CEIL,ZN),proj(WALL,CEIL,ZF),proj(WALL,0,ZF)],'#3a3f4c');
+  poly([proj(-WALL,CEIL,ZN),proj(WALL,CEIL,ZN),proj(WALL,CEIL,ZF),proj(-WALL,CEIL,ZF)],'#262a35');
+  // Stationen (helle Fliesen, Bahnsteigkante)
+  G.stations.forEach(st=>{
+    const z0=Math.max(ZN,zOf(st.s0)), z1=Math.min(ZF,zOf(st.s1)); if(z1<=z0) return;
+    [-1,1].forEach(sd=>{ poly([proj(sd*WALL,0,z0),proj(sd*WALL,CEIL,z0),proj(sd*WALL,CEIL,z1),proj(sd*WALL,0,z1)],'#e9e2cf');
+      poly([proj(sd*WALL,2.4,z0),proj(sd*WALL,2.9,z0),proj(sd*WALL,2.9,z1),proj(sd*WALL,2.4,z1)],'#c8102e');
+      poly([proj(sd*3.45,0.02,z0),proj(sd*3.65,0.02,z0),proj(sd*3.65,0.02,z1),proj(sd*3.45,0.02,z1)],'#ffd23f'); });
+    for(let s=st.s0+4; s<st.s1-2; s+=13){ const z=zOf(s); if(z<ZN+.4||z>ZF) continue; const k=sc(z);
+      [-1,1].forEach(sd=>{ const [x,y]=proj(sd*(WALL-0.02),3.5,z); const w=Math.max(20,3.2*k*.55), hh=Math.max(8,.55*k);
+        ctx.fillStyle='#fff'; ctx.fillRect(x-(sd<0?0:w),y-hh/2,w,hh); ctx.fillStyle='#c8102e'; ctx.fillRect(x-(sd<0?0:w),y-hh/2,w*.12,hh);
+        if(k>16){ ctx.fillStyle='#1d1d1d'; ctx.font='bold '+Math.round(hh*.55)+'px Arial'; ctx.textBaseline='middle'; ctx.fillText(st.name, x-(sd<0?0:w)+w*.16, y); ctx.textBaseline='alphabetic'; } }); }
+  });
+  // Schwellen und Schienen
+  const step=1.6, s0=Math.ceil((G.d-ZP+ZN)/step)*step;
+  for(let s=s0; zOf(s)<ZF; s+=step){ const z=zOf(s); if(z<ZN) continue; quad(-3.3,3.3,0,0,z,z+0.25,'#3d332b'); }
+  ctx.lineWidth=2;
+  LX.forEach(lx=>{ [-0.6,0.6].forEach(o=>{ const a=proj(lx+o,0,ZN), b=proj(lx+o,0,ZF); ctx.strokeStyle='#9aa3b5'; ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); }); });
+  // Deckenlampen und Wandlichter
+  const l0=Math.ceil((G.d-ZP+ZN)/7)*7;
+  for(let s=l0; zOf(s)<ZF; s+=7){ const z=zOf(s); if(z<ZN) continue; quad(-0.9,0.9,CEIL-0.02,CEIL-0.02,z,z+0.5,'#fff3c4');
+    [-1,1].forEach(sd=>{ const [x,y]=proj(sd*(WALL-0.01),2.6,z), r=Math.max(1.5,.12*sc(z)); circ(x,y,r,'#ffcf5a'); }); }
+  // Nebel in der Ferne
+  const fg=ctx.createRadialGradient(W/2,HY+18,4,W/2,HY+18,180); fg.addColorStop(0,'rgba(8,9,14,1)'); fg.addColorStop(1,'rgba(8,9,14,0)'); ctx.fillStyle=fg; ctx.fillRect(0,0,W,H);
+}
+
+const LANE_COL=['#2f6fd6','#d9822b','#2a9d6a'];
+function drawGate(o,z){
+  const k=sc(z), top=3.5;
+  [-3.5,3.5].forEach(X=>{ const a=proj(X-0.12,0,z), b=proj(X+0.12,top,z); ctx.fillStyle='#8a8f9c'; ctx.fillRect(a[0],b[1],b[0]-a[0],a[1]-b[1]); });
+  const tl=proj(-3.6,top+0.2,z), br=proj(3.6,top,z); ctx.fillStyle='#8a8f9c'; ctx.fillRect(tl[0],tl[1],br[0]-tl[0],br[1]-tl[1]);
+  o.opts.forEach((w,i)=>{ const p1=proj(LX[i]-1.0,3.3,z), p2=proj(LX[i]+1.0,2.0,z);
+    ctx.fillStyle=LANE_COL[i]; rr(p1[0],p1[1],p2[0]-p1[0],p2[1]-p1[1],Math.max(2,k*.12)); ctx.fill();
+    ctx.lineWidth=Math.max(1,k*.04); ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.stroke();
+    let fs=Math.max(7,Math.min(46,k*.62)); ctx.font='bold '+fs+'px Arial'; const maxW=(p2[0]-p1[0])*.92;
+    while(ctx.measureText(w).width>maxW && fs>7){ fs-=1; ctx.font='bold '+fs+'px Arial'; }
+    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(w,(p1[0]+p2[0])/2,(p1[1]+p2[1])/2); ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    const a=proj(LX[i]-1.0,2.0,z), b=proj(LX[i]+1.0,0,z); ctx.fillStyle='rgba(255,255,255,.06)'; ctx.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);
+  });
+}
+function drawObj(o,z){
+  const k=sc(z), lx=o.lane!=null?LX[o.lane]:0;
+  if(o.type==='gate') return drawGate(o,z);
+  if(o.type==='completo'){ if(o.got) return; const [x,y]=proj(lx,0.55+(ruhig()?0:Math.sin(G.t*4+o.s)*.08),z), w=.7*k, h=.28*k;
+    ctx.fillStyle='#e8b56a'; ctx.beginPath(); ctx.ellipse(x,y+h*.2,w/2,h/2,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#9c4a2e'; ctx.beginPath(); ctx.ellipse(x,y-h*.05,w*.55,h*.25,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#8ccf5a'; ctx.beginPath(); ctx.ellipse(x,y-h*.25,w*.42,h*.18,0,0,Math.PI*2); ctx.fill();
+    for(let i=-1;i<=1;i++) circ(x+i*w*.22,y-h*.38,Math.max(1,h*.14),'#e23b2e'); return; }
+  if(o.type==='mote'){ if(o.got) return; const [x,y]=proj(lx,0.7,z), w=.45*k, h=.7*k;
+    ctx.fillStyle='rgba(220,240,255,.7)'; ctx.fillRect(x-w/2,y-h/2,w,h); ctx.fillStyle='#b5651d'; ctx.fillRect(x-w/2,y,w,h/2); circ(x,y-h*.05,w*.3,'#ffb347'); circ(x+w*.1,y+h*.25,w*.15,'#f2e2b5'); return; }
+  if(o.type==='barrera'){ const a=proj(lx-1.0,0.9,z), b=proj(lx+1.0,0.45,z), f=proj(lx,0,z);
+    ctx.fillStyle='#555'; ctx.fillRect(a[0]+k*.1,a[1],k*.1,f[1]-a[1]); ctx.fillRect(b[0]-k*.2,a[1],k*.1,f[1]-a[1]);
+    ctx.fillStyle='#ffd23f'; ctx.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]); ctx.fillStyle='#1a1a1a';
+    for(let i=0;i<5;i++){ const x0=a[0]+(b[0]-a[0])*(i/5); ctx.beginPath(); ctx.moveTo(x0,b[1]); ctx.lineTo(x0+(b[0]-a[0])/10,a[1]); ctx.lineTo(x0+(b[0]-a[0])/5,a[1]); ctx.lineTo(x0+(b[0]-a[0])/10,b[1]); ctx.fill(); }
+    if(o.hit) { ctx.globalAlpha=.4; ctx.fillStyle='#fff'; ctx.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]); ctx.globalAlpha=1; } return; }
+  if(o.type==='balken'){ const a=proj(lx-1.05,1.75,z), b=proj(lx+1.05,1.15,z), c=proj(lx,CEIL,z);
+    ctx.strokeStyle='#777'; ctx.lineWidth=Math.max(1,k*.03); ctx.beginPath(); ctx.moveTo(a[0]+k*.2,a[1]); ctx.lineTo(a[0]+k*.2,c[1]); ctx.moveTo(b[0]-k*.2,a[1]); ctx.lineTo(b[0]-k*.2,c[1]); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]); ctx.fillStyle='#d62a3d';
+    for(let i=0;i<6;i+=2){ ctx.fillRect(a[0]+(b[0]-a[0])*i/6,a[1],(b[0]-a[0])/6,b[1]-a[1]); }
+    if(k>25){ ctx.fillStyle='#1a1a1a'; ctx.font='bold '+Math.round((b[1]-a[1])*.6)+'px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('⬇ ducken',(a[0]+b[0])/2,(a[1]+b[1])/2); ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
+    return; }
+  if(o.type==='perro'){ const [x,y]=proj(lx,0,z), s=k;
+    ctx.fillStyle='#a0703c'; ctx.beginPath(); ctx.ellipse(x,y-.22*s,.45*s,.22*s,0,0,Math.PI*2); ctx.fill();
+    circ(x-.38*s,y-.38*s,.17*s,'#a0703c'); circ(x-.5*s,y-.48*s,.07*s,'#6b4423'); circ(x-.3*s,y-.5*s,.07*s,'#6b4423');
+    circ(x-.42*s,y-.38*s,.03*s,'#111'); circ(x-.33*s,y-.38*s,.03*s,'#111'); ctx.fillStyle='#fff'; if(s>30){ ctx.font=Math.round(.25*s)+'px Arial'; ctx.fillText('z',x+.2*s,y-.55*s); } return; }
+  if(o.type==='zug'){ const zf=Math.max(ZN,z), zb=Math.min(ZF,zOf(o.s+o.len)); if(zb<=zf) return;
+    const sd = lx<0?1:lx>0?-1:(G.X<0?-1:1); // sichtbare Seite zur Mitte
+    poly([proj(lx+sd*1.0,0,zf),proj(lx+sd*1.0,3.0,zf),proj(lx+sd*1.0,3.0,zb),proj(lx+sd*1.0,0,zb)],'#c9ced8');
+    poly([proj(lx+sd*1.0,1.0,zf),proj(lx+sd*1.0,1.25,zf),proj(lx+sd*1.0,1.25,zb),proj(lx+sd*1.0,1.0,zb)],'#c8102e');
+    if(z<ZN) return;
+    poly([proj(lx-1.0,3.0,zf),proj(lx+1.0,3.0,zf),proj(lx+1.0,3.0,zb),proj(lx-1.0,3.0,zb)],'#a9afbb');
+    const a=proj(lx-1.0,3.0,z), b=proj(lx+1.0,0,z); ctx.fillStyle='#eef1f6'; rr(a[0],a[1],b[0]-a[0],b[1]-a[1],Math.max(2,k*.2)); ctx.fill();
+    const w1=proj(lx-0.8,2.6,z), w2=proj(lx+0.8,1.7,z); ctx.fillStyle='#1d2a3a'; ctx.fillRect(w1[0],w1[1],w2[0]-w1[0],w2[1]-w1[1]);
+    const r1=proj(lx-1.0,1.25,z), r2=proj(lx+1.0,1.0,z); ctx.fillStyle='#c8102e'; ctx.fillRect(r1[0],r1[1],r2[0]-r1[0],r2[1]-r1[1]);
+    const l1=proj(lx-0.6,0.6,z), l2=proj(lx+0.6,0.6,z); circ(l1[0],l1[1],Math.max(1.5,k*.1),'#fff6c2'); circ(l2[0],l2[1],Math.max(1.5,k*.1),'#fff6c2');
+    if(k>20){ ctx.fillStyle='#fff'; ctx.font='bold '+Math.round(k*.28)+'px Arial'; ctx.textAlign='center'; ctx.fillText('L1',(a[0]+b[0])/2,w1[1]-k*.1); ctx.textAlign='left'; }
+    return; }
+}
+function drawMatias(){
+  const k=sc(ZP), [x,yg]=proj(G.X,G.h,ZP), lean=clamp((LX[G.lane]-G.X)*.18,-.25,.25), duck=G.duck>0;
+  ctx.save(); ctx.translate(x,yg);
+  if(G.inv>0 && Math.floor(G.t*14)%2===0) ctx.globalAlpha=.5;
+  // Schatten
+  if(G.h>0){ ctx.save(); ctx.translate(0,G.h*k); ctx.fillStyle='rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(0,0,.5*k,.12*k,0,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+  ctx.rotate(lean);
+  // Skateboard
+  ctx.fillStyle='#222'; circ(-.32*k,0,.07*k,'#222'); circ(.32*k,0,.07*k,'#222');
+  ctx.fillStyle='#e85d2a'; rr(-.5*k,-.13*k,1.0*k,.09*k,.04*k); ctx.fill();
+  const hb = duck ? .55 : 1;
+  // Beine
+  ctx.fillStyle='#2c3e66'; ctx.fillRect(-.22*k,-(.13+.75*hb)*k,.17*k,.75*hb*k); ctx.fillRect(.05*k,-(.13+.75*hb)*k,.17*k,.75*hb*k);
+  ctx.fillStyle='#f2f2f2'; ctx.fillRect(-.25*k,-.2*k,.22*k,.08*k); ctx.fillRect(.03*k,-.2*k,.22*k,.08*k);
+  const yb=-(.13+.75*hb)*k;
+  // Körper (Kapuzenpulli) und Rucksack
+  ctx.fillStyle='#c8102e'; rr(-.3*k,yb-.62*k,.6*k,.66*k,.12*k); ctx.fill();
+  ctx.fillStyle='#1f5fa8'; rr(-.22*k,yb-.55*k,.44*k,.42*k,.08*k); ctx.fill(); ctx.fillStyle='#174a85'; ctx.fillRect(-.16*k,yb-.3*k,.32*k,.05*k);
+  // Arme
+  ctx.strokeStyle='#c8102e'; ctx.lineWidth=.13*k; ctx.lineCap='round'; const sw=ruhig()?0:Math.sin(G.t*6)*.08*k;
+  ctx.beginPath(); ctx.moveTo(-.28*k,yb-.5*k); ctx.lineTo(-.48*k,yb-.15*k+sw); ctx.moveTo(.28*k,yb-.5*k); ctx.lineTo(.48*k,yb-.15*k-sw); ctx.stroke();
+  // Kopf von hinten
+  circ(0,yb-.78*k,.2*k,'#d9a07a'); circ(0,yb-.82*k,.2*k,'#1e1e1e'); ctx.fillStyle='#1e1e1e'; ctx.fillRect(-.2*k,yb-.82*k,.4*k,.08*k);
+  ctx.restore(); ctx.globalAlpha=1;
+}
+function draw(){
+  if(!ctx || !G) return;
+  ctx.setTransform(scaleK,0,0,scaleK,0,0);
+  drawTunnel();
+  const list=G.objs.map(o=>({ o, z: zOf(o.s) })).filter(e=>e.z<ZF && (e.o.type==='zug' ? zOf(e.o.s+e.o.len)>ZN : e.z>Math.max(ZN,ZP-0.8)) && !(e.o.type==='gate' && e.o.passed));
+  list.push({ o:null, z:ZP });
+  list.sort((a,b)=>b.z-a.z);
+  list.forEach(e=>{ if(e.o) drawObj(e.o,e.z); else drawMatias(); });
+  G.parts.forEach(q=>{ ctx.globalAlpha=Math.max(0,Math.min(1,q.life*1.6)); if(q.txt){ ctx.font='bold 24px Arial'; ctx.fillStyle='#ffd23f'; ctx.fillText(q.txt,q.x-20,q.y); } else circ(q.x,q.y,4,q.c); ctx.globalAlpha=1; });
+  if(G.slow>0){ ctx.fillStyle='rgba(255,180,71,.12)'; ctx.fillRect(0,0,W,H); ctx.font='bold 20px Arial'; ctx.fillStyle='#ffb347'; ctx.fillText('🥤 '+Math.ceil(G.slow),16,H-16); }
+  if(G.mode==='endlos'){ ctx.font='24px Arial'; for(let i=0;i<E.endlos.herzen;i++){ ctx.globalAlpha=i<G.hearts?1:.25; ctx.fillText('❤️',W-40-i*32,36); } ctx.globalAlpha=1;
+    ctx.font='bold 22px Arial'; ctx.fillStyle='#fff'; ctx.textAlign='right'; ctx.fillText(Math.round(G.d)+' m · '+(G.score+Math.round(G.d))+' P',W-16,68); ctx.textAlign='left'; }
+  else { ctx.font='bold 22px Arial'; ctx.fillStyle='#ffd23f'; ctx.textAlign='right'; ctx.fillText('🌭 '+state.completos,W-16,36); ctx.textAlign='left'; }
+}
+
+/* ---------- Schleife ---------- */
+function frame(ts){
+  raf=requestAnimationFrame(frame);
+  if(!G) return;
+  if(!lastTs) lastTs=ts;
+  const dt=Math.min(.05,(ts-lastTs)/1000); lastTs=ts;
+  if(G.started && !G.paused && !G.modal && !document.hidden){ if(state) state.elapsed+=dt*1000; let rem=dt*ZEITRAFFER; while(rem>1e-6 && G && !G.modal && !G.paused && !G.done){ const d=Math.min(rem,1/120); step(d); rem-=d; } if(G && G.done) step(0); }
+  else if(G.parts.length){ G.parts.forEach(q=>{ q.life-=dt; }); G.parts=G.parts.filter(q=>q.life>0); }
+  if(!G) return;
+  draw();
+  if(state && Math.floor(state.elapsed/1000)!==G._sec){ G._sec=Math.floor(state.elapsed/1000); const c=$('#clock'); if(c) c.textContent='⏱ '+fmtTime(state.elapsed); }
+}
+function startLoop(){ cancelAnimationFrame(raf); lastTs=0; raf=requestAnimationFrame(frame); }
+function stopLoop(){ cancelAnimationFrame(raf); raf=0; G=null; }
+
+/* =====================================================================
+   BILDSCHIRME
+   ===================================================================== */
+function updateHud(){
+  const hud=$('#hud');
+  if(view==='endlos' && G){ hud.innerHTML='<span class="pill">♾️ '+esc(G.level)+'</span><span class="pill">❤️ '+G.hearts+'</span><span class="pill">✓ '+G.okCount+'</span><span class="pill">🌭 '+G.completos+'</span>'; return; }
+  if(!state || view!=='game' || location.hash==='#lehrer' || ['name','end'].includes(state.phase)){ hud.innerHTML=''; return; }
+  const n=state.queue.length;
+  hud.innerHTML='<span class="pill">🎓 '+esc(state.level)+'</span><span class="pill">🚇 '+Math.min(state.pos,n)+'/'+n+'</span><span class="pill" title="Completos">🌭 '+state.completos+'</span><span class="pill" id="clock">⏱ '+fmtTime(state.elapsed)+'</span>';
+}
+
+function render(){
+  if(location.hash==='#lehrer'){ stopLoop(); renderTeacher(); updateHud(); return; }
+  if(view==='endlos'){ renderEndlos(); }
+  else if(view==='endlosEnde'){ renderEndlosEnde(); }
+  else if(view==='start' || !state){ stopLoop(); renderStart(); }
+  else if(state.phase==='intro') renderIntro();
+  else if(state.phase==='fahrt') renderGame();
+  else if(state.phase==='name') renderName();
+  else renderResult();
+  updateHud();
+}
+
+function heroArt(){
+  const c=document.createElement('canvas'); c.width=480; c.height=270; const old=ctx, oldG=G;
+  G={ d:0, t:0, X:0, lane:1, h:0, duck:0, inv:0, slow:0, stations:[{ s0:-5, s1:40, name:'Baquedano' }], objs:[], mode:'x' };
+  ctx=c.getContext('2d'); ctx.setTransform(.5,0,0,.5,0,0); drawTunnel();
+  drawObj({ type:'gate', opts:['der','die','das'] }, 26); drawObj({ type:'completo', lane:2, s:1 }, 14); drawObj({ type:'completo', lane:2, s:2 }, 11);
+  drawMatias(); ctx=old; G=oldG; return c;
+}
+
+function renderStart(){
+  view='start';
+  const saved=loadSaved(), warn=dataWarnings(), rek=rekorde();
+  let h='<section class="card narrow hero"><div class="herorow"><div><h1>🛹 Metro-Skater: Matías in Santiago</h1>'+
+    '<p>Matías fährt auf dem Skateboard durch die <strong>Línea 1</strong> der Metro de Santiago. Fahr durch das <strong>Tor mit der richtigen Antwort</strong>, spring über Absperrungen, duck dich unter Schildern durch und sammle Completos! 🌭</p>'+
+    '<p class="small es" lang="es">🇨🇱 Un juego de carreras en el Metro de Santiago para practicar artículos, el Perfekt y expresiones fijas.</p></div><div class="heroart" id="heroArt"></div></div></section>';
+  if(warn.length) h+='<div class="warnbox narrow"><strong>⚠️ Hinweis für Lehrkräfte – in den Daten stimmt etwas nicht:</strong><ul>'+warn.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+  if(saved){
+    h+='<section class="card narrow"><h2>▶ Weiterfahren (Unterricht)</h2><p>Niveau <strong>'+esc(saved.level)+'</strong> · '+(saved.phase==='end'?'fertig':saved.phase==='name'?'Endstation erreicht':'Aufgabe '+(saved.pos+1)+' von '+saved.queue.length)+'</p>'+
+      '<div class="row"><button type="button" class="primary" id="btnCont">'+(saved.phase==='end'?'🏆 Ergebnis ansehen':'Weiterfahren ➜')+'</button><button type="button" id="btnDiscard">Neu beginnen</button></div></section>';
+  }
+  h+='<section class="card narrow"><h2>Wähle dein Niveau</h2><div class="levels">'+LEVELS.map(lv=>{ const S=SPIEL[lv];
+      return S ? '<button type="button" class="level" data-l="'+lv+'"><span class="lv">'+lv+'</span><span class="lt">'+esc(S.titel)+'</span><span class="lo">'+esc(S.schwerpunkt||'')+'</span>'+(rek[lv]?'<span class="lo">♾️ Rekord: '+rek[lv]+' P</span>':'')+'</button>'
+               : '<button type="button" class="level" disabled><span class="lv">'+lv+'</span><span class="lt">🔒 kommt bald</span></button>'; }).join('')+'</div></section>';
+  h+=steuerCard();
+  h+='<p class="small center"><a href="#lehrer">Für Lehrkräfte: Prüfcode kontrollieren und alle Aufgaben ansehen</a></p>';
+  app.innerHTML=h;
+  try{ $('#heroArt').appendChild(heroArt()); }catch(e){}
+  bindTempo();
+  if($('#btnCont')) $('#btnCont').addEventListener('click',()=>{ state=saved; view='game'; render(); });
+  if($('#btnDiscard')) $('#btnDiscard').addEventListener('click',()=>bestaetigen('Das gespeicherte Spiel wird gelöscht. Wirklich neu beginnen?', ()=>{ lsDel(LS_GAME); state=null; render(); }));
+  $$('.level[data-l]').forEach(b=>b.addEventListener('click',()=>{ renderModus(b.dataset.l, saved); window.scrollTo(0,0); }));
+}
+function renderModus(lv, saved){
+  const S=SPIEL[lv], rek=rekorde();
+  app.innerHTML='<section class="card narrow"><h1>'+esc(lv)+' · '+esc(S.titel)+'</h1>'+paras(S.intro)+'</section>'+
+    '<section class="card narrow"><h2>Wähle den Modus</h2><div class="modes">'+
+    '<button type="button" id="mUnt"><span class="mt">🎓 Unterricht</span><span class="md">Alle '+items(lv).length+' Aufgaben einmal, Fahrt auf der Línea 1 ab '+esc(S.start)+'. Falsche Aufgaben kommen am Ende noch einmal. Ergebnis mit Prüfcode.</span></button>'+
+    '<button type="button" id="mEnd"><span class="mt">♾️ Endlos</span><span class="md">Zufällige Aufgaben, immer schneller, 3 Herzen. Wie weit kommst du?'+(rek[lv]?' Dein Rekord: '+rek[lv]+' Punkte.':'')+'</span></button></div></section>'+
+    steuerCard()+'<div class="narrow row"><button type="button" id="btnBack">← Zurück</button></div>';
+  bindTempo();
+  $('#mUnt').addEventListener('click',()=>{
+    const go=()=>{ newGame(lv); state.phase='fahrt'; save(); view='game'; render(); window.scrollTo(0,0); };
+    if(saved && saved.phase!=='end') bestaetigen('Es gibt noch eine gespeicherte Fahrt ('+saved.level+'). Sie wird gelöscht. Neu beginnen?', go); else go();
+  });
+  $('#mEnd').addEventListener('click',()=>{ endlosLevel=lv; view='endlos'; render(); window.scrollTo(0,0); });
+  $('#btnBack').addEventListener('click',()=>{ view='start'; render(); });
+  focusEl('#mUnt');
+}
+function steuerCard(){
+  return '<section class="card narrow"><h2>So spielst du</h2><div class="keys">'+
+    '<span><kbd>←</kbd> <kbd>→</kbd></span><span>Spur wechseln (links, Mitte, rechts)</span>'+
+    '<span><kbd>↑</kbd> / <kbd>Leertaste</kbd></span><span>springen – über Absperrungen und Hunde</span>'+
+    '<span><kbd>↓</kbd></span><span>ducken – unter rot-weißen Schildern durch</span>'+
+    '<span>📱 Tablet</span><span>wischen (links, rechts, hoch, runter) oder die Knöpfe unter dem Bild</span>'+
+    '<span><kbd>P</kbd> <kbd>Esc</kbd></span><span>Pause</span></div>'+
+    '<p class="small muted" style="margin-bottom:.3em">Tempo im Unterrichtsmodus:</p><div class="tempo" id="tempoSel">'+TEMPI.map(t=>'<button type="button" data-t="'+t[0]+'" aria-pressed="'+(settings.tempo===t[0])+'">'+t[1]+'</button>').join('')+'</div></section>';
+}
+function bindTempo(){ $$('#tempoSel button').forEach(b=>b.addEventListener('click',()=>{ settings.tempo=b.dataset.t; saveSettings(); $$('#tempoSel button').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); })); }
+function renderIntro(){ state.phase='fahrt'; save(); renderGame(); }
+
+function gameDOM(){
+  app.innerHTML='<section class="game"><div id="banner" class="banner" aria-live="polite"></div>'+
+    '<div class="stagewrap"><canvas id="cv" width="960" height="540" tabindex="0" aria-label="Spielfeld: Matías fährt durch die Metro. Spur wechseln mit den Pfeiltasten."></canvas><div id="overlay" class="overlay" hidden></div></div>'+
+    '<div class="touch"><button type="button" id="tL" aria-label="Spur nach links">⬅</button><button type="button" id="tU" aria-label="Springen">⬆</button><button type="button" id="tD" aria-label="Ducken">⬇</button><button type="button" id="tR" aria-label="Spur nach rechts">➡</button><button type="button" id="tP" aria-label="Pause" style="flex:0 0 60px">⏸</button></div></section>';
+  setBanner(); updateHud();
+  const cvs=$('#cv'); let sx=0, sy=0, down=false;
+  cvs.addEventListener('pointerdown',e=>{ e.preventDefault(); if(G&&G.modal){ continueOverlay(); return; } down=true; sx=e.clientX; sy=e.clientY; });
+  cvs.addEventListener('pointerup',e=>{ if(!down) return; down=false; const dx=e.clientX-sx, dy=e.clientY-sy;
+    if(Math.abs(dx)<25 && Math.abs(dy)<25){ springen(); return; }
+    if(Math.abs(dx)>Math.abs(dy)) spur(dx>0?1:-1); else if(dy<0) springen(); else ducken(); });
+  const tb=(id,fn)=>$(id).addEventListener('pointerdown',e=>{ e.preventDefault(); if(G&&G.modal){ if(!G.modal.menu) continueOverlay(); return; } fn(); });
+  tb('#tL',()=>spur(-1)); tb('#tR',()=>spur(1)); tb('#tU',springen); tb('#tD',ducken);
+  $('#tP').addEventListener('click',()=>{ if(G&&G.paused) continueOverlay(true); else openPause(); });
+  resize(); startLoop(); startOverlay();
+}
+function renderGame(){ view='game'; startFahrt('unterricht'); gameDOM(); }
+function renderEndlos(){ startFahrt('endlos', endlosLevel); gameDOM(); }
+
+function renderEndlosEnde(){
+  const r=endlosErgebnis||{};
+  app.innerHTML='<section class="card narrow"><h1>♾️ Ende der Fahrt – '+esc(r.level||'')+'</h1><p>'+esc(r.grund||'')+'</p>'+
+    '<table class="restable"><tr><th>Punkte</th><td><strong>'+(r.punkte||0)+'</strong>'+(r.neu?' 🏆 Neuer Rekord!':' (Rekord: '+(r.rekord||0)+')')+'</td></tr><tr><th>Strecke</th><td>'+(r.dist||0)+' m – bis '+esc(r.station||'')+'</td></tr><tr><th>Richtige Tore</th><td>'+(r.ok||0)+'</td></tr><tr><th>Falsche Tore</th><td>'+(r.falsch||0)+'</td></tr><tr><th>Completos</th><td>'+(r.completos||0)+'</td></tr></table>'+
+    '<p class="small muted">Der Endlos-Modus hat keinen Prüfcode – für die Abgabe bitte den 🎓 Unterrichtsmodus spielen.</p>'+
+    '<div class="row"><button type="button" class="primary" id="btnAgain">↺ Nochmal</button><button type="button" id="btnMenu2">☰ Menü</button></div></section>';
+  $('#btnAgain').addEventListener('click',()=>{ view='endlos'; render(); });
+  $('#btnMenu2').addEventListener('click',()=>{ view='start'; state=null; render(); });
+  focusEl('#btnAgain');
+}
+
+const INPUT_ATTR='type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"';
+function renderName(){
+  app.innerHTML='<section class="card narrow"><h1>🏁 Endstation erreicht!</h1><p>Schreib deinen Namen für das Ergebnis und den Prüfcode.</p>'+
+    '<p class="row"><label for="nameIn">Dein Name:</label> <input '+INPUT_ATTR+' id="nameIn" maxlength="60" style="flex:1;min-width:220px" placeholder="Vorname Nachname"></p><div id="nameFb" role="status"></div>'+
+    '<div class="row"><span class="spacer"></span><button type="button" class="primary" id="btnName">Ergebnis anzeigen ➜</button></div></section>';
+  const go=()=>{ const n=$('#nameIn').value.trim().replace(/\s+/g,' '); if(normName(n).length<2){ $('#nameFb').innerHTML='<p class="badline">Bitte schreib deinen Namen.</p>'; return; } state.name=n; state.finished=new Date().toISOString(); state.tempo=settings.tempo; state.phase='end'; save(); render(); };
+  $('#btnName').addEventListener('click',go); $('#nameIn').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }); focusEl('#nameIn');
+}
+function renderResult(){
+  const s=stats(), d=new Date(state.finished), tz=TEMPO_ZIFFER[state.tempo]||2, code=makeCode(state.level,s.pct,tz,d,state.name);
+  const rows=[['Name',state.name],['Niveau',state.level+' – '+SPIEL[state.level].titel],['Richtig beim ersten Versuch',s.ok+' von '+s.total+' Aufgaben'],['Prozent',s.pct+' %'],['Tempo',(TEMPI.find(t=>t[0]===state.tempo)||TEMPI[1])[1]],['Completos 🌭',state.completos],['Zeit',fmtTime(state.elapsed)+' min'],['Datum',fmtDate(d)]];
+  let h='<section class="card narrow"><h1>🏆 Dein Ergebnis</h1>'+
+    '<table class="restable">'+rows.map(r=>'<tr><th scope="row">'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table>'+
+    '<p style="margin-bottom:0">Prüfcode:</p><div class="bigcode">'+esc(code)+'</div><p class="small muted">Mach einen Screenshot oder kopiere das Ergebnis und gib es in Google Classroom ab.</p>'+
+    '<div class="row"><button type="button" class="primary" id="btnCopy">📋 Ergebnis kopieren</button><button type="button" id="btnNew">↺ Neues Spiel</button><span id="copyFb" role="status" class="okline"></span></div>'+
+    '<h2 style="margin-top:1em">Falsch beim ersten Versuch ('+state.wrong.length+')</h2>';
+  h += state.wrong.length ? '<ol class="wronglist">'+state.wrong.map(w=>{ const a=item(state.level,w.id); return '<li>'+fill(a,a.richtig,'okline')+'<br><span class="badline">✗ Deine Antwort: '+esc(w.deine)+'</span><br><span class="small">'+erklaerung(a,state.level)+'</span></li>'; }).join('')+'</ol>' : '<p class="okline">✓ Keine Fehler – ¡bacán!</p>';
+  app.innerHTML=h+'</section>';
+  $('#btnCopy').addEventListener('click',()=>copyText(resultText(code,s,d)));
+  $('#btnNew').addEventListener('click',()=>bestaetigen('Neues Spiel starten? Dieses Ergebnis wird gelöscht. Hast du schon einen Screenshot gemacht?', ()=>{ lsDel(LS_GAME); state=null; view='start'; render(); }));
+  focusEl('#btnCopy');
+}
+function resultText(code,s,d){
+  let t='Metro-Skater – Matías in Santiago\nName: '+state.name+'\nNiveau: '+state.level+' – '+SPIEL[state.level].titel+
+    '\nRichtig beim ersten Versuch: '+s.ok+' / '+s.total+' ('+s.pct+' %)\nTempo: '+state.tempo+'\nCompletos: '+state.completos+'\nZeit: '+fmtTime(state.elapsed)+' min\nDatum: '+fmtDate(d)+'\nPrüfcode: '+code+'\n';
+  t+='\nFalsch beim ersten Versuch ('+state.wrong.length+'):\n'+(state.wrong.length?state.wrong.map((w,i)=>{ const a=item(state.level,w.id); return (i+1)+'. '+fillPlain(a,a.richtig)+'\n   Meine Antwort: '+w.deine+'\n   Erklärung: '+plain(a.info||''); }).join('\n'):'–');
+  return t;
+}
+function copyText(t){
+  const done=()=>{ $('#copyFb').textContent='✓ Kopiert! Jetzt in Google Classroom einfügen (Strg + V).'; };
+  const fallback=()=>{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){ $('#copyFb').textContent='Kopieren hat nicht geklappt – bitte Screenshot machen.'; } ta.remove(); };
+  let settled=false; const once=f=>()=>{ if(!settled){ settled=true; f(); } };
+  try{ if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(t).then(once(done),once(fallback)); setTimeout(once(fallback),800); } else once(fallback)(); }catch(e){ once(fallback)(); }
+}
+
+/* ---------- Lehrkraft ---------- */
+function renderTeacher(){
+  app.innerHTML='<section class="card narrow"><h1>🔎 Prüfcode kontrollieren</h1><p class="muted">Für Lehrkräfte. Name so eingeben, wie er im Ergebnis steht (Groß-/Kleinschreibung, Akzente und Leerzeichen sind egal).</p>'+
+    '<p><label for="tName">Name</label><br><input '+INPUT_ATTR+' id="tName" style="width:100%"></p><p><label for="tCode">Prüfcode</label><br><input '+INPUT_ATTR+' id="tCode" style="width:100%" placeholder="z. B. A2-87-2-211026-K7QFM"></p>'+
+    '<div class="row"><button type="button" class="primary" id="tCheck">Prüfen</button><span class="spacer"></span><button type="button" id="tBack">← Zurück zum Spiel</button></div><div id="tRes" role="status" aria-live="polite" style="margin-top:.8em"></div></section>'+
+    '<section class="card narrow"><h2>ℹ️ Gut zu wissen</h2><ul>'+
+    '<li><strong>Prüfcode</strong> (nur Unterrichtsmodus): Niveau – Prozent – Tempo (1 = langsam, 2 = normal, 3 = schnell) – Datum – Kontrollzeichen.</li>'+
+    '<li><strong>Prozent:</strong> Aufgaben, die beim <em>ersten</em> Versuch richtig waren. Falsche Aufgaben werden am Ende wiederholt – das zählt nicht mehr für die Prozente.</li>'+
+    '<li><strong>Nach einem Fehler</strong> bleibt die Erklärung stehen, bis sie aktiv weggeklickt wird.</li>'+
+    '<li><strong>Hindernisse</strong> kosten im Unterrichtsmodus nur einen Completo, keine Punkte. Im <strong>Endlos-Modus</strong> kosten Fehler und Zusammenstöße ein Herz; der Rekord wird nur im Browser gespeichert (kein Prüfcode).</li></ul></section>'+
+    '<section class="card narrow"><h2>📚 Alle Aufgaben</h2>'+LEVELS.filter(lv=>SPIEL[lv]).map(lv=>'<details><summary>'+lv+' · '+esc(SPIEL[lv].titel)+' ('+items(lv).length+' Aufgaben)</summary><ol class="lsatz">'+
+      items(lv).map(a=>'<li>'+fill(a,a.richtig,'okline')+' <span class="small muted">(falsch: '+esc(asList(a.falsch).join(' / '))+' · '+esc(plain(a.info||''))+')</span></li>').join('')+'</ol></details>').join('')+'</section>';
+  const go=()=>{ const r=verifyCode($('#tCode').value,$('#tName').value);
+    $('#tRes').innerHTML = r.valid ? '<p class="tipbox ok"><strong>✓ Der Code ist gültig.</strong><br>Niveau <strong>'+r.level+'</strong> · <strong>'+r.pct+' %</strong> · Tempo <strong>'+(['','langsam','normal','schnell'][r.k]||r.k)+'</strong> · '+r.date+'</p>'
+      : '<p class="tipbox bad"><strong>✗ Der Code ist nicht gültig.</strong><br>'+esc(r.reason||'Name oder Code passen nicht zusammen.')+'</p>'; };
+  $('#tCheck').addEventListener('click',go); ['#tName','#tCode'].forEach(s=>$(s).addEventListener('keydown',e=>{ if(e.key==='Enter') go(); }));
+  $('#tBack').addEventListener('click',()=>{ history.replaceState(null,'',location.pathname+location.search); render(); });
+  focusEl('#tName');
+}
+
+/* ---------- Tastatur ---------- */
+document.addEventListener('keydown',e=>{
+  if(!G || !(view==='game'||view==='endlos') || location.hash) return;
+  const tag=(e.target&&e.target.tagName)||''; if(tag==='INPUT'||tag==='TEXTAREA') return;
+  if(document.querySelector('.confirmbox')) return;
+  const k=e.key;
+  if(G.modal && G.modal.menu){ if(k==='Escape'||k==='p'||k==='P'){ e.preventDefault(); continueOverlay(true); } return; }
+  if(G.modal){ if(k===' '||k==='Enter'){ e.preventDefault(); if(!e.repeat) continueOverlay(); } return; }
+  if(k==='ArrowLeft'||k==='a'||k==='A'){ e.preventDefault(); if(!e.repeat) spur(-1); }
+  else if(k==='ArrowRight'||k==='d'||k==='D'){ e.preventDefault(); if(!e.repeat) spur(1); }
+  else if(k===' '||k==='ArrowUp'||k==='w'||k==='W'){ e.preventDefault(); if(!e.repeat) springen(); }
+  else if(k==='ArrowDown'||k==='s'||k==='S'){ e.preventDefault(); if(!e.repeat) ducken(); }
+  else if(k==='Escape'||k==='p'||k==='P'){ e.preventDefault(); openPause(); }
+});
+document.addEventListener('visibilitychange',()=>{ if(document.hidden && G && G.started && !G.modal && !G.done) openPause(); });
+window.addEventListener('blur',()=>{ if(G && G.started && !G.modal && !G.done && !EINGEBETTET) openPause(); });
+window.addEventListener('resize',()=>{ if(G) resize(); });
+
+/* ---------- Start ---------- */
+(function init(){
+  try{ const s=JSON.parse(lsGet(LS_SET)||'{}'); if(s.sound) settings.sound=true; if(s.anim===false) settings.anim=false; if(E.tempo[s.tempo]) settings.tempo=s.tempo; }catch(e){}
+  const sb=$('#btnSound'), ab=$('#btnAnim');
+  const upd=()=>{ sb.textContent=settings.sound?'🔊 Ton an':'🔇 Ton aus'; sb.setAttribute('aria-pressed',String(settings.sound));
+    ab.textContent=settings.anim?'🎞 Animationen an':'🎞 Animationen aus'; ab.setAttribute('aria-pressed',String(!settings.anim)); };
+  upd();
+  sb.addEventListener('click',()=>{ settings.sound=!settings.sound; saveSettings(); upd(); sound('ok'); });
+  ab.addEventListener('click',()=>{ settings.anim=!settings.anim; saveSettings(); upd(); toast(settings.anim?'🎞 Animationen sind wieder an.':'🎞 Animationen sind aus – keine Effekte.'); });
+  $('#btnMenu').addEventListener('click',()=>{ if(location.hash) history.replaceState(null,'',location.pathname+location.search); stopLoop(); view='start'; state=null; render(); });
+  window.addEventListener('hashchange',render);
+  render();
+})();
+</script>
+</body>
+</html>
