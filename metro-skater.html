@@ -535,7 +535,7 @@ function spawnHindernisse(a, b){
     const zwei = Math.random()<(G.mode==='endlos'?.25+G.okCount*.01:.2);
     const lanes=shuffle([0,1,2]).slice(0, zwei?2:1), frei=[0,1,2].find(l=>!lanes.includes(l));
     let maxLen=0.6;
-    lanes.forEach(ln=>{ const r=Math.random(); let type= r<.32?'barrera': r<.58?'balken': r<.78?'perro':'zug';
+    lanes.forEach(ln=>{ const r=Math.random(); let type= r<.32?'barrera': r<.58?'balken': r<.78?'stuhl':'zug';
       if(type==='zug' && s+14>b) type='barrera';
       const len = type==='zug'?14 : .7; maxLen=Math.max(maxLen,len);
       G.objs.push({ type, s, lane:ln, len, hit:false }); });
@@ -546,7 +546,7 @@ function spawnHindernisse(a, b){
 }
 function spawnStation(){
   G.stationNr++; const name=stationName(G.stationNr);
-  G.stations.push({ s0:G.d+18, s1:G.d+62, name });
+  G.stations.push({ s0:G.d+16, s1:G.d+76, name });
   toast('🚇 Estación '+name, 2200); sound('station');
 }
 
@@ -576,7 +576,7 @@ function step(dt){
     if(o.type==='mote'){ if(!o.got){ o.got=true; G.slow=7; sound('mote'); toast('🥤 Mote con huesillo! Alles läuft kurz langsamer.',2200); } continue; }
     if(o.hit || G.inv>0) continue;
     let hit=false;
-    if(o.type==='barrera') hit=G.h<0.95; else if(o.type==='perro') hit=G.h<0.6; else if(o.type==='balken') hit=G.duck<=0; else if(o.type==='zug') hit=true;
+    if(o.type==='barrera') hit=G.h<0.95; else if(o.type==='stuhl') hit=G.h<0.95; else if(o.type==='balken') hit=G.duck<=0; else if(o.type==='zug') hit=true;
     if(hit){ o.hit=true; crash(o); if(!G || G.modal) return; }
   }
   // Tor
@@ -590,8 +590,8 @@ function pickup(){
 }
 function crash(o){
   sound('crash'); G.stumble=.8; G.inv=1.2;
-  const was = o.type==='zug'?'der Zug':o.type==='balken'?'das Schild':o.type==='perro'?'der Hund':'die Absperrung';
-  const mitWem = o.type==='zug'?'dem Zug':o.type==='balken'?'dem Schild':o.type==='perro'?'dem Hund':'der Absperrung';
+  const was = o.type==='zug'?'der Zug':o.type==='balken'?'das Schild':o.type==='stuhl'?'der Stuhl':'die Absperrung';
+  const mitWem = o.type==='zug'?'dem Zug':o.type==='balken'?'dem Schild':o.type==='stuhl'?'dem Stuhl':'der Absperrung';
   if(G.mode==='endlos'){
     G.hearts--; updateHud();
     if(G.hearts<=0){ gameOver('💥 Zusammenstoß mit '+mitWem+'!'); return; }
@@ -699,6 +699,92 @@ function setBannerOk(behalten){
 }
 function setBannerEnde(){ const bn=$('#banner'); if(!bn) return; bn.className='banner ok'; bn.innerHTML='<div class="bmeta">🏁 Endstation!</div><div class="bsatz">Geschafft – alle Aufgaben gelöst! 🎉</div>'; }
 
+/* ---------- Stationen ---------- */
+const PE=3.5, PH=1.0, BW=6.6;   // Bahnsteigkante, Bahnsteighöhe, Rückwand
+let WERB_RECHTS=false;
+const WERBUNG=['torres','empanada','atacama','valpo','rapanui','palta','mote'];
+function zeichneWerbung(typ,x,y,w,h){
+  const T=(t,t2)=>{ if(w<70) return; ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fillRect(x,y+h*.72,w,h*.28);
+    let fs=Math.max(8,h*.13); ctx.font='bold '+fs+'px Arial'; while(ctx.measureText(t).width>w*.92 && fs>7){ fs--; ctx.font='bold '+fs+'px Arial'; }
+    const tx=WERB_RECHTS?x+w*.96:x+w*.04; ctx.textAlign=WERB_RECHTS?'right':'left';
+    ctx.fillStyle='#fff'; ctx.textBaseline='middle'; ctx.fillText(t,tx,y+h*.8); ctx.font=Math.max(7,fs*.75)+'px Arial'; ctx.fillStyle='#ffe9a6'; ctx.fillText(t2,tx,y+h*.92); ctx.textBaseline='alphabetic'; ctx.textAlign='left'; };
+  const g=ctx.createLinearGradient(0,y,0,y+h);
+  if(typ==='torres'){ g.addColorStop(0,'#6fb7ff'); g.addColorStop(1,'#d9f0ff'); ctx.fillStyle=g; ctx.fillRect(x,y,w,h);
+    [[.35,.18],[.5,.1],[.64,.2]].forEach(([fx,fy])=>{ poly([[x+w*(fx-.06),y+h*.7],[x+w*(fx-.03),y+h*fy],[x+w*(fx+.03),y+h*fy],[x+w*(fx+.06),y+h*.7]],'#6d6f7a'); poly([[x+w*(fx-.03),y+h*fy],[x+w*(fx+.03),y+h*fy],[x+w*(fx+.025),y+h*(fy+.07)],[x+w*(fx-.025),y+h*(fy+.07)]],'#fff'); });
+    ctx.fillStyle='#2bb3c0'; ctx.fillRect(x,y+h*.62,w,h*.12); T('Torres del Paine','Patagonia te espera'); }
+  else if(typ==='empanada'){ g.addColorStop(0,'#ffb347'); g.addColorStop(1,'#e8742a'); ctx.fillStyle=g; ctx.fillRect(x,y,w,h);
+    ctx.fillStyle='#e9b25e'; ctx.beginPath(); ctx.ellipse(x+w*.5,y+h*.55,w*.28,h*.3,0,Math.PI,0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#b97a2e'; ctx.lineWidth=Math.max(1,h*.02); ctx.beginPath(); for(let i=0;i<=8;i++){ const a=Math.PI+i*Math.PI/8; ctx.lineTo(x+w*.5+Math.cos(a)*w*.28, y+h*.55+Math.sin(a)*h*.3); } ctx.stroke(); T('Empanadas de pino','¡Recién horneadas!'); }
+  else if(typ==='atacama'){ g.addColorStop(0,'#0b1033'); g.addColorStop(1,'#43306a'); ctx.fillStyle=g; ctx.fillRect(x,y,w,h);
+    for(let i=0;i<25;i++) circ(x+rnd(i)*w,y+rnd(i+9)*h*.55,Math.max(.6,h*.008),'#fff');
+    ctx.fillStyle='#c98b56'; ctx.beginPath(); ctx.moveTo(x,y+h*.72); ctx.quadraticCurveTo(x+w*.3,y+h*.5,x+w*.6,y+h*.68); ctx.quadraticCurveTo(x+w*.8,y+h*.55,x+w,y+h*.66); ctx.lineTo(x+w,y+h); ctx.lineTo(x,y+h); ctx.fill(); T('San Pedro de Atacama','Los cielos más limpios del mundo'); }
+  else if(typ==='valpo'){ g.addColorStop(0,'#7cc4f0'); g.addColorStop(1,'#d6f0ff'); ctx.fillStyle=g; ctx.fillRect(x,y,w,h);
+    const C=['#e74c3c','#f1c40f','#3498db','#9b59b6','#1abc9c','#e67e22','#ff7eb6'];
+    for(let i=0;i<9;i++){ ctx.fillStyle=C[i%7]; const hx=x+w*(i/9), hh=h*(.18+((i*37)%5)*.04); ctx.fillRect(hx,y+h*.72-hh-(i%3)*h*.05,w/9.5,hh+(i%3)*h*.05); } T('Valparaíso','Patrimonio de la Humanidad'); }
+  else if(typ==='rapanui'){ g.addColorStop(0,'#ff9a5a'); g.addColorStop(1,'#ffd27a'); ctx.fillStyle=g; ctx.fillRect(x,y,w,h);
+    ctx.fillStyle='#1f6fa8'; ctx.fillRect(x,y+h*.6,w,h*.14);
+    [.3,.45,.6].forEach(fx=>{ ctx.fillStyle='#4a3a32'; ctx.fillRect(x+w*fx-w*.035,y+h*.25,w*.07,h*.45); ctx.fillRect(x+w*fx-w*.05,y+h*.33,w*.1,h*.06); }); T('Rapa Nui','Isla de Pascua'); }
+  else if(typ==='palta'){ g.addColorStop(0,'#c8e6a0'); g.addColorStop(1,'#7cb342'); ctx.fillStyle=g; ctx.fillRect(x,y,w,h);
+    ctx.fillStyle='#33691e'; ctx.beginPath(); ctx.ellipse(x+w*.5,y+h*.4,w*.13,h*.28,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#dce775'; ctx.beginPath(); ctx.ellipse(x+w*.5,y+h*.42,w*.1,h*.22,0,0,Math.PI*2); ctx.fill(); circ(x+w*.5,y+h*.48,Math.min(w*.05,h*.1),'#795548'); T('Palta chilena','¡Pura cremosidad!'); }
+  else { g.addColorStop(0,'#fff3c4'); g.addColorStop(1,'#ffb347'); ctx.fillStyle=g; ctx.fillRect(x,y,w,h);
+    ctx.fillStyle='rgba(200,230,255,.85)'; ctx.fillRect(x+w*.42,y+h*.12,w*.16,h*.56); ctx.fillStyle='#b5651d'; ctx.fillRect(x+w*.42,y+h*.36,w*.16,h*.32);
+    circ(x+w*.5,y+h*.32,Math.min(w*.05,h*.08),'#ff9f1c'); T('Mote con huesillo','El sabor del verano'); }
+}
+function person(x,y,u,seed){ // wartet am Bahnsteig, Blick zum Gleis
+  const r=i=>rnd(seed*7+i), kind=r(1)<.15, hgt=kind?1.15:1.55+r(2)*.25;
+  const haut=['#f1c7a4','#d9a07a','#c98f68','#8d5a3b','#f5d2b8'][Math.floor(r(3)*5)], haar=['#1e1e1e','#3b2a20','#8a6a4a','#c8642a','#555'][Math.floor(r(4)*5)];
+  const kl=['#2f6fd6','#2a9d6a','#7d4f9a','#c0392b','#e0a83a','#34495e','#d35400'][Math.floor(r(5)*7)], hose=['#2c3e66','#333','#5d4037','#455a64'][Math.floor(r(6)*4)];
+  const H=hgt*u, bw=.42*u*(kind?.8:1);
+  ctx.fillStyle=hose; ctx.fillRect(x-bw*.42,y-H*.48,bw*.36,H*.48); ctx.fillRect(x+bw*.06,y-H*.48,bw*.36,H*.48);
+  ctx.fillStyle=kl; rr(x-bw/2,y-H*.84,bw,H*.4,Math.max(1,bw*.2)); ctx.fill();
+  ctx.fillRect(x-bw*.62,y-H*.8,bw*.14,H*.32); ctx.fillRect(x+bw*.48,y-H*.8,bw*.14,H*.32);
+  circ(x,y-H*.91,H*.085,haut); ctx.fillStyle=haar; ctx.beginPath(); ctx.arc(x,y-H*.93,H*.088,Math.PI,0); ctx.fill();
+  if(r(7)<.35 && !kind){ ctx.fillStyle='#111'; ctx.fillRect(x+bw*.3,y-H*.72,bw*.18,H*.09); }
+  if(r(8)<.3){ ctx.fillStyle='#8d6e63'; ctx.fillRect(x-bw*.7,y-H*.5,bw*.35,H*.22); }
+}
+function drawStation(st){
+  const z0=Math.max(ZN,zOf(st.s0)), z1=Math.min(ZF,zOf(st.s1)); if(z1<=z0) return;
+  const deko=[];
+  [-1,1].forEach(sd=>{
+    poly([proj(sd*WALL,0,z0),proj(sd*WALL,CEIL,z0),proj(sd*WALL,CEIL,z1),proj(sd*WALL,0,z1)],'#1a1c26');
+    if(zOf(st.s1)<ZF) poly([proj(sd*WALL,0,z1),proj(sd*BW,0,z1),proj(sd*BW,CEIL,z1),proj(sd*WALL,CEIL,z1)],'#b9b2a0');
+    poly([proj(sd*WALL,CEIL,z0),proj(sd*BW,CEIL,z0),proj(sd*BW,CEIL,z1),proj(sd*WALL,CEIL,z1)],'#d6cfbb');
+    poly([proj(sd*BW,PH,z0),proj(sd*BW,CEIL,z0),proj(sd*BW,CEIL,z1),proj(sd*BW,PH,z1)],'#efe8d6');
+    poly([proj(sd*BW,3.6,z0),proj(sd*BW,3.85,z0),proj(sd*BW,3.85,z1),proj(sd*BW,3.6,z1)],'#c8102e');
+    // Werbetafeln und Stationsschilder an der Rückwand
+    let n=0;
+    for(let s=st.s0+2; s+5<st.s1; s+=7.5, n++){
+      const za=zOf(s), zb=zOf(s+5); if(zb<=ZN || za>=ZF) continue;
+      const a1=Math.max(ZN,za), b1=Math.min(ZF,zb);
+      const P=[proj(sd*BW,3.2,a1),proj(sd*BW,3.2,b1),proj(sd*BW,1.55,b1),proj(sd*BW,1.55,a1)];
+      const xs=P.map(q=>q[0]), ys=P.map(q=>q[1]), bx=Math.min(...xs), by=Math.min(...ys), bw=Math.max(...xs)-bx, bh=Math.max(...ys)-by;
+      if(bw<2) continue;
+      ctx.save(); ctx.beginPath(); ctx.moveTo(P[0][0],P[0][1]); P.slice(1).forEach(q=>ctx.lineTo(q[0],q[1])); ctx.closePath(); ctx.clip();
+      if(n%3===1){ ctx.fillStyle='#fff'; ctx.fillRect(bx,by,bw,bh); ctx.fillStyle='#c8102e'; ctx.fillRect(bx,by,bw,bh*.18);
+        if(bw>40){ let fs=Math.max(8,bh*.3); ctx.font='bold '+fs+'px Arial'; while(ctx.measureText(st.name).width>Math.max(40,Math.min(bx+bw,W)-Math.max(bx,0))*.85 && fs>7){ fs--; ctx.font='bold '+fs+'px Arial'; }
+          const vx0=Math.max(bx,0), vx1=Math.min(bx+bw,W), cx=(vx0+vx1)/2; ctx.textAlign='center';
+          ctx.fillStyle='#1d1d1d'; ctx.textBaseline='middle'; ctx.fillText(st.name,cx,by+bh*.6); ctx.textBaseline='alphabetic'; ctx.textAlign='left'; } }
+      else { WERB_RECHTS=sd>0; zeichneWerbung(WERBUNG[mod(Math.floor(st.s0)+n*3+(sd>0?2:0),WERBUNG.length)],bx,by,bw,bh); WERB_RECHTS=false; }
+      ctx.restore();
+      ctx.lineWidth=Math.max(1,sc((a1+b1)/2)*.05); ctx.strokeStyle='#5a5a5a'; ctx.beginPath(); ctx.moveTo(P[0][0],P[0][1]); P.slice(1).forEach(q=>ctx.lineTo(q[0],q[1])); ctx.closePath(); ctx.stroke();
+    }
+    // Bahnsteig
+    poly([proj(sd*PE,PH,z0),proj(sd*BW,PH,z0),proj(sd*BW,PH,z1),proj(sd*PE,PH,z1)],'#9e9a94');
+    poly([proj(sd*(PE+.08),PH+.01,z0),proj(sd*(PE+.32),PH+.01,z0),proj(sd*(PE+.32),PH+.01,z1),proj(sd*(PE+.08),PH+.01,z1)],'#ffd23f');
+    poly([proj(sd*PE,0,z0),proj(sd*PE,PH,z0),proj(sd*PE,PH,z1),proj(sd*PE,0,z1)],'#5d5a57');
+    // Säulen und Menschen (später nach Entfernung sortiert)
+    for(let s=st.s0+6; s<st.s1-2; s+=12) deko.push({ s, sd, typ:'saeule' });
+    const N=Math.floor((st.s1-st.s0)/5.5);
+    for(let i=0;i<N;i++){ const seed=Math.floor(st.s0)*13+i*5+(sd>0?101:0); deko.push({ s:st.s0+3+rnd(seed)*(st.s1-st.s0-6), sd, X:4.0+rnd(seed+1)*2.1, typ:'person', seed }); }
+  });
+  deko.map(d=>Object.assign(d,{ z:zOf(d.s) })).filter(d=>d.z>ZN+.3 && d.z<ZF).sort((a,b)=>b.z-a.z).forEach(d=>{
+    const u=sc(d.z);
+    if(d.typ==='saeule'){ const a=proj(d.sd*4.7-.18,CEIL,d.z), b=proj(d.sd*4.7+.18,PH,d.z); ctx.fillStyle='#cfc8b4'; ctx.fillRect(Math.min(a[0],b[0]),a[1],Math.abs(b[0]-a[0]),b[1]-a[1]); ctx.fillStyle='#c8102e'; ctx.fillRect(Math.min(a[0],b[0]),a[1]+(b[1]-a[1])*.08,Math.abs(b[0]-a[0]),(b[1]-a[1])*.05); }
+    else { const [x,y]=proj(d.sd*d.X,PH,d.z); person(x,y,u,d.seed); }
+  });
+}
+
 /* ---------- Zeichnen ---------- */
 let cv=null, ctx=null, scaleK=1;
 function resize(){
@@ -725,17 +811,8 @@ function drawTunnel(){
   poly([proj(-WALL,0,ZN),proj(-WALL,CEIL,ZN),proj(-WALL,CEIL,ZF),proj(-WALL,0,ZF)],'#3a3f4c');
   poly([proj(WALL,0,ZN),proj(WALL,CEIL,ZN),proj(WALL,CEIL,ZF),proj(WALL,0,ZF)],'#3a3f4c');
   poly([proj(-WALL,CEIL,ZN),proj(WALL,CEIL,ZN),proj(WALL,CEIL,ZF),proj(-WALL,CEIL,ZF)],'#262a35');
-  // Stationen (helle Fliesen, Bahnsteigkante)
-  G.stations.forEach(st=>{
-    const z0=Math.max(ZN,zOf(st.s0)), z1=Math.min(ZF,zOf(st.s1)); if(z1<=z0) return;
-    [-1,1].forEach(sd=>{ poly([proj(sd*WALL,0,z0),proj(sd*WALL,CEIL,z0),proj(sd*WALL,CEIL,z1),proj(sd*WALL,0,z1)],'#e9e2cf');
-      poly([proj(sd*WALL,2.4,z0),proj(sd*WALL,2.9,z0),proj(sd*WALL,2.9,z1),proj(sd*WALL,2.4,z1)],'#c8102e');
-      poly([proj(sd*3.45,0.02,z0),proj(sd*3.65,0.02,z0),proj(sd*3.65,0.02,z1),proj(sd*3.45,0.02,z1)],'#ffd23f'); });
-    for(let s=st.s0+4; s<st.s1-2; s+=13){ const z=zOf(s); if(z<ZN+.4||z>ZF) continue; const k=sc(z);
-      [-1,1].forEach(sd=>{ const [x,y]=proj(sd*(WALL-0.02),3.5,z); const w=Math.max(20,3.2*k*.55), hh=Math.max(8,.55*k);
-        ctx.fillStyle='#fff'; ctx.fillRect(x-(sd<0?0:w),y-hh/2,w,hh); ctx.fillStyle='#c8102e'; ctx.fillRect(x-(sd<0?0:w),y-hh/2,w*.12,hh);
-        if(k>16){ ctx.fillStyle='#1d1d1d'; ctx.font='bold '+Math.round(hh*.55)+'px Arial'; ctx.textBaseline='middle'; ctx.fillText(st.name, x-(sd<0?0:w)+w*.16, y); ctx.textBaseline='alphabetic'; } }); }
-  });
+  // Stationen mit Bahnsteig
+  G.stations.forEach(drawStation);
   // Schwellen und Schienen
   const step=1.6, s0=Math.ceil((G.d-ZP+ZN)/step)*step;
   for(let s=s0; zOf(s)<ZF; s+=step){ const z=zOf(s); if(z<ZN) continue; quad(-3.3,3.3,0,0,z,z+0.25,'#3d332b'); }
@@ -784,10 +861,15 @@ function drawObj(o,z){
     for(let i=0;i<6;i+=2){ ctx.fillRect(a[0]+(b[0]-a[0])*i/6,a[1],(b[0]-a[0])/6,b[1]-a[1]); }
     if(k>25){ ctx.fillStyle='#1a1a1a'; ctx.font='bold '+Math.round((b[1]-a[1])*.6)+'px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('⬇ ducken',(a[0]+b[0])/2,(a[1]+b[1])/2); ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
     return; }
-  if(o.type==='perro'){ const [x,y]=proj(lx,0,z), s=k;
-    ctx.fillStyle='#a0703c'; ctx.beginPath(); ctx.ellipse(x,y-.22*s,.45*s,.22*s,0,0,Math.PI*2); ctx.fill();
-    circ(x-.38*s,y-.38*s,.17*s,'#a0703c'); circ(x-.5*s,y-.48*s,.07*s,'#6b4423'); circ(x-.3*s,y-.5*s,.07*s,'#6b4423');
-    circ(x-.42*s,y-.38*s,.03*s,'#111'); circ(x-.33*s,y-.38*s,.03*s,'#111'); ctx.fillStyle='#fff'; if(s>30){ ctx.font=Math.round(.25*s)+'px Arial'; ctx.fillText('z',x+.2*s,y-.55*s); } return; }
+  if(o.type==='stuhl'){ const [x,y]=proj(lx,0,z), u=k; // oranger Plastikstuhl
+    ctx.fillStyle='#b8461a'; ctx.fillRect(x-.36*u,y-.47*u,.06*u,.47*u); ctx.fillRect(x+.30*u,y-.47*u,.06*u,.47*u);
+    ctx.fillStyle='#d9541e'; ctx.fillRect(x-.28*u,y-.47*u,.05*u,.42*u); ctx.fillRect(x+.23*u,y-.47*u,.05*u,.42*u);
+    ctx.fillStyle='#f07a2a'; rr(x-.42*u,y-.55*u,.84*u,.1*u,.04*u); ctx.fill();
+    ctx.fillStyle='#ff8c32'; rr(x-.38*u,y-1.02*u,.76*u,.42*u,.12*u); ctx.fill();
+    ctx.fillStyle='#d9541e'; rr(x-.38*u,y-.64*u,.76*u,.05*u,.02*u); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.35)'; rr(x-.3*u,y-.97*u,.25*u,.08*u,.04*u); ctx.fill();
+    if(o.hit){ ctx.globalAlpha=.4; ctx.fillStyle='#fff'; ctx.fillRect(x-.42*u,y-1.02*u,.84*u,1.02*u); ctx.globalAlpha=1; }
+    return; }
   if(o.type==='zug'){ const zf=Math.max(ZN,z), zb=Math.min(ZF,zOf(o.s+o.len)); if(zb<=zf) return;
     const sd = lx<0?1:lx>0?-1:(G.X<0?-1:1); // sichtbare Seite zur Mitte
     poly([proj(lx+sd*1.0,0,zf),proj(lx+sd*1.0,3.0,zf),proj(lx+sd*1.0,3.0,zb),proj(lx+sd*1.0,0,zb)],'#c9ced8');
@@ -811,6 +893,16 @@ function drawMatias(){
   // Skateboard
   ctx.fillStyle='#222'; circ(-.32*k,0,.07*k,'#222'); circ(.32*k,0,.07*k,'#222');
   ctx.fillStyle='#e85d2a'; rr(-.5*k,-.13*k,1.0*k,.09*k,.04*k); ctx.fill();
+  // Düsen mit Dampf
+  const alpha0=ctx.globalAlpha;
+  [-.44,.44].forEach((nx,ni)=>{
+    const n=ruhig()?2:6, staerke=G.h>0?1.5:1;
+    for(let i=0;i<n;i++){ const ph=ruhig()?(i+1)/(n+1):((G.t*2.6+i/n+ni*.13)%1);
+      ctx.globalAlpha=alpha0*Math.max(0,(1-ph)*.55);
+      circ(nx*k+Math.sign(nx)*ph*.22*k, (-.02+ph*.38*staerke)*k, (.05+ph*.17)*k, '#e8eef5'); }
+    ctx.globalAlpha=alpha0;
+    ctx.fillStyle='#6b7280'; rr(nx*k-.06*k,-.07*k,.12*k,.09*k,.03*k); ctx.fill();
+    circ(nx*k,0,.035*k,'#ffb347'); });
   const hb = duck ? .55 : 1;
   // Beine
   ctx.fillStyle='#2c3e66'; ctx.fillRect(-.22*k,-(.13+.75*hb)*k,.17*k,.75*hb*k); ctx.fillRect(.05*k,-(.13+.75*hb)*k,.17*k,.75*hb*k);
@@ -929,7 +1021,7 @@ function renderModus(lv, saved){
 function steuerCard(){
   return '<section class="card narrow"><h2>So spielst du</h2><div class="keys">'+
     '<span><kbd>←</kbd> <kbd>→</kbd></span><span>Spur wechseln (links, Mitte, rechts)</span>'+
-    '<span><kbd>↑</kbd> / <kbd>Leertaste</kbd></span><span>springen – über Absperrungen und Hunde</span>'+
+    '<span><kbd>↑</kbd> / <kbd>Leertaste</kbd></span><span>springen – über Absperrungen und Stühle</span>'+
     '<span><kbd>↓</kbd></span><span>ducken – unter rot-weißen Schildern durch</span>'+
     '<span>📱 Tablet</span><span>wischen (links, rechts, hoch, runter) oder die Knöpfe unter dem Bild</span>'+
     '<span><kbd>P</kbd> <kbd>Esc</kbd></span><span>Pause</span></div>'+
