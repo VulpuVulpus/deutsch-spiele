@@ -377,6 +377,28 @@ const LS_GAME = 'metroskater.spiel.v1', LS_SET = 'metroskater.einstellungen.v1',
 const TEMPI = [['langsam','🐢 langsam'],['normal','🛹 normal'],['schnell','⚡ schnell']];
 const TEMPO_ZIFFER = { langsam:1, normal:2, schnell:3 };
 const LANE_NAME = ['links','Mitte','rechts'];
+const LS_SAMML = 'metroskater.sammlung.v1';
+/* Belohnungen: werden mit der Gesamtzahl gesammelter Completos freigeschaltet */
+const BELOHNUNGEN = [
+  { id:'klassik',  typ:'board', ab:0,   name:'Klassik-Board',          emoji:'🛹' },
+  { id:'rot',      typ:'pulli', ab:0,   name:'Roter Pulli',            emoji:'🧥' },
+  { id:'weiss',    typ:'dampf', ab:0,   name:'Weißer Dampf',           emoji:'💨' },
+  { id:'keiner',   typ:'hut',   ab:0,   name:'Ohne Hut',               emoji:'🙂' },
+  { id:'fiestas',  typ:'board', ab:20,  name:'Fiestas-Patrias-Board',  emoji:'🇨🇱' },
+  { id:'bunt',     typ:'dampf', ab:40,  name:'Regenbogen-Dampf',       emoji:'🌈' },
+  { id:'azul',     typ:'pulli', ab:60,  name:'Blauer Pulli',           emoji:'💙' },
+  { id:'valpo',    typ:'board', ab:90,  name:'Valparaíso-Board',       emoji:'🏘️' },
+  { id:'chupalla', typ:'hut',   ab:120, name:'Chupalla (Huaso-Hut)',   emoji:'👒' },
+  { id:'gold',     typ:'board', ab:160, name:'Goldenes Board',         emoji:'🏆' },
+  { id:'golddampf',typ:'dampf', ab:200, name:'Goldener Dampf',         emoji:'✨' },
+  { id:'goldpulli',typ:'pulli', ab:250, name:'Goldener Pulli',         emoji:'🥇' },
+];
+const TYP_NAME = { board:'Skateboard', pulli:'Pulli', dampf:'Dampf', hut:'Hut' };
+function sammlung(){ let a=null; try{ a=JSON.parse(lsGet(LS_SAMML)||'null'); }catch(e){} a=a&&typeof a==='object'?a:{}; return Object.assign({ total:0, board:'klassik', pulli:'rot', dampf:'weiss', hut:'keiner' }, a); }
+function saveSammlung(a){ lsSet(LS_SAMML, JSON.stringify(a)); }
+function frei(item, a){ return (a||sammlung()).total>=item.ab; }
+function naechsteBelohnung(a){ return BELOHNUNGEN.filter(b=>b.ab>a.total).sort((x,y)=>x.ab-y.ab)[0]||null; }
+let SAMML=null;
 
 const app = document.getElementById('app');
 let state=null, view='start', settings={ sound:false, anim:true, tempo:'normal' };
@@ -490,9 +512,10 @@ function proj(X,h,z){ return [W/2+X*K/z, HY+(CAMH-h)*K/z]; }
 function sc(z){ return K/z; }
 
 function startFahrt(mode, level){
+  SAMML=sammlung();
   const lv=level||state.level;
   G={ mode, level:lv, d:0, v:0, X:0, lane:1, h:0, vh:0, duck:0, stumble:0, inv:0, slow:0, objs:[], stations:[], gate:null, q:null, t:0,
-      started:false, paused:false, modal:null, done:false, parts:[], hearts:E.endlos.herzen, okCount:0, wrongCount:0, score:0, completos:0,
+      started:false, paused:false, modal:null, done:false, parts:[], hearts:E.endlos.herzen, schild:false, okCount:0, wrongCount:0, score:0, completos:0,
       answered:0, stationNr:0, bannerT:0, lockUntil:0, pool:[], seq:0, lastSpawnEnd:12 };
   if(mode==='endlos'){ G.v=E.endlos.startV; G.pool=shuffle(items(lv).map(a=>a.id)); }
   else { G.v=tempoCfg().v; G.answered=state.pos; G.stationNr=Math.floor(state.pos/E.aufgabenProStation); }
@@ -538,7 +561,15 @@ function spawnHindernisse(a, b){
     lanes.forEach(ln=>{ const r=Math.random(); let type= r<.32?'barrera': r<.58?'balken': r<.78?'stuhl':'zug';
       if(type==='zug' && s+14>b) type='barrera';
       const len = type==='zug'?14 : .7; maxLen=Math.max(maxLen,len);
-      G.objs.push({ type, s, lane:ln, len, hit:false }); });
+      G.objs.push({ type, s, lane:ln, len, hit:false });
+      // Belohnung für Mutige: Completos über oder hinter dem Hindernis
+      if(Math.random()<.45){
+        if(type==='barrera'||type==='stuhl'){
+          if(Math.random()<.5){ [[-1.8,1.0],[0,1.55],[1.8,1.0]].forEach(([ds,hc])=>G.objs.push({ type:'completo', s:s+ds, lane:ln, hc })); }
+          else for(let k=1;k<=3;k++) G.objs.push({ type:'completo', s:s+1.6+k*2, lane:ln });
+        } else if(type==='balken'){ for(let k=0;k<3;k++) G.objs.push({ type:'completo', s:s-1.2+k*1.2, lane:ln, hc:.35 }); }
+        else if(type==='zug'){ for(let k=1;k<=3;k++) G.objs.push({ type:'completo', s:s+len+1+k*2, lane:ln }); }
+      } });
     if(Math.random()<.5){ for(let k=0;k<3;k++) G.objs.push({ type:'completo', s:s+k*2.2, lane:frei }); }
     if(Math.random()<.06) G.objs.push({ type:'mote', s:s+6, lane:frei });
     s+=maxLen;
@@ -572,7 +603,7 @@ function step(dt){
     if(!near || o.type==='gate') continue;
     const sameLane=Math.abs(G.X-LX[o.lane])<1.15;
     if(!sameLane) continue;
-    if(o.type==='completo'){ if(!o.got && G.h<1.6){ o.got=true; pickup(); } continue; }
+    if(o.type==='completo'){ const hc=o.hc||.55, ok = hc>0.9 ? G.h>0.55 : G.h<1.6; if(!o.got && ok){ o.got=true; pickup(); } continue; }
     if(o.type==='mote'){ if(!o.got){ o.got=true; G.slow=7; sound('mote'); toast('🥤 Mote con huesillo! Alles läuft kurz langsamer.',2200); } continue; }
     if(o.hit || G.inv>0) continue;
     let hit=false;
@@ -585,10 +616,22 @@ function step(dt){
 }
 function pickup(){
   G.completos++; if(G.mode!=='endlos'){ state.completos++; } else G.score+=10; sound('pick');
+  // dauerhafte Sammlung (Garage)
+  const a=sammlung(), vorher=a.total; a.total++;
+  const neu=BELOHNUNGEN.filter(b=>b.ab>vorher && b.ab<=a.total);
+  neu.forEach(b=>{ a[b.typ]=b.id; });
+  saveSammlung(a); SAMML=a;
+  if(neu.length){ sound('fanfare'); toast('🎉 Neu freigeschaltet: '+neu.map(b=>b.emoji+' '+b.name).join(', ')+'! (in der Garage auswählbar)', 3800); }
+  // alle 15 Completos auf einer Fahrt: Extra-Herz (Endlos) oder Schutzschild (Unterricht)
+  if(G.completos%15===0){
+    if(G.mode==='endlos'){ G.hearts=Math.min(5,G.hearts+1); if(!neu.length) toast('🌭×15 – Extra-Herz! ❤️ '+G.hearts,2200); }
+    else { G.schild=true; if(!neu.length) toast('🌭×15 – Schutzschild! 🛡️ Der nächste Zusammenstoß kostet nichts.',2600); }
+  }
   if(!ruhig()){ const [x,y]=proj(G.X,1,ZP); G.parts.push({ x, y:y-60, vx:0, vy:-60, g:0, life:.6, txt:'+1 🌭' }); }
   updateHud();
 }
 function crash(o){
+  if(G.schild){ G.schild=false; G.inv=1.2; sound('swish'); toast('🛡️ Der Schutzschild hat dich gerettet!',1800); burst(); return; }
   sound('crash'); G.stumble=.8; G.inv=1.2;
   const was = o.type==='zug'?'der Zug':o.type==='balken'?'das Schild':o.type==='stuhl'?'der Stuhl':'die Absperrung';
   const mitWem = o.type==='zug'?'dem Zug':o.type==='balken'?'dem Schild':o.type==='stuhl'?'dem Stuhl':'der Absperrung';
@@ -843,7 +886,7 @@ function drawGate(o,z){
 function drawObj(o,z){
   const k=sc(z), lx=o.lane!=null?LX[o.lane]:0;
   if(o.type==='gate') return drawGate(o,z);
-  if(o.type==='completo'){ if(o.got) return; const [x,y]=proj(lx,0.55+(ruhig()?0:Math.sin(G.t*4+o.s)*.08),z), w=.7*k, h=.28*k;
+  if(o.type==='completo'){ if(o.got) return; const [x,y]=proj(lx,(o.hc||0.55)+(ruhig()?0:Math.sin(G.t*4+o.s)*.08),z), w=.7*k, h=.28*k;
     ctx.fillStyle='#e8b56a'; ctx.beginPath(); ctx.ellipse(x,y+h*.2,w/2,h/2,0,0,Math.PI*2); ctx.fill();
     ctx.fillStyle='#9c4a2e'; ctx.beginPath(); ctx.ellipse(x,y-h*.05,w*.55,h*.25,0,0,Math.PI*2); ctx.fill();
     ctx.fillStyle='#8ccf5a'; ctx.beginPath(); ctx.ellipse(x,y-h*.25,w*.42,h*.18,0,0,Math.PI*2); ctx.fill();
@@ -883,6 +926,17 @@ function drawObj(o,z){
     if(k>20){ ctx.fillStyle='#fff'; ctx.font='bold '+Math.round(k*.28)+'px Arial'; ctx.textAlign='center'; ctx.fillText('L1',(a[0]+b[0])/2,w1[1]-k*.1); ctx.textAlign='left'; }
     return; }
 }
+function board(id,k){
+  if(id==='fiestas'){ ctx.fillStyle='#fff'; rr(-.5*k,-.13*k,1.0*k,.09*k,.04*k); ctx.fill(); ctx.fillStyle='#0039a6'; ctx.fillRect(-.5*k,-.13*k,.3*k,.045*k); ctx.fillStyle='#d52b1e'; ctx.fillRect(-.5*k,-.085*k,1.0*k,.045*k); ctx.fillStyle='#fff'; ctx.font=Math.round(.06*k)+'px Arial'; ctx.fillText('★',-.39*k,-.088*k); return; }
+  if(id==='valpo'){ const C=['#e74c3c','#f1c40f','#3498db','#9b59b6','#1abc9c','#e67e22']; for(let i=0;i<6;i++){ ctx.fillStyle=C[i]; ctx.fillRect((-.5+i/6)*k,-.13*k,k/6+1,.09*k); } return; }
+  if(id==='gold'){ const g=ctx.createLinearGradient(-.5*k,0,.5*k,0); g.addColorStop(0,'#b8860b'); g.addColorStop(.5,'#ffe27a'); g.addColorStop(1,'#b8860b'); ctx.fillStyle=g; rr(-.5*k,-.13*k,1.0*k,.09*k,.04*k); ctx.fill(); return; }
+  ctx.fillStyle='#e85d2a'; rr(-.5*k,-.13*k,1.0*k,.09*k,.04*k); ctx.fill();
+}
+function dampfFarbe(id,i,ph){
+  if(id==='bunt') return ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff','#ff9f1c'][i%6];
+  if(id==='golddampf') return i%2?'#ffe27a':'#fff3c4';
+  return '#e8eef5';
+}
 function drawMatias(){
   const k=sc(ZP), [x,yg]=proj(G.X,G.h,ZP), lean=clamp((LX[G.lane]-G.X)*.18,-.25,.25), duck=G.duck>0;
   ctx.save(); ctx.translate(x,yg);
@@ -892,14 +946,15 @@ function drawMatias(){
   ctx.rotate(lean);
   // Skateboard
   ctx.fillStyle='#222'; circ(-.32*k,0,.07*k,'#222'); circ(.32*k,0,.07*k,'#222');
-  ctx.fillStyle='#e85d2a'; rr(-.5*k,-.13*k,1.0*k,.09*k,.04*k); ctx.fill();
+  const SM=SAMML||sammlung();
+  board(SM.board,k);
   // Düsen mit Dampf
   const alpha0=ctx.globalAlpha;
   [-.44,.44].forEach((nx,ni)=>{
     const n=ruhig()?2:6, staerke=G.h>0?1.5:1;
     for(let i=0;i<n;i++){ const ph=ruhig()?(i+1)/(n+1):((G.t*2.6+i/n+ni*.13)%1);
       ctx.globalAlpha=alpha0*Math.max(0,(1-ph)*.55);
-      circ(nx*k+Math.sign(nx)*ph*.22*k, (-.02+ph*.38*staerke)*k, (.05+ph*.17)*k, '#e8eef5'); }
+      circ(nx*k+Math.sign(nx)*ph*.22*k, (-.02+ph*.38*staerke)*k, (.05+ph*.17)*k, dampfFarbe(SM.dampf,i,ph)); }
     ctx.globalAlpha=alpha0;
     ctx.fillStyle='#6b7280'; rr(nx*k-.06*k,-.07*k,.12*k,.09*k,.03*k); ctx.fill();
     circ(nx*k,0,.035*k,'#ffb347'); });
@@ -909,13 +964,18 @@ function drawMatias(){
   ctx.fillStyle='#f2f2f2'; ctx.fillRect(-.25*k,-.2*k,.22*k,.08*k); ctx.fillRect(.03*k,-.2*k,.22*k,.08*k);
   const yb=-(.13+.75*hb)*k;
   // Körper (Kapuzenpulli) und Rucksack
-  ctx.fillStyle='#c8102e'; rr(-.3*k,yb-.62*k,.6*k,.66*k,.12*k); ctx.fill();
+  const PF={ rot:['#c8102e','#c8102e'], azul:['#1f4fb8','#1f4fb8'], goldpulli:['#e0b030','#c9971c'] }[SM.pulli]||['#c8102e','#c8102e'];
+  ctx.fillStyle=PF[0]; rr(-.3*k,yb-.62*k,.6*k,.66*k,.12*k); ctx.fill();
   ctx.fillStyle='#1f5fa8'; rr(-.22*k,yb-.55*k,.44*k,.42*k,.08*k); ctx.fill(); ctx.fillStyle='#174a85'; ctx.fillRect(-.16*k,yb-.3*k,.32*k,.05*k);
   // Arme
-  ctx.strokeStyle='#c8102e'; ctx.lineWidth=.13*k; ctx.lineCap='round'; const sw=ruhig()?0:Math.sin(G.t*6)*.08*k;
+  ctx.strokeStyle=PF[1]; ctx.lineWidth=.13*k; ctx.lineCap='round'; const sw=ruhig()?0:Math.sin(G.t*6)*.08*k;
   ctx.beginPath(); ctx.moveTo(-.28*k,yb-.5*k); ctx.lineTo(-.48*k,yb-.15*k+sw); ctx.moveTo(.28*k,yb-.5*k); ctx.lineTo(.48*k,yb-.15*k-sw); ctx.stroke();
   // Kopf von hinten
   circ(0,yb-.78*k,.2*k,'#d9a07a'); circ(0,yb-.82*k,.2*k,'#1e1e1e'); ctx.fillStyle='#1e1e1e'; ctx.fillRect(-.2*k,yb-.82*k,.4*k,.08*k);
+  if(SM.hut==='chupalla'){ ctx.fillStyle='#e6c56b'; ctx.beginPath(); ctx.ellipse(0,yb-.9*k,.42*k,.09*k,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#d8b456'; rr(-.18*k,yb-1.12*k,.36*k,.24*k,.08*k); ctx.fill(); ctx.fillStyle='#1e1e1e'; ctx.fillRect(-.18*k,yb-.97*k,.36*k,.05*k); }
+  if(G.schild){ ctx.globalAlpha=(ruhig()?.25:.18+.08*Math.sin(G.t*6)); ctx.strokeStyle='#7ee0ff'; ctx.lineWidth=.06*k; ctx.fillStyle='#7ee0ff';
+    ctx.beginPath(); ctx.ellipse(0,yb-.25*k,.75*k,1.05*k,0,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=.8; ctx.stroke(); ctx.globalAlpha=1; }
   ctx.restore(); ctx.globalAlpha=1;
 }
 function draw(){
@@ -928,7 +988,7 @@ function draw(){
   list.forEach(e=>{ if(e.o) drawObj(e.o,e.z); else drawMatias(); });
   G.parts.forEach(q=>{ ctx.globalAlpha=Math.max(0,Math.min(1,q.life*1.6)); if(q.txt){ ctx.font='bold 24px Arial'; ctx.fillStyle='#ffd23f'; ctx.fillText(q.txt,q.x-20,q.y); } else circ(q.x,q.y,4,q.c); ctx.globalAlpha=1; });
   if(G.slow>0){ ctx.fillStyle='rgba(255,180,71,.12)'; ctx.fillRect(0,0,W,H); ctx.font='bold 20px Arial'; ctx.fillStyle='#ffb347'; ctx.fillText('🥤 '+Math.ceil(G.slow),16,H-16); }
-  if(G.mode==='endlos'){ ctx.font='24px Arial'; for(let i=0;i<E.endlos.herzen;i++){ ctx.globalAlpha=i<G.hearts?1:.25; ctx.fillText('❤️',W-40-i*32,36); } ctx.globalAlpha=1;
+  if(G.mode==='endlos'){ ctx.font='24px Arial'; for(let i=0;i<Math.max(E.endlos.herzen,G.hearts);i++){ ctx.globalAlpha=i<G.hearts?1:.25; ctx.fillText('❤️',W-40-i*32,36); } ctx.globalAlpha=1;
     ctx.font='bold 22px Arial'; ctx.fillStyle='#fff'; ctx.textAlign='right'; ctx.fillText(Math.round(G.d)+' m · '+(G.score+Math.round(G.d))+' P',W-16,68); ctx.textAlign='left'; }
   else { ctx.font='bold 22px Arial'; ctx.fillStyle='#ffd23f'; ctx.textAlign='right'; ctx.fillText('🌭 '+state.completos,W-16,36); ctx.textAlign='left'; }
 }
@@ -993,11 +1053,12 @@ function renderStart(){
   h+='<section class="card narrow"><h2>Wähle dein Niveau</h2><div class="levels">'+LEVELS.map(lv=>{ const S=SPIEL[lv];
       return S ? '<button type="button" class="level" data-l="'+lv+'"><span class="lv">'+lv+'</span><span class="lt">'+esc(S.titel)+'</span><span class="lo">'+esc(S.schwerpunkt||'')+'</span>'+(rek[lv]?'<span class="lo">♾️ Rekord: '+rek[lv]+' P</span>':'')+'</button>'
                : '<button type="button" class="level" disabled><span class="lv">'+lv+'</span><span class="lt">🔒 kommt bald</span></button>'; }).join('')+'</div></section>';
+  h+=garageCard();
   h+=steuerCard();
   h+='<p class="small center"><a href="#lehrer">Für Lehrkräfte: Prüfcode kontrollieren und alle Aufgaben ansehen</a></p>';
   app.innerHTML=h;
   try{ $('#heroArt').appendChild(heroArt()); }catch(e){}
-  bindTempo();
+  bindTempo(); bindGarage();
   if($('#btnCont')) $('#btnCont').addEventListener('click',()=>{ state=saved; view='game'; render(); });
   if($('#btnDiscard')) $('#btnDiscard').addEventListener('click',()=>bestaetigen('Das gespeicherte Spiel wird gelöscht. Wirklich neu beginnen?', ()=>{ lsDel(LS_GAME); state=null; render(); }));
   $$('.level[data-l]').forEach(b=>b.addEventListener('click',()=>{ renderModus(b.dataset.l, saved); window.scrollTo(0,0); }));
@@ -1018,6 +1079,17 @@ function renderModus(lv, saved){
   $('#btnBack').addEventListener('click',()=>{ view='start'; render(); });
   focusEl('#mUnt');
 }
+function garageCard(){
+  const a=sammlung(), n=naechsteBelohnung(a), prev=BELOHNUNGEN.filter(b=>b.ab<=a.total).reduce((m,b)=>Math.max(m,b.ab),0);
+  const pct=n?Math.round((a.total-prev)/(n.ab-prev)*100):100;
+  return '<section class="card narrow" id="garage"><h2>🏠 Matías’ Garage</h2><p>Gesammelte Completos insgesamt: <strong>🌭 '+a.total+'</strong>'+(n?' · nächste Belohnung bei '+n.ab+': '+n.emoji+' '+esc(n.name):' · Alles freigeschaltet! 🏆')+'</p>'+
+    '<div class="bar" style="height:10px;border-radius:5px;background:#2a3264;overflow:hidden;margin:.2em 0 .7em"><div style="height:100%;width:'+pct+'%;background:var(--accent)"></div></div>'+
+    ['board','pulli','dampf','hut'].map(t=>'<p class="small muted" style="margin:.3em 0">'+TYP_NAME[t]+':</p><div class="tempo">'+BELOHNUNGEN.filter(b=>b.typ===t).map(b=>{ const f=frei(b,a);
+      return '<button type="button" class="gitem" data-t="'+t+'" data-id="'+b.id+'" aria-pressed="'+(a[t]===b.id)+'"'+(f?'':' disabled title="ab '+b.ab+' Completos"')+'>'+b.emoji+' '+esc(b.name)+(f?'':' 🔒 '+b.ab)+'</button>'; }).join('')+'</div>').join('')+
+    '<p class="small muted" style="margin-top:.6em">Während der Fahrt: alle 15 Completos gibt es ein Extra-Herz (Endlos) oder einen Schutzschild 🛡️ (Unterricht). Completos hinter Hindernissen sind mutig zu holen!</p></section>';
+}
+function bindGarage(){ $$('#garage .gitem').forEach(b=>b.addEventListener('click',()=>{ const a=sammlung(); a[b.dataset.t]=b.dataset.id; saveSammlung(a); SAMML=a;
+  $$('#garage .gitem[data-t="'+b.dataset.t+'"]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); sound('pick'); })); }
 function steuerCard(){
   return '<section class="card narrow"><h2>So spielst du</h2><div class="keys">'+
     '<span><kbd>←</kbd> <kbd>→</kbd></span><span>Spur wechseln (links, Mitte, rechts)</span>'+
